@@ -5,23 +5,29 @@ import { prisma } from "@/lib/db";
 import { BusinessType, UserRole } from "@/lib/types";
 
 interface RegisterData {
-  businessName: string;
-  businessType: BusinessType; // Primary business type
-  businessTypes?: string[]; // Multiple service types
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  address?: string;
-  city: string;
-  district: string;
-  // KVKK and consent fields
-  kvkkConsent?: boolean;
-  privacyConsent?: boolean;
-  termsConsent?: boolean;
-  marketingConsent?: boolean;
-  consentDate?: string;
+  user: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    phone?: string;
+  };
+  business: {
+    name: string;
+    type: BusinessType; // Primary business type
+    types: string[]; // Multiple service types
+    phone?: string;
+    address?: string;
+    city: string;
+    district: string;
+  };
+  consents: {
+    kvkk: boolean;
+    privacy: boolean;
+    terms: boolean;
+    marketing: boolean;
+    consentDate: string;
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -29,36 +35,38 @@ export async function POST(request: NextRequest) {
     const data: RegisterData = await request.json();
 
     console.log("[REGISTER] Registration attempt:", {
-      email: data.email,
-      businessName: data.businessName,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      city: data.city,
-      district: data.district,
+      email: data.user.email,
+      businessName: data.business.name,
+      firstName: data.user.firstName,
+      lastName: data.user.lastName,
+      city: data.business.city,
+      district: data.business.district,
+      businessTypes: data.business.types,
     });
 
     // Validate required fields
     if (
-      !data.businessName ||
-      !data.businessType ||
-      !data.email ||
-      !data.password ||
-      !data.firstName ||
-      !data.lastName ||
-      !data.city ||
-      !data.district
+      !data.business.name ||
+      !data.business.type ||
+      !data.user.email ||
+      !data.user.password ||
+      !data.user.firstName ||
+      !data.user.lastName ||
+      !data.business.city ||
+      !data.business.district ||
+      !data.business.types?.length
     ) {
       return NextResponse.json(
         {
           error:
-            "Tüm zorunlu alanlar doldurulmalıdır (İşletme adı, iş türü, e-posta, şifre, ad, soyad, il ve ilçe)",
+            "Tüm zorunlu alanlar doldurulmalıdır (İşletme adı, hizmet türleri, e-posta, şifre, ad, soyad, il ve ilçe)",
         },
         { status: 400 }
       );
     }
 
     // Validate KVKK consents - these are required by law
-    if (!data.kvkkConsent || !data.privacyConsent || !data.termsConsent) {
+    if (!data.consents.kvkk || !data.consents.privacy || !data.consents.terms) {
       return NextResponse.json(
         {
           error:
@@ -69,16 +77,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("[REGISTER] KVKK Consent validation passed:", {
-      kvkkConsent: data.kvkkConsent,
-      privacyConsent: data.privacyConsent,
-      termsConsent: data.termsConsent,
-      marketingConsent: data.marketingConsent,
-      consentDate: data.consentDate,
+      kvkkConsent: data.consents.kvkk,
+      privacyConsent: data.consents.privacy,
+      termsConsent: data.consents.terms,
+      marketingConsent: data.consents.marketing,
+      consentDate: data.consents.consentDate,
     });
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: data.email },
+      where: { email: data.user.email },
     });
 
     if (existingUser) {
@@ -90,48 +98,69 @@ export async function POST(request: NextRequest) {
 
     // Hash password
     const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(data.password, saltRounds);
+    const passwordHash = await bcrypt.hash(data.user.password, saltRounds);
 
     // TypeScript hatalarını bypass ederek çalışan bir çözüm
     const result = await (prisma as any).$transaction(async (tx: any) => {
       // Create business first
       const business = await tx.business.create({
         data: {
-          name: data.businessName,
-          businessType: data.businessType,
-          email: data.email,
-          phone: data.phone,
-          address: data.address,
-          city: data.city,
-          district: data.district,
+          name: data.business.name,
+          businessType: data.business.type,
+          email: data.user.email,
+          phone: data.business.phone,
+          address: data.business.address,
+          city: data.business.city,
+          district: data.business.district,
         },
       });
 
+      // Create business service types for multiple services
+      if (data.business.types && data.business.types.length > 0) {
+        const serviceTypePromises = data.business.types.map((serviceType) =>
+          tx.businessServiceType.create({
+            data: {
+              businessId: business.id,
+              serviceType: serviceType,
+              isActive: true,
+            },
+          })
+        );
+        await Promise.all(serviceTypePromises);
+
+        console.log(
+          "[REGISTER] Created business service types:",
+          data.business.types
+        );
+      }
+
       // Resolve RBAC role for OWNER (fallback-safe)
-      const ownerRole = await tx.role.findUnique({
-        where: { name: "OWNER" },
-        select: { id: true },
-      }).catch(() => null);
+      const ownerRole = await tx.role
+        .findUnique({
+          where: { name: "OWNER" },
+          select: { id: true },
+        })
+        .catch(() => null);
 
       // Create owner user with business relationship and RBAC roleId
       const user = await tx.user.create({
         data: {
-          email: data.email,
+          email: data.user.email,
           passwordHash,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          phone: data.phone,
+          firstName: data.user.firstName,
+          lastName: data.user.lastName,
+          phone: data.user.phone,
           role: UserRole.OWNER,
           businessId: business.id,
           // RBAC role mapping
           roleId: ownerRole?.id || null,
           // Store KVKK consent metadata in user record
-          kvkkConsent: data.kvkkConsent || false,
-          privacyConsent: data.privacyConsent || false,
-          termsConsent: data.termsConsent || false,
-          marketingConsent: data.marketingConsent || false,
-          consentDate: data.consentDate
-            ? new Date(data.consentDate)
+          kvkkConsent: data.consents.kvkk || false,
+          privacyConsent: data.consents.privacy || false,
+          termsConsent: data.consents.terms || false,
+          marketingConsent: data.consents.marketing || false,
+          consentDate: data.consents.consentDate
+            ? new Date(data.consents.consentDate)
             : new Date(),
         },
       });
@@ -139,11 +168,11 @@ export async function POST(request: NextRequest) {
       // Log consent information for audit trail
       console.log("[REGISTER] KVKK consents recorded:", {
         userId: user.id,
-        kvkkConsent: data.kvkkConsent,
-        privacyConsent: data.privacyConsent,
-        termsConsent: data.termsConsent,
-        marketingConsent: data.marketingConsent,
-        consentDate: data.consentDate,
+        kvkkConsent: data.consents.kvkk,
+        privacyConsent: data.consents.privacy,
+        termsConsent: data.consents.terms,
+        marketingConsent: data.consents.marketing,
+        consentDate: data.consents.consentDate,
       });
 
       return { business, user };
@@ -155,6 +184,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       email: user.email,
       businessId: business.id,
+      serviceTypes: data.business.types,
     });
 
     // Create JWT token
@@ -169,7 +199,9 @@ export async function POST(request: NextRequest) {
       { expiresIn: "7d" }
     );
 
-    console.log("[REGISTER] Registration completed successfully");
+    console.log(
+      "[REGISTER] Registration completed successfully with multiple service types"
+    );
 
     // Return success response
     return NextResponse.json(
@@ -185,6 +217,7 @@ export async function POST(request: NextRequest) {
             id: business.id,
             name: business.name,
             businessType: business.businessType,
+            serviceTypes: data.business.types,
             email: business.email,
             phone: business.phone,
             address: business.address,
