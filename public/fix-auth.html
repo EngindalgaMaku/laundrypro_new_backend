@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Authentication</title>
+</head>
+<body>
+    <h1>Fixing Authentication Issue...</h1>
+    <div id="status">Clearing invalid token...</div>
+    
+    <script>
+        console.log("🔧 Clearing stale authentication token...");
+        
+        // Clear all possible token storage locations
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('auth_token');
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Clear cookies
+        document.cookie.split(";").forEach(function(c) { 
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+        
+        document.getElementById('status').innerHTML = '✅ Token cleared! Redirecting to login...';
+        
+        // Redirect to login
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 2000);
+    </script>
+</body>
+</html>

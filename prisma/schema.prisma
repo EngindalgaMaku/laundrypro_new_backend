@@ -1,0 +1,1279 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Subscription model (one-to-one per business)
+model Subscription {
+  id            String   @id @default(cuid())
+  businessId    String   @unique @map("business_id")
+  plan          Plan     @default(FREE)
+  provider      String?  // revenuecat, google_play, stripe
+  productId     String?  @map("product_id")
+  status        String   @default("active") // active, trialing, grace_period, canceled
+  periodEnd     DateTime? @map("period_end")
+  trialEnd      DateTime? @map("trial_end")
+  lastVerifiedAt DateTime? @map("last_verified_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  OWNER
+  MANAGER
+  EMPLOYEE
+  DRIVER
+}
+
+// ==========================================
+// RBAC (Role-Based Access Control) MODELS
+// ==========================================
+
+// Permission definitions
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique // e.g., "customers:create", "orders:read"
+  category    String   // e.g., "CUSTOMERS", "ORDERS", "INVOICES"
+  action      String   // e.g., "CREATE", "READ", "UPDATE", "DELETE"
+  resource    String   // e.g., "customer", "order", "invoice"
+  description String?
+  conditions  String?  @db.Text // JSON conditions for conditional permissions
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+
+  @@index([category, action])
+  @@index([resource])
+  @@map("permissions")
+}
+
+// Enhanced Role model (replaces UserRole enum usage)
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique // OWNER, MANAGER, EMPLOYEE, DRIVER
+  displayName String   @map("display_name") // "İşletme Sahibi", "Yönetici", etc.
+  level       Int      // 4, 3, 2, 1 for hierarchy (4 = highest authority)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  isSystem    Boolean  @default(true) @map("is_system") // System roles vs custom roles
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  permissions RolePermission[]
+  users       User[]
+
+  @@map("roles")
+}
+
+// Role-Permission mapping
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String     @map("role_id")
+  permissionId String     @map("permission_id")
+  conditions   String?    @db.Text // JSON conditions for conditional permissions
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// User session tracking for security
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  sessionId    String   @unique @map("session_id")
+  deviceInfo   String?  @map("device_info") @db.Text
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent") @db.Text
+  lastActivity DateTime @map("last_activity")
+  expiresAt    DateTime @map("expires_at")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([sessionId, isActive])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+// Permission audit log
+model PermissionAuditLog {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  action      String   // "GRANTED", "DENIED", "ACCESSED"
+  resource    String   // "customers", "orders", etc.
+  resourceId  String?  @map("resource_id") // Specific record ID
+  permission  String   // "customers:create", "orders:read"
+  result      String   // "GRANTED", "DENIED"
+  metadata    String?  @db.Text // JSON additional data
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([resource, action])
+  @@map("permission_audit_logs")
+}
+
+enum BusinessType {
+  LAUNDRY
+  DRY_CLEANING
+  CARPET_CLEANING
+  UPHOLSTERY_CLEANING
+  CURTAIN_CLEANING
+  OTHER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  READY_FOR_PICKUP
+  READY_FOR_DELIVERY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  REFUNDED
+  CANCELLED
+}
+
+enum ServiceCategory {
+  LAUNDRY
+  DRY_CLEANING
+  CARPET_CLEANING
+  UPHOLSTERY_CLEANING
+  CURTAIN_CLEANING
+  IRONING
+  STAIN_REMOVAL
+  OTHER
+}
+
+enum PricingType {
+  FIXED        // Sabit fiyat
+  PER_ITEM     // Parça başına
+  PER_KG       // Kilo başına
+  PER_M2       // Metrekare başına
+  HOURLY       // Saatlik
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  BANK_TRANSFER
+  MOBILE_PAYMENT
+}
+
+// Subscriptions / Plans
+enum Plan {
+  FREE
+  PRO
+}
+
+// Carpet/Upholstery Cleaning Specific Enums
+enum FabricTypeCategory {
+  CARPET          // Halı
+  UPHOLSTERY      // Koltuk
+  CURTAIN         // Perde
+  RUG             // Kilim
+  CUSHION         // Yastık
+  MATTRESS        // Yatak
+}
+
+enum FabricMaterial {
+  WOOL            // Yün
+  COTTON          // Pamuk
+  SYNTHETIC       // Sentetik
+  SILK            // İpek
+  LEATHER         // Deri
+  FAUX_LEATHER    // Suni deri
+  MICROFIBER      // Mikrofiber
+  VELVET          // Kadife
+  LINEN           // Keten
+  JUTE            // Jüt
+  MIXED           // Karışık
+}
+
+enum StainType {
+  ORGANIC         // Organik (kan, ter, idrar)
+  FOOD_BEVERAGE   // Yiyecek-İçecek (çay, kahve, şarap)
+  CHEMICAL        // Kimyasal (mürekkep, boya)
+  DIRT_MUD        // Toprak-Çamur
+  GREASE_OIL      // Yağ
+  UNKNOWN         // Bilinmeyen
+}
+
+enum StainSeverity {
+  LIGHT           // Hafif
+  MODERATE        // Orta
+  HEAVY           // Ağır
+  EXTREME         // Aşırı
+}
+
+enum TreatmentStep {
+  PRE_TREATMENT   // Ön işlem
+  MAIN_WASH       // Ana yıkama
+  STAIN_REMOVAL   // Leke giderme
+  RINSING         // Durulama
+  DRYING          // Kurutma
+  FINAL_INSPECTION // Son kontrol
+}
+
+enum InspectionStatus {
+  PENDING         // Beklemede
+  IN_PROGRESS     // Devam ediyor
+  COMPLETED       // Tamamlandı
+  REQUIRES_APPROVAL // Onay bekliyor
+}
+
+enum PhotoType {
+  BEFORE          // Öncesi
+  AFTER           // Sonrası
+  DAMAGE          // Hasar
+  PROGRESS        // Süreç
+  QUALITY_PROOF   // Kalite kanıtı
+}
+
+enum QualityScore {
+  POOR
+  FAIR
+  AVERAGE
+  GOOD
+  EXCELLENT
+}
+
+enum EInvoiceStatus {
+  DRAFT              // Taslak
+  CREATED            // Oluşturuldu
+  SIGNED             // İmzalandı
+  SENT               // GIB'e gönderildi
+  ACCEPTED           // GIB tarafından kabul edildi
+  REJECTED           // GIB tarafından reddedildi
+  CANCELLED          // İptal edildi
+  ARCHIVED           // Arşivlendi
+}
+
+// Route Planning Enums
+enum RouteType {
+  PICKUP_ONLY     // Sadece teslim alma rotası
+  DELIVERY_ONLY   // Sadece teslim rotası
+  MIXED           // Karma rota (teslim alma + teslim)
+  RETURN          // Geri dönüş rotası
+}
+
+enum RouteStatus {
+  PLANNED         // Planlandı
+  ASSIGNED        // Sürücüye atandı
+  IN_PROGRESS     // Devam ediyor
+  PAUSED          // Durduruldu
+  COMPLETED       // Tamamlandı
+  CANCELLED       // İptal edildi
+}
+
+enum StopType {
+  PICKUP          // Teslim alma durağı
+  DELIVERY        // Teslim durağı
+  DEPOT           // Depo/başlangıç noktası
+  BREAK           // Mola durağı
+}
+
+enum VehicleStatus {
+  AVAILABLE       // Müsait
+  IN_USE          // Kullanımda
+  MAINTENANCE     // Bakımda
+  OUT_OF_SERVICE  // Hizmet dışı
+  RETIRED         // Emekli
+}
+
+enum StopStatus {
+  PENDING         // Beklemede
+  EN_ROUTE        // Yolda
+  ARRIVED         // Varış
+  IN_PROGRESS     // İşlem devam ediyor
+  COMPLETED       // Tamamlandı
+  FAILED          // Başarısız
+  SKIPPED         // Atlandı
+}
+
+// Business/Company model
+model Business {
+  id          String      @id @default(cuid())
+  name        String
+  businessType BusinessType
+  email       String?
+  phone       String?
+  address     String?
+  city        String?     // Required city field
+  district    String?     // Required district field
+  description String?     // Business description
+  latitude    Float?      // GPS coordinates
+  longitude   Float?      // GPS coordinates
+  taxNumber   String?     @map("tax_number")
+  isActive    Boolean     @default(true) @map("is_active")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  users       User[]
+  customers   Customer[]
+  services    Service[]
+  servicePricings ServicePricing[]
+  orders      Order[]
+  notificationTemplates NotificationTemplate[]
+  whatsappTemplates WhatsAppTemplate[]
+  whatsappSettings WhatsAppSettings?
+  eInvoiceSettings EInvoiceSettings?
+  eInvoices   EInvoice[]
+  invoices    Invoice[] // Basic invoices
+  businessServiceTypes BusinessServiceType[] // Multiple service types
+  
+  // Route Planning Relations
+  vehicles      Vehicle[]
+  deliveryZones DeliveryZone[]
+  routes        Route[]
+
+  // Subscription (one-to-one)
+  subscription Subscription?
+
+  @@map("businesses")
+}
+
+// Junction table for business service types
+model BusinessServiceType {
+  id         String   @id @default(cuid())
+  businessId String   @map("business_id")
+  serviceType String  @map("service_type") // Will store service type codes like "LAUNDRY", "DRY_CLEANING"
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, serviceType])
+  @@map("business_service_types")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  businessId   String?  @map("business_id")
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  phone        String?
+  
+  // RBAC Enhancement: Replace role enum with roleId reference
+  role         UserRole @default(EMPLOYEE) // Keep for backward compatibility during transition
+  roleId       String?  @map("role_id")
+  customPermissions String? @map("custom_permissions") @db.Text // JSON override permissions
+  
+  isActive     Boolean  @default(true) @map("is_active")
+  lastLogin    DateTime? @map("last_login")
+  
+  // Security enhancements
+  lastPasswordChange DateTime? @map("last_password_change")
+  failedLoginAttempts Int     @default(0) @map("failed_login_attempts")
+  lockedUntil        DateTime? @map("locked_until")
+  twoFactorEnabled   Boolean  @default(false) @map("two_factor_enabled")
+  twoFactorSecret    String?  @map("two_factor_secret")
+  
+  // KVKK and Consent Fields
+  kvkkConsent    Boolean  @default(false) @map("kvkk_consent")
+  privacyConsent Boolean  @default(false) @map("privacy_consent")
+  termsConsent   Boolean  @default(false) @map("terms_consent")
+  marketingConsent Boolean @default(false) @map("marketing_consent")
+  consentDate    DateTime? @map("consent_date")
+  
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Enhanced relations
+  business       Business? @relation(fields: [businessId], references: [id])
+  rbacRole       Role?    @relation(fields: [roleId], references: [id])
+  sessions       UserSession[]
+  auditLogs      PermissionAuditLog[]
+  
+  // Existing relations
+  assignedOrders Order[] @relation("AssignedUser")
+  statusChanges  OrderStatusHistory[]
+  
+  // Route Planning Relations
+  assignedVehicle    Vehicle? @relation("DriverVehicle")
+  routeAssignments   RouteAssignment[] @relation("RouteDriver")
+  createdAssignments RouteAssignment[] @relation("RouteAssigner")
+  trackingLogs       VehicleTrackingLog[] @relation("DriverTracking")
+
+  @@map("users")
+}
+
+model Customer {
+  id              String   @id @default(cuid())
+  businessId      String   @map("business_id")
+  firstName       String   @map("first_name")
+  lastName        String   @map("last_name")
+  email           String?
+  phone           String
+  whatsapp        String?
+  whatsappVerified Boolean  @default(false) @map("whatsapp_verified")
+  address         String?
+  city            String?  // City field (should match business city)
+  district        String?  // District field
+  latitude        Float?   // GPS coordinates
+  longitude       Float?   // GPS coordinates
+  customerType    String   @default("individual") @map("customer_type")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  business        Business @relation(fields: [businessId], references: [id])
+  orders          Order[]
+  invoices        Invoice[] // Basic invoices
+  whatsappMessages WhatsAppMessage[]
+  
+  // Route Planning Relations
+  routeStops      RouteStop[]
+
+  @@map("customers")
+}
+
+model Service {
+  id          String          @id @default(cuid())
+  businessId  String          @map("business_id")
+  name        String          // "Salon Halısı Yıkama", "Takım Elbise Temizlik"
+  description String?         @db.Text
+  category    ServiceCategory
+  isActive    Boolean         @default(true) @map("is_active")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  business    Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  pricings    ServicePricing[]
+  orderItems  OrderItem[]
+
+  @@map("services")
+}
+
+model Order {
+  id                 String        @id @default(cuid())
+  businessId         String        @map("business_id")
+  orderNumber        String        @unique @map("order_number")
+  customerId         String        @map("customer_id")
+  assignedUserId     String?       @map("assigned_user_id")
+  status             OrderStatus   @default(PENDING)
+  priority           Priority      @default(NORMAL)
+  pickupDate         DateTime?     @map("pickup_date") @db.Date
+  pickupTime         DateTime?     @map("pickup_time")
+  deliveryDate       DateTime?     @map("delivery_date") @db.Date
+  deliveryTime       DateTime?     @map("delivery_time")
+  pickupAddress      String?       @map("pickup_address")
+  deliveryAddress    String?       @map("delivery_address")
+  subtotal           Decimal       @default(0) @db.Decimal(10, 2)
+  taxAmount          Decimal       @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  totalAmount        Decimal       @default(0) @map("total_amount") @db.Decimal(10, 2)
+  paymentStatus      PaymentStatus @default(PENDING) @map("payment_status")
+  paymentMethod      PaymentMethod? @map("payment_method")
+  orderInfo          String?       @map("order_info") @db.Text // Sipariş Bilgisi - ana sipariş açıklaması
+  deliveryNotes      String?       @map("delivery_notes") @db.Text // Teslimat Notu - teslimat özel talimatları
+  referenceCode      String?       @map("reference_code") // Referans Kodu
+  notes              String?       @db.Text // Genel notlar
+  specialInstructions String?      @map("special_instructions") @db.Text // Özel talimatlar
+  requiresInvoice    Boolean       @default(true) @map("requires_invoice")
+  customerVknTckn    String?       @map("customer_vkn_tckn")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  business      Business             @relation(fields: [businessId], references: [id])
+  customer      Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  assignedUser  User?                @relation("AssignedUser", fields: [assignedUserId], references: [id])
+  orderItems    OrderItem[]
+  statusHistory OrderStatusHistory[]
+  payments      Payment[]
+  whatsappMessages WhatsAppMessage[]
+  eInvoices     EInvoice[]
+  invoices      Invoice[] // Basic invoices
+  
+  // Route Planning Relations
+  routeStopOrders RouteStopOrder[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String          @id @default(cuid())
+  orderId          String          @map("order_id")
+  serviceId        String          @map("service_id")
+  servicePricingId String?         @map("service_pricing_id")
+  quantity         Decimal         @db.Decimal(10, 2)
+  unitPrice        Decimal         @map("unit_price") @db.Decimal(10, 2)
+  totalPrice       Decimal         @map("total_price") @db.Decimal(10, 2)
+  notes            String?         @db.Text
+  vatRate          Decimal?        @map("vat_rate") @db.Decimal(5, 2)
+  vatAmount        Decimal?        @map("vat_amount") @db.Decimal(10, 2)
+  createdAt        DateTime        @default(now()) @map("created_at")
+
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  service        Service         @relation(fields: [serviceId], references: [id])
+  servicePricing ServicePricing? @relation(fields: [servicePricingId], references: [id])
+  eInvoiceItems  EInvoiceItem[]
+  invoiceItems   InvoiceItem[]   // Basic invoice items
+
+  @@map("order_items")
+}
+
+// Order status tracking
+model OrderStatusHistory {
+  id        String      @id @default(cuid())
+  orderId   String      @map("order_id")
+  status    OrderStatus
+  changedBy String?     @map("changed_by")
+  notes     String?     @db.Text
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [changedBy], references: [id])
+
+  @@map("order_status_history")
+}
+
+// Payment tracking
+model Payment {
+  id            String        @id @default(cuid())
+  orderId       String        @map("order_id")
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod @map("payment_method")
+  status        PaymentStatus @default(PENDING)
+  transactionId String?       @map("transaction_id")
+  notes         String?       @db.Text
+  paidAt        DateTime?     @map("paid_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+// Communication logs
+model CommunicationLog {
+  id         String   @id @default(cuid())
+  customerId String   @map("customer_id")
+  orderId    String?  @map("order_id")
+  type       String   // 'CALL', 'SMS', 'WHATSAPP', 'EMAIL'
+  direction  String   // 'INCOMING', 'OUTGOING'
+  content    String?  @db.Text
+  status     String   @default("SENT") // 'SENT', 'DELIVERED', 'FAILED'
+  sentBy     String?  @map("sent_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("communication_logs")
+}
+
+
+// Service Pricing model - Hizmet fiyatlandırması
+model ServicePricing {
+  id          String      @id @default(cuid())
+  serviceId   String      @map("service_id")
+  businessId  String      @map("business_id")
+  name        String      // "Küçük Boy", "Orta Boy", "Büyük Boy"
+  description String?     @db.Text
+  pricingType PricingType @map("pricing_type")
+  basePrice   Decimal     @map("base_price") @db.Decimal(10, 2)
+  minQuantity Int?        @default(1) @map("min_quantity")
+  maxQuantity Int?        @map("max_quantity")
+  unit        String?     // "adet", "kg", "m2", "saat"
+  isActive    Boolean     @default(true) @map("is_active")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  service     Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  orderItems  OrderItem[]
+
+  @@map("service_pricings")
+}
+
+// SMS/WhatsApp Notification Templates
+model NotificationTemplate {
+  id          String   @id @default(cuid())
+  businessId  String   @map("business_id")
+  name        String   // "Sipariş Onayı", "Hazır Bildirimi"
+  type        String   // "SMS", "WHATSAPP", "EMAIL"
+  trigger     String   // "ORDER_CREATED", "ORDER_READY", "ORDER_DELIVERED"
+  subject     String?  // Email için
+  message     String   @db.Text
+  variables   String?  @db.Text // JSON format: {"customerName": "Müşteri Adı"}
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("notification_templates")
+}
+
+// WhatsApp Business API integration models
+model WhatsAppMessage {
+  id            String   @id @default(cuid())
+  businessId    String   @map("business_id")
+  customerId    String?  @map("customer_id")
+  orderId       String?  @map("order_id")
+  messageId     String?  @unique @map("message_id") // WhatsApp message ID
+  waId          String   @map("wa_id") // WhatsApp ID (phone number)
+  direction     String   // INCOMING, OUTGOING
+  type          String   // text, template, image, document, etc
+  status        String   @default("sent") // sent, delivered, read, failed
+  content       String?  @db.Text
+  templateName  String?  @map("template_name")
+  templateData  String?  @map("template_data") @db.Text // JSON
+  mediaUrl      String?  @map("media_url")
+  errorCode     String?  @map("error_code")
+  errorMessage  String?  @map("error_message") @db.Text
+  timestamp     DateTime?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+  order    Order?    @relation(fields: [orderId], references: [id])
+
+  @@map("whatsapp_messages")
+}
+
+model WhatsAppTemplate {
+  id          String   @id @default(cuid())
+  businessId  String   @map("business_id")
+  name        String   // Template name in WhatsApp
+  displayName String   @map("display_name") // Display name for UI
+  category    String   // MARKETING, UTILITY, AUTHENTICATION
+  language    String   @default("tr") // Language code
+  status      String   @default("pending") // PENDING, APPROVED, REJECTED
+  components  String   @db.Text // JSON structure of template components
+  variables   String?  @db.Text // JSON of available variables
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, name], map: "businessId_name")
+  @@map("whatsapp_templates")
+}
+
+model WhatsAppWebhook {
+  id        String   @id @default(cuid())
+  event     String   // message, status, etc
+  payload   String   @db.Text // JSON payload
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("whatsapp_webhooks")
+}
+
+model WhatsAppSettings {
+  id                String   @id @default(cuid())
+  businessId        String   @unique @map("business_id")
+  isEnabled         Boolean  @default(false) @map("is_enabled")
+  accessToken       String?  @map("access_token") @db.Text
+  phoneNumberId     String?  @map("phone_number_id")
+  businessAccountId String?  @map("business_account_id")
+  webhookToken      String?  @map("webhook_token")
+  displayPhoneNumber String? @map("display_phone_number")
+  qualityRating     String?  @map("quality_rating") // GREEN, YELLOW, RED
+  rateLimitHit      Boolean  @default(false) @map("rate_limit_hit")
+  lastSync          DateTime? @map("last_sync")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("whatsapp_settings")
+}
+
+
+// E-Fatura Models
+model EInvoiceSettings {
+  id                     String          @id @default(cuid())
+  businessId             String          @unique @map("business_id")
+  
+  // GIB Portal Configuration
+  isEnabled              Boolean         @default(false) @map("is_enabled")
+  gibUsername            String?         @map("gib_username")
+  gibPassword            String?         @map("gib_password") // Encrypted
+  gibTestMode            Boolean         @default(true) @map("gib_test_mode")
+  gibPortalUrl           String          @default("https://earsivportal.efatura.gov.tr") @map("gib_portal_url")
+  
+  // Certificate Information
+  certificatePath        String?         @map("certificate_path")
+  certificatePassword    String?         @map("certificate_password") // Encrypted
+  certificateValidUntil  DateTime?       @map("certificate_valid_until")
+  
+  // Invoice Series Configuration
+  invoiceSeriesPrefix    String          @default("EMU") @map("invoice_series_prefix")
+  currentInvoiceNumber   BigInt          @default(1) @map("current_invoice_number")
+  invoiceNumberLength    Int             @default(8) @map("invoice_number_length")
+  
+  // Company Information (for UBL)
+  companyVkn             String?         @map("company_vkn")
+  companyTitle           String?         @map("company_title")
+  companyAddress         String?         @map("company_address") @db.Text
+  companyDistrict        String?         @map("company_district")
+  companyCity            String?         @map("company_city")
+  companyPostalCode      String?         @map("company_postal_code")
+  companyCountry         String          @default("Türkiye") @map("company_country")
+  companyEmail           String?         @map("company_email")
+  companyPhone           String?         @map("company_phone")
+  companyWebsite         String?         @map("company_website")
+  
+  // Auto-Invoice Settings
+  autoCreateInvoice      Boolean         @default(false) @map("auto_create_invoice")
+  autoSendInvoice        Boolean         @default(false) @map("auto_send_invoice")
+  invoiceOnPayment       Boolean         @default(true) @map("invoice_on_payment")
+  invoiceOnOrderComplete Boolean         @default(false) @map("invoice_on_order_complete")
+  
+  // Archive Settings
+  archiveRetentionYears  Int             @default(5) @map("archive_retention_years")
+  lastArchiveDate        DateTime?       @map("last_archive_date")
+  
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
+  
+  // Relations
+  business               Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  @@map("e_invoice_settings")
+}
+
+model EInvoice {
+  id                 String            @id @default(cuid())
+  businessId         String            @map("business_id")
+  orderId            String?           @map("order_id")
+  
+  // GIB Required Fields
+  invoiceNumber      String            @unique @map("invoice_number")
+  invoiceSeriesId    String            @map("invoice_series_id")
+  invoiceDate        DateTime          @map("invoice_date")
+  invoiceTime        DateTime          @map("invoice_time")
+  
+  // Customer Information
+  buyerVknTckn       String            @map("buyer_vkn_tckn") // Vergi/TC Kimlik No
+  buyerTitle         String            @map("buyer_title")
+  buyerName          String?           @map("buyer_name")
+  buyerSurname       String?           @map("buyer_surname")
+  buyerAddress       String            @map("buyer_address") @db.Text
+  buyerDistrict      String            @map("buyer_district")
+  buyerCity          String            @map("buyer_city")
+  buyerCountry       String            @default("Türkiye") @map("buyer_country")
+  buyerEmail         String?           @map("buyer_email")
+  buyerPhone         String?           @map("buyer_phone")
+  
+  // Financial Information
+  currencyCode       String            @default("TRY") @map("currency_code")
+  subtotalAmount     Decimal           @map("subtotal_amount") @db.Decimal(15, 2)
+  vatAmount          Decimal           @map("vat_amount") @db.Decimal(15, 2)
+  totalAmount        Decimal           @map("total_amount") @db.Decimal(15, 2)
+  payableAmount      Decimal           @map("payable_amount") @db.Decimal(15, 2)
+  
+  // GIB Integration Fields
+  invoiceUuid        String?           @unique @map("invoice_uuid") // GIB UUID
+  ettn               String?           @unique // Electronic Tax Transaction Number
+  gibStatus          EInvoiceStatus    @default(DRAFT) @map("gib_status")
+  gibStatusDate      DateTime?         @map("gib_status_date")
+  gibErrorCode       String?           @map("gib_error_code")
+  gibErrorMessage    String?           @map("gib_error_message") @db.Text
+  
+  // UBL XML Data
+  ublXmlContent      String?           @map("ubl_xml_content") @db.LongText
+  signedXmlContent   String?           @map("signed_xml_content") @db.LongText
+  pdfContent         String?           @map("pdf_content") @db.LongText // Base64
+  
+  // Timestamps
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  sentAt             DateTime?         @map("sent_at")
+  
+  // Relations
+  business           Business          @relation(fields: [businessId], references: [id])
+  order              Order?            @relation(fields: [orderId], references: [id])
+  items              EInvoiceItem[]
+  logs               EInvoiceLog[]
+  
+  @@map("e_invoices")
+}
+
+model EInvoiceItem {
+  id                 String            @id @default(cuid())
+  eInvoiceId         String            @map("e_invoice_id")
+  orderItemId        String?           @map("order_item_id")
+  
+  // Item Information
+  itemName           String            @map("item_name")
+  itemDescription    String?           @map("item_description") @db.Text
+  quantity           Decimal           @db.Decimal(10, 3)
+  unitCode           String            @default("C62") @map("unit_code") // UN/ECE Recommendation 20
+  unitPrice          Decimal           @map("unit_price") @db.Decimal(15, 4)
+  lineAmount         Decimal           @map("line_amount") @db.Decimal(15, 2)
+  
+  // Tax Information
+  vatRate            Decimal           @map("vat_rate") @db.Decimal(5, 2) // 0, 1, 8, 18
+  vatAmount          Decimal           @map("vat_amount") @db.Decimal(15, 2)
+  vatExemptionCode   String?           @map("vat_exemption_code")
+  vatExemptionReason String?           @map("vat_exemption_reason")
+  
+  // Additional Fields
+  discountAmount     Decimal           @default(0) @map("discount_amount") @db.Decimal(15, 2)
+  lineTotal          Decimal           @map("line_total") @db.Decimal(15, 2)
+  
+  createdAt          DateTime          @default(now()) @map("created_at")
+  
+  // Relations
+  eInvoice           EInvoice          @relation(fields: [eInvoiceId], references: [id], onDelete: Cascade)
+  orderItem          OrderItem?        @relation(fields: [orderItemId], references: [id])
+  
+  @@map("e_invoice_items")
+}
+
+model EInvoiceLog {
+  id                 String            @id @default(cuid())
+  eInvoiceId         String            @map("e_invoice_id")
+  
+  // Log Information
+  action             String            // CREATE, SEND, QUERY_STATUS, CANCEL, ARCHIVE
+  status             String            // SUCCESS, FAILED, PENDING
+  requestData        String?           @map("request_data") @db.LongText // JSON
+  responseData       String?           @map("response_data") @db.LongText // JSON
+  errorCode          String?           @map("error_code")
+  errorMessage       String?           @map("error_message") @db.Text
+  
+  // GIB Response Fields
+  gibTransactionId   String?           @map("gib_transaction_id")
+  processingTime     Int?              @map("processing_time") // milliseconds
+  
+  createdAt          DateTime          @default(now()) @map("created_at")
+  
+  // Relations
+  eInvoice           EInvoice          @relation(fields: [eInvoiceId], references: [id], onDelete: Cascade)
+  
+  @@map("e_invoice_logs")
+}
+
+// ==========================================
+// BASIC INVOICE MODELS (separate from E-Invoice)
+// ==========================================
+
+// Basic Invoice model for standard invoices without GIB integration
+model Invoice {
+  id                 String        @id @default(cuid())
+  businessId         String        @map("business_id")
+  orderId            String?       @map("order_id")
+  
+  // Basic Invoice Information
+  invoiceNumber      String        @unique @map("invoice_number")
+  invoiceDate        DateTime      @map("invoice_date")
+  status             InvoiceStatus @default(DRAFT)
+  
+  // Customer Information
+  customerId         String?       @map("customer_id")
+  customerName       String        @map("customer_name")
+  customerPhone      String?       @map("customer_phone")
+  customerEmail      String?       @map("customer_email")
+  customerAddress    String?       @map("customer_address") @db.Text
+  customerVknTckn    String?       @map("customer_vkn_tckn")
+  
+  // Financial Information
+  currencyCode       String        @default("TRY") @map("currency_code")
+  subtotalAmount     Decimal       @map("subtotal_amount") @db.Decimal(15, 2)
+  taxAmount          Decimal       @map("tax_amount") @db.Decimal(15, 2)
+  totalAmount        Decimal       @map("total_amount") @db.Decimal(15, 2)
+  paymentStatus      PaymentStatus @default(PENDING) @map("payment_status")
+  paymentMethod      PaymentMethod? @map("payment_method")
+  
+  // Additional Information
+  notes              String?       @db.Text
+  dueDate            DateTime?     @map("due_date")
+  paidAt             DateTime?     @map("paid_at")
+  
+  // PDF Generation
+  pdfUrl             String?       @map("pdf_url")
+  
+  // Timestamps
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  
+  // Relations
+  business           Business      @relation(fields: [businessId], references: [id])
+  order              Order?        @relation(fields: [orderId], references: [id])
+  customer           Customer?     @relation(fields: [customerId], references: [id])
+  items              InvoiceItem[]
+  
+  @@map("invoices")
+}
+
+// Basic Invoice Items
+model InvoiceItem {
+  id                 String        @id @default(cuid())
+  invoiceId          String        @map("invoice_id")
+  orderItemId        String?       @map("order_item_id")
+  
+  // Item Information
+  name               String
+  description        String?       @db.Text
+  quantity           Decimal       @db.Decimal(10, 3)
+  unitPrice          Decimal       @map("unit_price") @db.Decimal(15, 4)
+  lineAmount         Decimal       @map("line_amount") @db.Decimal(15, 2)
+  
+  // Tax Information
+  taxRate            Decimal       @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  taxAmount          Decimal       @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  
+  // Total
+  lineTotal          Decimal       @map("line_total") @db.Decimal(15, 2)
+  
+  createdAt          DateTime      @default(now()) @map("created_at")
+  
+  // Relations
+  invoice            Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  orderItem          OrderItem?    @relation(fields: [orderItemId], references: [id])
+  
+  @@map("invoice_items")
+}
+
+// Invoice Status enum
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+// ==========================================
+// ROUTE PLANNING SYSTEM MODELS
+// ==========================================
+
+// Vehicle Management Model
+model Vehicle {
+  id               String        @id @default(cuid())
+  businessId       String        @map("business_id")
+  
+  // Temel araç bilgileri
+  plateNumber      String        @unique @map("plate_number")
+  brand            String        // Mercedes, Ford, Iveco
+  model            String        // Sprinter, Transit, Daily
+  year             Int?
+  color            String?
+  
+  // Kapasite bilgileri (mixed capacity)
+  maxWeightKg      Decimal       @map("max_weight_kg") @db.Decimal(8, 2)
+  maxItemCount     Int           @map("max_item_count")
+  maxVolumeM3      Decimal?      @map("max_volume_m3") @db.Decimal(6, 2)
+  
+  // Operasyonel bilgiler
+  status           VehicleStatus @default(AVAILABLE)
+  isActive         Boolean       @default(true) @map("is_active")
+  
+  // Sürücü ataması
+  assignedDriverId String?       @unique @map("assigned_driver_id")
+  
+  // Özellikler ve kısıtlamalar
+  hasGps           Boolean       @default(true) @map("has_gps")
+  hasRefrigeration Boolean       @default(false) @map("has_refrigeration")
+  canHandleFragile Boolean       @default(true) @map("can_handle_fragile")
+  
+  // Maliyet bilgileri
+  fuelCostPerKm    Decimal?      @map("fuel_cost_per_km") @db.Decimal(5, 3)
+  operatingCostPerHour Decimal?  @map("operating_cost_per_hour") @db.Decimal(8, 2)
+  
+  // Bakım bilgileri
+  lastMaintenanceDate DateTime?  @map("last_maintenance_date")
+  nextMaintenanceKm   Int?       @map("next_maintenance_km")
+  currentKm           Int        @default(0) @map("current_km")
+  
+  // Timestamps
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  
+  // Relations
+  business         Business      @relation(fields: [businessId], references: [id])
+  assignedDriver   User?         @relation("DriverVehicle", fields: [assignedDriverId], references: [id])
+  routes           Route[]
+  deliveryZones    VehicleDeliveryZone[]
+  trackingLogs     VehicleTrackingLog[]
+  routeAssignments RouteAssignment[]
+  
+  @@map("vehicles")
+}
+
+// Teslimat Bölgeleri (şehir ilçe bazlı)
+model DeliveryZone {
+  id          String   @id @default(cuid())
+  businessId  String   @map("business_id")
+  
+  // Coğrafi bilgiler
+  name        String   // "Kadıköy", "Beşiktaş", "Şişli"
+  city        String   // İstanbul, Ankara, İzmir
+  district    String   // İlçe adı
+  
+  // Bölge sınırları (polygon coordinates)
+  boundaries  String?  @db.Text // GeoJSON polygon coordinates
+  
+  // Merkez koordinatları
+  centerLat   Float?   @map("center_lat")
+  centerLng   Float?   @map("center_lng")
+  
+  // Operasyonel bilgiler
+  isActive    Boolean  @default(true) @map("is_active")
+  priority    Int      @default(1) // 1=yüksek, 5=düşük
+  
+  // Zaman kısıtlamaları
+  serviceStartTime String? @map("service_start_time") // "09:00"
+  serviceEndTime   String? @map("service_end_time")   // "18:00"
+  
+  // Servis günleri (JSON array)
+  serviceDays      String? @map("service_days") // ["monday", "tuesday", ...]
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  business    Business @relation(fields: [businessId], references: [id])
+  vehicles    VehicleDeliveryZone[]
+  routeStops  RouteStop[]
+  
+  @@unique([businessId, city, district])
+  @@map("delivery_zones")
+}
+
+// Ana Rota Planları
+model Route {
+  id                String      @id @default(cuid())
+  businessId        String      @map("business_id")
+  vehicleId         String      @map("vehicle_id")
+  
+  // Rota bilgileri
+  routeName         String      @map("route_name") // "Kadıköy Günlük Rota - 2024-01-15"
+  routeType         RouteType   @default(MIXED)
+  status            RouteStatus @default(PLANNED)
+  
+  // Planlanan tarih ve saatler
+  plannedDate       DateTime    @map("planned_date") @db.Date
+  plannedStartTime  DateTime    @map("planned_start_time")
+  plannedEndTime    DateTime?   @map("planned_end_time")
+  
+  // Gerçekleşen saatler
+  actualStartTime   DateTime?   @map("actual_start_time")
+  actualEndTime     DateTime?   @map("actual_end_time")
+  
+  // Rota istatistikleri
+  totalDistance     Decimal?    @map("total_distance") @db.Decimal(8, 2) // km
+  estimatedDuration Int?        @map("estimated_duration") // dakika
+  actualDuration    Int?        @map("actual_duration")    // dakika
+  
+  // Kapasite kullanımı
+  totalWeight       Decimal     @default(0) @map("total_weight") @db.Decimal(8, 2)
+  totalItems        Int         @default(0) @map("total_items")
+  
+  // Optimizasyon bilgileri
+  optimizedFor      String      @default("distance") // distance, time, priority
+  optimizationScore Decimal?    @map("optimization_score") @db.Decimal(5, 2)
+  
+  // Maliyet hesaplaması
+  estimatedCost     Decimal?    @map("estimated_cost") @db.Decimal(10, 2)
+  actualCost        Decimal?    @map("actual_cost") @db.Decimal(10, 2)
+  
+  // Notlar ve talimatlar
+  notes             String?     @db.Text
+  driverInstructions String?    @map("driver_instructions") @db.Text
+  
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  
+  // Relations
+  business          Business    @relation(fields: [businessId], references: [id])
+  vehicle           Vehicle     @relation(fields: [vehicleId], references: [id])
+  stops             RouteStop[]
+  assignments       RouteAssignment[]
+  trackingLogs      VehicleTrackingLog[]
+  
+  @@map("routes")
+}
+
+// Rota Durakları
+model RouteStop {
+  id                String       @id @default(cuid())
+  routeId           String       @map("route_id")
+  deliveryZoneId    String?      @map("delivery_zone_id")
+  
+  // Durak bilgileri
+  stopType          StopType
+  status            StopStatus   @default(PENDING)
+  sequence          Int          // Durak sırası (1, 2, 3, ...)
+  
+  // Lokasyon bilgileri
+  address           String
+  latitude          Float?
+  longitude         Float?
+  
+  // Müşteri ve sipariş bilgileri
+  customerId        String?      @map("customer_id")
+  customerName      String?      @map("customer_name")
+  customerPhone     String?      @map("customer_phone")
+  
+  // Zaman bilgileri
+  plannedArrival    DateTime?    @map("planned_arrival")
+  estimatedArrival  DateTime?    @map("estimated_arrival")
+  actualArrival     DateTime?    @map("actual_arrival")
+  plannedDeparture  DateTime?    @map("planned_departure")
+  actualDeparture   DateTime?    @map("actual_departure")
+  
+  // Servis bilgileri
+  serviceTime       Int?         @map("service_time") // dakika
+  waitingTime       Int?         @map("waiting_time") // dakika
+  
+  // Yük bilgileri
+  itemCount         Int          @default(0) @map("item_count")
+  weight            Decimal      @default(0) @map("weight") @db.Decimal(8, 2)
+  
+  // Talimatlar ve notlar
+  specialInstructions String?    @map("special_instructions") @db.Text
+  completionNotes     String?    @map("completion_notes") @db.Text
+  
+  // Fotoğraf ve imza
+  photoUrl          String?      @map("photo_url")
+  signatureUrl      String?      @map("signature_url")
+  
+  // Başarısızlık durumu
+  failureReason     String?      @map("failure_reason")
+  
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  
+  // Relations
+  route             Route        @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  deliveryZone      DeliveryZone? @relation(fields: [deliveryZoneId], references: [id])
+  customer          Customer?    @relation(fields: [customerId], references: [id])
+  orders            RouteStopOrder[]
+  
+  @@map("route_stops")
+}
+
+// Araç-Rota Atamaları
+model RouteAssignment {
+  id           String   @id @default(cuid())
+  routeId      String   @map("route_id")
+  vehicleId    String   @map("vehicle_id")
+  driverId     String   @map("driver_id")
+  
+  // Atama bilgileri
+  assignedAt   DateTime @default(now()) @map("assigned_at")
+  assignedBy   String   @map("assigned_by") // User ID
+  
+  // Durum bilgileri
+  status       String   @default("assigned") // assigned, accepted, rejected, completed
+  acceptedAt   DateTime? @map("accepted_at")
+  completedAt  DateTime? @map("completed_at")
+  
+  // Notlar
+  notes        String?  @db.Text
+  
+  // Relations
+  route        Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [id])
+  driver       User     @relation("RouteDriver", fields: [driverId], references: [id])
+  assignedByUser User   @relation("RouteAssigner", fields: [assignedBy], references: [id])
+  
+  @@unique([routeId, vehicleId])
+  @@map("route_assignments")
+}
+
+// Araç-Bölge İlişkisi (Çoka Çok)
+model VehicleDeliveryZone {
+  id             String       @id @default(cuid())
+  vehicleId      String       @map("vehicle_id")
+  deliveryZoneId String       @map("delivery_zone_id")
+  isActive       Boolean      @default(true) @map("is_active")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  
+  vehicle        Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  deliveryZone   DeliveryZone @relation(fields: [deliveryZoneId], references: [id], onDelete: Cascade)
+  
+  @@unique([vehicleId, deliveryZoneId])
+  @@map("vehicle_delivery_zones")
+}
+
+// Durak-Sipariş İlişkisi
+model RouteStopOrder {
+  id          String    @id @default(cuid())
+  routeStopId String    @map("route_stop_id")
+  orderId     String    @map("order_id")
+  actionType  String    // "pickup", "delivery"
+  sequence    Int       // Sipariş sırası bu durakta
+  
+  routeStop   RouteStop @relation(fields: [routeStopId], references: [id], onDelete: Cascade)
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  @@unique([routeStopId, orderId])
+  @@map("route_stop_orders")
+}
+
+// Araç Takip Logları (Gerçek Zamanlı)
+model VehicleTrackingLog {
+  id          String   @id @default(cuid())
+  vehicleId   String   @map("vehicle_id")
+  driverId    String?  @map("driver_id")
+  routeId     String?  @map("route_id")
+  
+  // Lokasyon bilgileri
+  latitude    Float
+  longitude   Float
+  accuracy    Float?   // GPS doğruluğu (metre)
+  heading     Float?   // Yön (derece)
+  speed       Float?   // Hız (km/h)
+  
+  // Durum bilgileri
+  status      String   @default("active") // active, idle, offline
+  battery     Int?     // Cihaz batarya seviyesi
+  
+  // Zaman damgası
+  timestamp   DateTime @default(now())
+  
+  // Relations
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver      User?    @relation("DriverTracking", fields: [driverId], references: [id])
+  route       Route?   @relation(fields: [routeId], references: [id])
+  
+  @@index([vehicleId, timestamp])
+  @@map("vehicle_tracking_logs")
+}

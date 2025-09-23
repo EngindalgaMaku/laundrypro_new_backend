@@ -1,0 +1,35 @@
+{
+  "userEmail": "mackaengin@gmail.com",
+  "businessName": "Zeynep Temizlik",
+  "issue": "Cached authentication data without businessId",
+  "solution": "Force logout and re-login to get fresh user data",
+  "mobileAppFix": {
+    "description": "The user needs to clear cached authentication data",
+    "steps": [
+      "1. Open the mobile app",
+      "2. Go to Settings -> Profile or Account",
+      "3. Tap 'Logout' to clear all cached data",
+      "4. Close the app completely (force-close)",
+      "5. Reopen the app and login again",
+      "6. This will fetch fresh user data with correct businessId"
+    ]
+  },
+  "technicalDetails": {
+    "rootCause": "Mobile app cached user data in SecureStore without businessId",
+    "location": "mobile/src/screens/customers/CustomerCreateScreen.tsx:52",
+    "errorMessage": "Hesabınıza bir iş yeri atanmamış. Bu sorunu çözmek için yönetici ile iletişime geçin.",
+    "cacheLocations": [
+      "SecureStore item: 'user_data'",
+      "SecureStore item: 'auth_token'",
+      "Redux store: authSlice state"
+    ]
+  },
+  "preventionMeasures": {
+    "description": "Prevent this issue in the future",
+    "implementations": [
+      "Add businessId validation in authService.checkStoredAuth()",
+      "Auto-refresh user data if businessId is missing",
+      "Add cache invalidation on user data structure changes"
+    ]
+  }
+}

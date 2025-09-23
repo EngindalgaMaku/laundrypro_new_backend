@@ -1,0 +1,525 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* LaundryPro Professional Color System - WCAG AAA Compliant */
+  --background: oklch(0.99 0.01 220);
+  --foreground: oklch(0.09 0.02 220);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.09 0.02 220);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.09 0.02 220);
+
+  /* Enhanced Primary Palette - Professional Trust Blue */
+  --primary: oklch(0.42 0.18 225);
+  --primary-hover: oklch(0.38 0.2 225);
+  --primary-active: oklch(0.35 0.22 225);
+  --primary-foreground: oklch(0.98 0.01 225);
+
+  /* Secondary Palette - Clean Teal for Actions */
+  --secondary: oklch(0.48 0.16 185);
+  --secondary-hover: oklch(0.44 0.18 185);
+  --secondary-active: oklch(0.4 0.2 185);
+  --secondary-foreground: oklch(0.98 0.01 185);
+
+  /* Neutral Palette - Enhanced Contrast */
+  --muted: oklch(0.96 0.005 220);
+  --muted-foreground: oklch(0.45 0.02 220);
+  --muted-hover: oklch(0.94 0.008 220);
+
+  /* Accent Palette - Success & Warning */
+  --accent: oklch(0.42 0.18 225);
+  --accent-foreground: oklch(0.98 0.01 225);
+  --success: oklch(0.55 0.14 160);
+  --success-foreground: oklch(0.98 0.01 160);
+  --warning: oklch(0.65 0.15 70);
+  --warning-foreground: oklch(0.15 0.02 70);
+
+  /* Enhanced Destructive with Better Contrast */
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 25);
+
+  /* Enhanced Borders & Inputs */
+  --border: oklch(0.9 0.01 220);
+  --input: oklch(0.96 0.005 220);
+  --input-border: oklch(0.88 0.02 220);
+  --ring: oklch(0.42 0.18 225);
+
+  /* Professional Chart Colors - Harmonious Palette */
+  --chart-1: oklch(0.42 0.18 225); /* Primary blue */
+  --chart-2: oklch(0.48 0.16 185); /* Teal */
+  --chart-3: oklch(0.55 0.14 160); /* Green */
+  --chart-4: oklch(0.6 0.12 200); /* Light cyan */
+  --chart-5: oklch(0.5 0.16 245); /* Purple blue */
+
+  /* Enhanced Radius System */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius: var(--radius-md);
+
+  /* Enhanced Sidebar - Professional Look */
+  --sidebar: oklch(0.98 0.005 220);
+  --sidebar-foreground: oklch(0.15 0.02 220);
+  --sidebar-primary: oklch(0.42 0.18 225);
+  --sidebar-primary-foreground: oklch(0.98 0.01 225);
+  --sidebar-accent: oklch(0.94 0.008 220);
+  --sidebar-accent-foreground: oklch(0.15 0.02 220);
+  --sidebar-border: oklch(0.9 0.01 220);
+  --sidebar-ring: oklch(0.42 0.18 225);
+
+  /* Enhanced Professional Gradients */
+  --gradient-primary: linear-gradient(
+    135deg,
+    oklch(0.42 0.18 225) 0%,
+    oklch(0.48 0.16 210) 100%
+  );
+  --gradient-secondary: linear-gradient(
+    135deg,
+    oklch(0.48 0.16 185) 0%,
+    oklch(0.55 0.14 170) 100%
+  );
+  --gradient-hero: linear-gradient(
+    135deg,
+    oklch(0.38 0.2 230) 0%,
+    oklch(0.42 0.18 215) 35%,
+    oklch(0.48 0.16 190) 100%
+  );
+  --gradient-card: linear-gradient(
+    145deg,
+    oklch(1 0 0) 0%,
+    oklch(0.98 0.005 220) 100%
+  );
+
+  /* Typography Scale - Professional Hierarchy */
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+  --font-size-4xl: 2.25rem; /* 36px */
+  --font-size-5xl: 3rem; /* 48px */
+
+  /* Line Heights */
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+
+  /* Spacing Scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+
+  /* Shadows - Professional Depth */
+  --shadow-sm: 0 1px 2px 0 oklch(0.15 0.02 220 / 0.05);
+  --shadow-md: 0 4px 6px -1px oklch(0.15 0.02 220 / 0.1),
+    0 2px 4px -1px oklch(0.15 0.02 220 / 0.06);
+  --shadow-lg: 0 10px 15px -3px oklch(0.15 0.02 220 / 0.1),
+    0 4px 6px -2px oklch(0.15 0.02 220 / 0.05);
+  --shadow-xl: 0 20px 25px -5px oklch(0.15 0.02 220 / 0.1),
+    0 10px 10px -5px oklch(0.15 0.02 220 / 0.04);
+}
+
+.dark {
+  /* Dark Mode Professional Color System */
+  --background: oklch(0.06 0.01 220);
+  --foreground: oklch(0.95 0.005 220);
+  --card: oklch(0.08 0.01 220);
+  --card-foreground: oklch(0.95 0.005 220);
+  --popover: oklch(0.08 0.01 220);
+  --popover-foreground: oklch(0.95 0.005 220);
+
+  /* Enhanced Dark Primary Palette */
+  --primary: oklch(0.55 0.18 225);
+  --primary-hover: oklch(0.6 0.2 225);
+  --primary-active: oklch(0.65 0.22 225);
+  --primary-foreground: oklch(0.06 0.01 225);
+
+  /* Dark Secondary Palette */
+  --secondary: oklch(0.6 0.16 185);
+  --secondary-hover: oklch(0.65 0.18 185);
+  --secondary-active: oklch(0.7 0.2 185);
+  --secondary-foreground: oklch(0.06 0.01 185);
+
+  /* Dark Neutral Palette */
+  --muted: oklch(0.12 0.005 220);
+  --muted-foreground: oklch(0.65 0.02 220);
+  --muted-hover: oklch(0.15 0.008 220);
+
+  /* Dark Accent Colors */
+  --accent: oklch(0.55 0.18 225);
+  --accent-foreground: oklch(0.06 0.01 225);
+  --success: oklch(0.65 0.14 160);
+  --success-foreground: oklch(0.06 0.01 160);
+  --warning: oklch(0.75 0.15 70);
+  --warning-foreground: oklch(0.06 0.01 70);
+
+  /* Dark Destructive */
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 25);
+
+  /* Dark Borders & Inputs */
+  --border: oklch(0.18 0.01 220);
+  --input: oklch(0.12 0.005 220);
+  --input-border: oklch(0.22 0.02 220);
+  --ring: oklch(0.55 0.18 225);
+
+  /* Dark Chart Colors */
+  --chart-1: oklch(0.55 0.18 225);
+  --chart-2: oklch(0.6 0.16 185);
+  --chart-3: oklch(0.65 0.14 160);
+  --chart-4: oklch(0.7 0.12 200);
+  --chart-5: oklch(0.6 0.16 245);
+
+  /* Dark Sidebar */
+  --sidebar: oklch(0.08 0.005 220);
+  --sidebar-foreground: oklch(0.9 0.005 220);
+  --sidebar-primary: oklch(0.55 0.18 225);
+  --sidebar-primary-foreground: oklch(0.06 0.01 225);
+  --sidebar-accent: oklch(0.15 0.008 220);
+  --sidebar-accent-foreground: oklch(0.9 0.005 220);
+  --sidebar-border: oklch(0.18 0.01 220);
+  --sidebar-ring: oklch(0.55 0.18 225);
+
+  /* Dark Mode Professional Gradients */
+  --gradient-primary: linear-gradient(
+    135deg,
+    oklch(0.55 0.18 225) 0%,
+    oklch(0.6 0.16 210) 100%
+  );
+  --gradient-secondary: linear-gradient(
+    135deg,
+    oklch(0.6 0.16 185) 0%,
+    oklch(0.65 0.14 170) 100%
+  );
+  --gradient-hero: linear-gradient(
+    135deg,
+    oklch(0.5 0.2 230) 0%,
+    oklch(0.55 0.18 215) 35%,
+    oklch(0.6 0.16 190) 100%
+  );
+  --gradient-card: linear-gradient(
+    145deg,
+    oklch(0.08 0.01 220) 0%,
+    oklch(0.1 0.005 220) 100%
+  );
+
+  /* Dark Shadows */
+  --shadow-sm: 0 1px 2px 0 oklch(0.02 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px oklch(0.02 0 0 / 0.2),
+    0 2px 4px -1px oklch(0.02 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px oklch(0.02 0 0 / 0.2),
+    0 4px 6px -2px oklch(0.02 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px oklch(0.02 0 0 / 0.25),
+    0 10px 10px -5px oklch(0.02 0 0 / 0.1);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Enhanced Utility Classes for Professional LaundryPro Design */
+@layer utilities {
+  /* Gradient System */
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-secondary {
+    background: var(--gradient-secondary);
+  }
+
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+
+  /* Enhanced Glass Effects */
+  .glass-effect {
+    backdrop-filter: blur(12px) saturate(180%);
+    background: oklch(1 0 0 / 0.1);
+    border: 1px solid oklch(1 0 0 / 0.2);
+  }
+
+  .dark .glass-effect {
+    background: oklch(0.08 0.01 220 / 0.8);
+    border: 1px solid oklch(0.18 0.01 220 / 0.3);
+  }
+
+  /* Enhanced Interactive States */
+  .card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .card-hover:active {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 0.1s;
+  }
+
+  /* Button Enhancement */
+  .btn-primary {
+    background: var(--gradient-primary);
+    color: var(--primary-foreground);
+    border: none;
+    box-shadow: var(--shadow-md);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+    filter: brightness(1.1);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Focus States for Accessibility */
+  .focus-ring {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+
+  .focus-ring:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Mobile-First Typography */
+  .text-mobile-base {
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-normal);
+  }
+
+  .text-mobile-lg {
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-snug);
+  }
+
+  @media (min-width: 640px) {
+    .text-mobile-base {
+      font-size: var(--font-size-lg);
+    }
+    .text-mobile-lg {
+      font-size: var(--font-size-xl);
+    }
+  }
+
+  /* Professional Animations */
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-12px) rotate(2deg);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+      transform: skewX(-20deg);
+    }
+    100% {
+      background-position: 200% 0;
+      transform: skewX(-20deg);
+    }
+  }
+
+  @keyframes glow {
+    0%,
+    100% {
+      box-shadow: var(--shadow-md);
+      filter: brightness(1);
+    }
+    50% {
+      box-shadow: var(--shadow-xl);
+      filter: brightness(1.1);
+    }
+  }
+
+  @keyframes slideInUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeInScale {
+    from {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Animation Classes */
+  .float-animation {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .shimmer-effect {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer-effect::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--primary),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+    opacity: 0.1;
+  }
+
+  .glow-effect {
+    animation: glow 4s ease-in-out infinite;
+  }
+
+  .slide-in-up {
+    animation: slideInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .fade-in-scale {
+    animation: fadeInScale 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Enhanced Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--muted);
+    border-radius: var(--radius-sm);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: var(--radius-sm);
+    transition: background 0.2s ease;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+
+  /* Touch-Friendly Mobile Optimizations */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Loading States */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--muted) 25%,
+      var(--muted-hover) 50%,
+      var(--muted) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Professional Spacing System */
+  .space-y-professional > * + * {
+    margin-top: var(--space-lg);
+  }
+
+  .space-y-tight > * + * {
+    margin-top: var(--space-sm);
+  }
+
+  .space-y-loose > * + * {
+    margin-top: var(--space-2xl);
+  }
+}

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# LaundryPro - Profesyonel Temizlik Yönetimi
+# https://laundrypro.com
+
+Sitemap: https://laundrypro.com/sitemap.xml
