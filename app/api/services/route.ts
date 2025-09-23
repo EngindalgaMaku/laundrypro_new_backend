@@ -54,61 +54,405 @@ export async function GET(request: NextRequest) {
       orderBy: { name: "asc" },
     });
 
-    // Auto-seed minimal default services if none exist (first-run UX)
+    // Auto-seed comprehensive default services if none exist (first-run UX)
     if (!services || services.length === 0) {
       console.log(
-        "[SERVICES-GET] No services found for business, seeding defaults…",
+        "[SERVICES-GET] No services found for business, seeding comprehensive defaults…",
         businessIdToUse
       );
-      await prisma.$transaction(async (tx) => {
-        // Create 2-3 basic services with a single active pricing each
-        const seed = [
-          {
-            name: "Kuru Temizleme - Gömlek",
-            description: "Standart gömlek temizleme",
-            category: ServiceCategory.DRY_CLEANING,
-            basePrice: 50,
-          },
-          {
-            name: "Ütü - Pantolon",
-            description: "Pantolon ütüleme",
-            category: ServiceCategory.IRONING,
-            basePrice: 40,
-          },
-          {
-            name: "Yıkama - Çarşaf",
-            description: "Çarşaf yıkama",
-            category: ServiceCategory.LAUNDRY,
-            basePrice: 60,
-          },
-        ];
 
-        for (const s of seed) {
-          const newService = await tx.service.create({
-            data: {
-              businessId: businessIdToUse,
-              name: s.name,
-              description: s.description,
-              category: s.category,
-              isActive: true,
+      const seedingStartTime = Date.now();
+      await prisma.$transaction(
+        async (tx) => {
+          // Create comprehensive service catalog with multiple pricing options
+          const seed = [
+            // Dry Cleaning Services
+            {
+              name: "Kuru Temizleme - Gömlek",
+              description: "Standart erkek/kadın gömlek temizleme",
+              category: ServiceCategory.DRY_CLEANING,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 45,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Ekspres (24 saat)",
+                  basePrice: 70,
+                  pricingType: "FIXED" as const,
+                },
+              ],
             },
-          });
-          await tx.servicePricing.create({
-            data: {
-              serviceId: newService.id,
-              businessId: businessIdToUse,
-              name: "Standart",
-              description: "",
-              pricingType: "FIXED",
-              basePrice: s.basePrice,
-              minQuantity: 1,
-              maxQuantity: 0,
-              unit: "adet",
-              isActive: true,
+            {
+              name: "Kuru Temizleme - Takım Elbise",
+              description: "Erkek takım elbise (ceket + pantolon)",
+              category: ServiceCategory.DRY_CLEANING,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 120,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Premium",
+                  basePrice: 180,
+                  pricingType: "FIXED" as const,
+                },
+              ],
             },
-          });
+            {
+              name: "Kuru Temizleme - Elbise",
+              description: "Kadın elbise temizleme",
+              category: ServiceCategory.DRY_CLEANING,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 80,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Özel Kumaş",
+                  basePrice: 120,
+                  pricingType: "FIXED" as const,
+                },
+              ],
+            },
+            {
+              name: "Kuru Temizleme - Palto/Mont",
+              description: "Kış paltosu ve mont temizleme",
+              category: ServiceCategory.DRY_CLEANING,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 150,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Deri/Süet",
+                  basePrice: 250,
+                  pricingType: "FIXED" as const,
+                },
+              ],
+            },
+
+            // Laundry Services
+            {
+              name: "Yıkama - Çarşaf Takımı",
+              description: "Çift kişilik çarşaf takımı yıkama",
+              category: ServiceCategory.LAUNDRY,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 60,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Antibakteriyel",
+                  basePrice: 85,
+                  pricingType: "FIXED" as const,
+                },
+              ],
+            },
+            {
+              name: "Yıkama - T-shirt/Tişört",
+              description: "Pamuklu tişört yıkama",
+              category: ServiceCategory.LAUNDRY,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 25,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Leke Giderme",
+                  basePrice: 40,
+                  pricingType: "FIXED" as const,
+                },
+              ],
+            },
+            {
+              name: "Yıkama - Pantolon",
+              description: "Kot ve kumaş pantolon yıkama",
+              category: ServiceCategory.LAUNDRY,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 35,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Renk Koruma",
+                  basePrice: 50,
+                  pricingType: "FIXED" as const,
+                },
+              ],
+            },
+
+            // Ironing Services
+            {
+              name: "Ütü - Gömlek",
+              description: "Erkek/kadın gömlek ütüleme",
+              category: ServiceCategory.IRONING,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 30,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Çabuk (2 saat)",
+                  basePrice: 45,
+                  pricingType: "FIXED" as const,
+                },
+              ],
+            },
+            {
+              name: "Ütü - Pantolon",
+              description: "Pantolon ütüleme ve kırışık giderme",
+              category: ServiceCategory.IRONING,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 35,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Ağır Kırışık",
+                  basePrice: 50,
+                  pricingType: "FIXED" as const,
+                },
+              ],
+            },
+            {
+              name: "Ütü - Elbise",
+              description: "Kadın elbise ütüleme",
+              category: ServiceCategory.IRONING,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 55,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Detaylı",
+                  basePrice: 80,
+                  pricingType: "FIXED" as const,
+                },
+              ],
+            },
+
+            // Carpet Cleaning Services
+            {
+              name: "Halı Yıkama - Küçük",
+              description: "2m² altı halı yıkama",
+              category: ServiceCategory.CARPET_CLEANING,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 80,
+                  pricingType: "PER_M2" as const,
+                },
+                {
+                  name: "Derin Temizlik",
+                  basePrice: 120,
+                  pricingType: "PER_M2" as const,
+                },
+              ],
+            },
+            {
+              name: "Halı Yıkama - Orta",
+              description: "2-6m² arası halı yıkama",
+              category: ServiceCategory.CARPET_CLEANING,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 70,
+                  pricingType: "PER_M2" as const,
+                },
+                {
+                  name: "Leke Giderme",
+                  basePrice: 95,
+                  pricingType: "PER_M2" as const,
+                },
+              ],
+            },
+            {
+              name: "Halı Yıkama - Büyük",
+              description: "6m² üstü halı yıkama",
+              category: ServiceCategory.CARPET_CLEANING,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 60,
+                  pricingType: "PER_M2" as const,
+                },
+                {
+                  name: "Antik/Değerli",
+                  basePrice: 120,
+                  pricingType: "PER_M2" as const,
+                },
+              ],
+            },
+
+            // Upholstery Cleaning
+            {
+              name: "Döşeme Temizlik - Koltuk",
+              description: "3'lü koltuk takımı temizleme",
+              category: ServiceCategory.UPHOLSTERY_CLEANING,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 200,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Deri Koltuk",
+                  basePrice: 300,
+                  pricingType: "FIXED" as const,
+                },
+              ],
+            },
+            {
+              name: "Döşeme Temizlik - Tek Koltuk",
+              description: "Tekli koltuk temizleme",
+              category: ServiceCategory.UPHOLSTERY_CLEANING,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 80,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Leke Giderme",
+                  basePrice: 120,
+                  pricingType: "FIXED" as const,
+                },
+              ],
+            },
+
+            // Curtain Cleaning
+            {
+              name: "Perde Temizlik - Standart",
+              description: "Normal perde yıkama ve ütüleme",
+              category: ServiceCategory.CURTAIN_CLEANING,
+              pricings: [
+                {
+                  name: "Yıkama + Ütü",
+                  basePrice: 25,
+                  pricingType: "PER_M2" as const,
+                },
+                {
+                  name: "Sadece Kuru Temizlik",
+                  basePrice: 35,
+                  pricingType: "PER_M2" as const,
+                },
+              ],
+            },
+            {
+              name: "Perde Temizlik - Özel",
+              description: "İpek, kadife gibi özel kumaş perdeler",
+              category: ServiceCategory.CURTAIN_CLEANING,
+              pricings: [
+                {
+                  name: "El İşçiliği",
+                  basePrice: 50,
+                  pricingType: "PER_M2" as const,
+                },
+                {
+                  name: "Profesyonel",
+                  basePrice: 80,
+                  pricingType: "PER_M2" as const,
+                },
+              ],
+            },
+
+            // Stain Removal
+            {
+              name: "Leke Çıkarma - Basit",
+              description: "Yemek, içecek gibi basit lekeler",
+              category: ServiceCategory.STAIN_REMOVAL,
+              pricings: [
+                {
+                  name: "Standart",
+                  basePrice: 40,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Eski Leke",
+                  basePrice: 60,
+                  pricingType: "FIXED" as const,
+                },
+              ],
+            },
+            {
+              name: "Leke Çıkarma - Zor",
+              description: "Kan, mürekkep, boya gibi zor lekeler",
+              category: ServiceCategory.STAIN_REMOVAL,
+              pricings: [
+                {
+                  name: "Özel İşlem",
+                  basePrice: 80,
+                  pricingType: "FIXED" as const,
+                },
+                {
+                  name: "Kimyasal Müdahale",
+                  basePrice: 120,
+                  pricingType: "FIXED" as const,
+                },
+              ],
+            },
+          ];
+
+          let servicesCreated = 0;
+          let pricingsCreated = 0;
+
+          for (const serviceData of seed) {
+            console.log(
+              `[SERVICES-SEED] Creating service: ${serviceData.name}`
+            );
+
+            const newService = await tx.service.create({
+              data: {
+                businessId: businessIdToUse,
+                name: serviceData.name,
+                description: serviceData.description,
+                category: serviceData.category,
+                isActive: true,
+              },
+            });
+
+            servicesCreated++;
+
+            // Create multiple pricing options for each service
+            for (const pricing of serviceData.pricings) {
+              await tx.servicePricing.create({
+                data: {
+                  serviceId: newService.id,
+                  businessId: businessIdToUse,
+                  name: pricing.name,
+                  description: `${pricing.name} fiyatlandırma seçeneği`,
+                  pricingType: pricing.pricingType,
+                  basePrice: pricing.basePrice,
+                  minQuantity: 1,
+                  maxQuantity: 0,
+                  unit: pricing.pricingType === "PER_M2" ? "m²" : "adet",
+                  isActive: true,
+                },
+              });
+              pricingsCreated++;
+            }
+          }
+
+          const seedingDuration = Date.now() - seedingStartTime;
+          console.log(
+            `[SERVICES-SEED] ✅ Successfully seeded ${servicesCreated} services with ${pricingsCreated} pricing options in ${seedingDuration}ms for business ${businessIdToUse}`
+          );
+        },
+        {
+          timeout: 15000, // 15 seconds timeout for seeding
         }
-      });
+      );
 
       // Re-fetch after seeding
       services = await prisma.service.findMany({

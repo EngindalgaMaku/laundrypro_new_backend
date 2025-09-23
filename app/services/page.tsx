@@ -1,487 +1,832 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import React, { useState, useEffect } from "react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Search,
+  Filter,
+  DollarSign,
+  Package,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, DollarSign } from "lucide-react";
-import { toast } from "sonner";
-
-interface User {
-  id: string;
-  email: string;
-  business: {
-    name: string;
-    businessType: string;
-  };
-}
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 
 interface ServicePricing {
-  id: string;
+  id?: string;
   name: string;
   description?: string;
-  pricingType: string;
+  pricingType: "FIXED" | "PER_M2" | "PER_KG" | "PER_ITEM" | "HOURLY";
   basePrice: number;
-  minQuantity?: number;
-  maxQuantity?: number;
-  unit?: string;
+  minQuantity: number;
+  maxQuantity: number;
+  unit: string;
   isActive: boolean;
 }
 
 interface Service {
   id: string;
+  businessId: string;
   name: string;
   description?: string;
   category: string;
   isActive: boolean;
+  price: number;
   pricings: ServicePricing[];
   createdAt: string;
   updatedAt: string;
 }
 
-const serviceCategories = [
-  { value: "LAUNDRY", label: "Çamaşır Yıkama" },
-  { value: "DRY_CLEANING", label: "Kuru Temizleme" },
-  { value: "CARPET_CLEANING", label: "Halı Yıkama" },
-  { value: "UPHOLSTERY_CLEANING", label: "Döşeme Temizlik" },
-  { value: "CURTAIN_CLEANING", label: "Perde Temizlik" },
-  { value: "IRONING", label: "Ütüleme" },
-  { value: "STAIN_REMOVAL", label: "Leke Çıkarma" },
-  { value: "OTHER", label: "Diğer" },
+const CATEGORIES = [
+  { value: "DRY_CLEANING", label: "Kuru Temizleme", icon: "🧥" },
+  { value: "LAUNDRY", label: "Çamaşır Yıkama", icon: "👕" },
+  { value: "IRONING", label: "Ütüleme", icon: "🔥" },
+  { value: "CARPET_CLEANING", label: "Halı Yıkama", icon: "🏠" },
+  { value: "UPHOLSTERY_CLEANING", label: "Döşeme Temizlik", icon: "🛋️" },
+  { value: "CURTAIN_CLEANING", label: "Perde Temizlik", icon: "🪟" },
+  { value: "STAIN_REMOVAL", label: "Leke Çıkarma", icon: "✨" },
+  { value: "OTHER", label: "Diğer", icon: "📦" },
 ];
 
-const pricingTypes = [
-  { value: "FIXED", label: "Sabit Fiyat" },
-  { value: "PER_ITEM", label: "Parça Başına" },
-  { value: "PER_KG", label: "Kilo Başına" },
-  { value: "PER_M2", label: "Metrekare Başına" },
-  { value: "HOURLY", label: "Saatlik" },
+const PRICING_TYPES = [
+  { value: "FIXED", label: "Sabit Fiyat", unit: "adet" },
+  { value: "PER_M2", label: "Metrekare Başı", unit: "m²" },
+  { value: "PER_KG", label: "Kilo Başı", unit: "kg" },
+  { value: "PER_ITEM", label: "Adet Başı", unit: "adet" },
+  { value: "HOURLY", label: "Saatlik", unit: "saat" },
 ];
 
-export default function ServicesPage() {
-  const [user, setUser] = useState<User | null>(null);
+export default function ServicesManagement() {
   const [services, setServices] = useState<Service[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAddServiceOpen, setIsAddServiceOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [newService, setNewService] = useState({
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentService, setCurrentService] = useState<Service | null>(null);
+  const { toast } = useToast();
+
+  // Form state
+  const [formData, setFormData] = useState({
     name: "",
     description: "",
     category: "",
+    isActive: true,
     pricings: [
       {
         name: "Standart",
         description: "",
-        pricingType: "FIXED",
+        pricingType: "FIXED" as const,
         basePrice: 0,
         minQuantity: 1,
-        maxQuantity: null,
+        maxQuantity: 0,
         unit: "adet",
-      }
-    ]
+        isActive: true,
+      },
+    ] as ServicePricing[],
   });
-  const router = useRouter();
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (!userData) {
-      router.push("/");
-      return;
-    }
-    setUser(JSON.parse(userData));
     fetchServices();
-  }, [router]);
+  }, []);
 
   const fetchServices = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await fetch("/api/services", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      setLoading(true);
+      const response = await fetch("/api/services");
       if (response.ok) {
-        const servicesData = await response.json();
-        setServices(servicesData);
+        const data = await response.json();
+        setServices(data);
+      } else {
+        toast({
+          title: "Hata",
+          description: "Servisler yüklenirken bir hata oluştu",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error("Failed to fetch services:", error);
+      console.error("Error fetching services:", error);
+      toast({
+        title: "Hata",
+        description: "Bağlantı hatası",
+        variant: "destructive",
+      });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleAddService = async () => {
+  const handleCreateService = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
       const response = await fetch("/api/services", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(newService),
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        toast.success("Hizmet başarıyla eklendi!");
-        setNewService({
-          name: "",
-          description: "",
-          category: "",
-          pricings: [
-            {
-              name: "Standart",
-              description: "",
-              pricingType: "FIXED",
-              basePrice: 0,
-              minQuantity: 1,
-              maxQuantity: null,
-              unit: "adet",
-            }
-          ]
+        toast({
+          title: "Başarılı",
+          description: "Servis başarıyla oluşturuldu",
         });
-        setIsAddServiceOpen(false);
+        setIsCreateModalOpen(false);
+        resetForm();
         fetchServices();
       } else {
         const error = await response.json();
-        toast.error(error.error || "Hizmet eklenemedi");
+        toast({
+          title: "Hata",
+          description: error.error || "Servis oluşturulurken hata oluştu",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      console.error("Error creating service:", error);
+      toast({
+        title: "Hata",
+        description: "Bağlantı hatası",
+        variant: "destructive",
+      });
     }
   };
 
-  const addPricing = () => {
-    setNewService(prev => ({
-      ...prev,
+  const handleUpdateService = async () => {
+    if (!currentService) return;
+
+    try {
+      const response = await fetch(`/api/services/${currentService.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Başarılı",
+          description: "Servis başarıyla güncellendi",
+        });
+        setIsEditModalOpen(false);
+        setCurrentService(null);
+        resetForm();
+        fetchServices();
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Hata",
+          description: error.error || "Servis güncellenirken hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating service:", error);
+      toast({
+        title: "Hata",
+        description: "Bağlantı hatası",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteService = async (serviceId: string) => {
+    if (!confirm("Bu servisi silmek istediğinizden emin misiniz?")) return;
+
+    try {
+      const response = await fetch(`/api/services/${serviceId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Başarılı",
+          description: "Servis başarıyla silindi",
+        });
+        fetchServices();
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Hata",
+          description: error.error || "Servis silinirken hata oluştu",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      toast({
+        title: "Hata",
+        description: "Bağlantı hatası",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openEditModal = (service: Service) => {
+    setCurrentService(service);
+    setFormData({
+      name: service.name,
+      description: service.description || "",
+      category: service.category,
+      isActive: service.isActive,
+      pricings:
+        service.pricings.length > 0
+          ? service.pricings
+          : [
+              {
+                name: "Standart",
+                description: "",
+                pricingType: "FIXED" as const,
+                basePrice: service.price || 0,
+                minQuantity: 1,
+                maxQuantity: 0,
+                unit: "adet",
+                isActive: true,
+              },
+            ],
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      category: "",
+      isActive: true,
       pricings: [
-        ...prev.pricings,
         {
-          name: "",
+          name: "Standart",
           description: "",
-          pricingType: "FIXED",
+          pricingType: "FIXED" as const,
           basePrice: 0,
           minQuantity: 1,
-          maxQuantity: null,
+          maxQuantity: 0,
           unit: "adet",
-        }
-      ]
-    }));
+          isActive: true,
+        },
+      ],
+    });
   };
 
-  const removePricing = (index: number) => {
-    if (newService.pricings.length > 1) {
-      setNewService(prev => ({
-        ...prev,
-        pricings: prev.pricings.filter((_, i) => i !== index)
-      }));
+  const addPricingOption = () => {
+    setFormData({
+      ...formData,
+      pricings: [
+        ...formData.pricings,
+        {
+          name: `Seçenek ${formData.pricings.length + 1}`,
+          description: "",
+          pricingType: "FIXED" as const,
+          basePrice: 0,
+          minQuantity: 1,
+          maxQuantity: 0,
+          unit: "adet",
+          isActive: true,
+        },
+      ],
+    });
+  };
+
+  const updatePricingOption = (
+    index: number,
+    updates: Partial<ServicePricing>
+  ) => {
+    const updatedPricings = [...formData.pricings];
+    updatedPricings[index] = { ...updatedPricings[index], ...updates };
+
+    // Auto-update unit when pricing type changes
+    if (updates.pricingType) {
+      const pricingType = PRICING_TYPES.find(
+        (pt) => pt.value === updates.pricingType
+      );
+      if (pricingType) {
+        updatedPricings[index].unit = pricingType.unit;
+      }
+    }
+
+    setFormData({ ...formData, pricings: updatedPricings });
+  };
+
+  const removePricingOption = (index: number) => {
+    if (formData.pricings.length > 1) {
+      const updatedPricings = formData.pricings.filter((_, i) => i !== index);
+      setFormData({ ...formData, pricings: updatedPricings });
     }
   };
 
-  const updatePricing = (index: number, field: string, value: any) => {
-    setNewService(prev => ({
-      ...prev,
-      pricings: prev.pricings.map((pricing, i) => 
-        i === index ? { ...pricing, [field]: value } : pricing
-      )
-    }));
+  // Filter services
+  const filteredServices = services.filter((service) => {
+    const matchesSearch =
+      service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      service.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      categoryFilter === "all" || service.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  // Calculate stats
+  const stats = {
+    total: services.length,
+    active: services.filter((s) => s.isActive).length,
+    inactive: services.filter((s) => !s.isActive).length,
+    categories: new Set(services.map((s) => s.category)).size,
   };
 
-  if (!user || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+  const renderServiceModal = (isEdit: boolean) => (
+    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>
+          {isEdit ? "Servisi Düzenle" : "Yeni Servis Oluştur"}
+        </DialogTitle>
+      </DialogHeader>
+
+      <div className="space-y-6">
+        {/* Basic Info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Servis Adı *</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              placeholder="ör: Halı Yıkama - Yün"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="category">Kategori *</Label>
+            <Select
+              value={formData.category}
+              onValueChange={(value) =>
+                setFormData({ ...formData, category: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Kategori seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.icon} {cat.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="description">Açıklama</Label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
+            placeholder="Servis hakkında detaylı açıklama..."
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="isActive"
+            checked={formData.isActive}
+            onCheckedChange={(checked) =>
+              setFormData({ ...formData, isActive: checked })
+            }
+          />
+          <Label htmlFor="isActive">Servis aktif</Label>
+        </div>
+
+        {/* Pricing Options */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-lg font-semibold">
+              Fiyatlandırma Seçenekleri
+            </Label>
+            <Button
+              type="button"
+              onClick={addPricingOption}
+              variant="outline"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Fiyat Seçeneği Ekle
+            </Button>
+          </div>
+
+          {formData.pricings.map((pricing, index) => (
+            <Card key={index} className="p-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Fiyatlandırma #{index + 1}</h4>
+                  {formData.pricings.length > 1 && (
+                    <Button
+                      type="button"
+                      onClick={() => removePricingOption(index)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Seçenek Adı</Label>
+                    <Input
+                      value={pricing.name}
+                      onChange={(e) =>
+                        updatePricingOption(index, { name: e.target.value })
+                      }
+                      placeholder="ör: Standart, Premium, Express"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Fiyatlandırma Türü</Label>
+                    <Select
+                      value={pricing.pricingType}
+                      onValueChange={(value) =>
+                        updatePricingOption(index, {
+                          pricingType: value as any,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRICING_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label} ({type.unit})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Birim Fiyat (₺)</Label>
+                    <Input
+                      type="number"
+                      value={pricing.basePrice}
+                      onChange={(e) =>
+                        updatePricingOption(index, {
+                          basePrice: Number(e.target.value),
+                        })
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Birim</Label>
+                    <Input
+                      value={pricing.unit}
+                      onChange={(e) =>
+                        updatePricingOption(index, { unit: e.target.value })
+                      }
+                      placeholder="adet, m², kg, saat"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Min Miktar</Label>
+                    <Input
+                      type="number"
+                      value={pricing.minQuantity}
+                      onChange={(e) =>
+                        updatePricingOption(index, {
+                          minQuantity: Number(e.target.value),
+                        })
+                      }
+                      placeholder="1"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Max Miktar (0 = sınırsız)</Label>
+                    <Input
+                      type="number"
+                      value={pricing.maxQuantity}
+                      onChange={(e) =>
+                        updatePricingOption(index, {
+                          maxQuantity: Number(e.target.value),
+                        })
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Açıklama</Label>
+                  <Textarea
+                    value={pricing.description}
+                    onChange={(e) =>
+                      updatePricingOption(index, {
+                        description: e.target.value,
+                      })
+                    }
+                    placeholder="Bu fiyatlandırma seçeneği hakkında açıklama..."
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={pricing.isActive}
+                    onCheckedChange={(checked) =>
+                      updatePricingOption(index, { isActive: checked })
+                    }
+                  />
+                  <Label>Bu fiyatlandırma seçeneği aktif</Label>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 pt-4 border-t">
+          <Button
+            type="button"
+            onClick={isEdit ? handleUpdateService : handleCreateService}
+            disabled={!formData.name || !formData.category}
+          >
+            {isEdit ? "Güncelle" : "Oluştur"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (isEdit) {
+                setIsEditModalOpen(false);
+                setCurrentService(null);
+              } else {
+                setIsCreateModalOpen(false);
+              }
+              resetForm();
+            }}
+          >
+            İptal
+          </Button>
+        </div>
       </div>
-    );
-  }
+    </DialogContent>
+  );
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-      />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header
-          user={user}
-          onMenuClick={() => setIsMobileMenuOpen(true)}
-          isMobileMenuOpen={isMobileMenuOpen}
-        />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-                  Hizmet Yönetimi
-                </h1>
-                <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-                  Hizmetlerinizi ve fiyatlarınızı yönetin
-                </p>
-              </div>
-              <Dialog open={isAddServiceOpen} onOpenChange={setIsAddServiceOpen}>
-                <DialogTrigger asChild>
-                  <Button className="w-full sm:w-auto">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Hizmet Ekle
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle className="text-lg sm:text-xl">Yeni Hizmet Ekle</DialogTitle>
-                    <DialogDescription className="text-sm">
-                      Yeni bir hizmet ve fiyatlandırma seçenekleri ekleyin
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 sm:space-y-6">
-                    {/* Service Info */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="serviceName">Hizmet Adı *</Label>
-                        <Input
-                          id="serviceName"
-                          value={newService.name}
-                          onChange={(e) => setNewService(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="Salon Halısı Yıkama"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="serviceCategory">Kategori *</Label>
-                        <Select
-                          value={newService.category}
-                          onValueChange={(value) => setNewService(prev => ({ ...prev, category: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Kategori seçin" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {serviceCategories.map((category) => (
-                              <SelectItem key={category.value} value={category.value}>
-                                {category.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="serviceDescription">Açıklama</Label>
-                      <Textarea
-                        id="serviceDescription"
-                        value={newService.description}
-                        onChange={(e) => setNewService(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Hizmet açıklaması..."
-                      />
-                    </div>
-
-                    {/* Pricing Options */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium">Fiyatlandırma Seçenekleri</h3>
-                        <Button type="button" variant="outline" size="sm" onClick={addPricing}>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Fiyat Ekle
-                        </Button>
-                      </div>
-                      
-                      {newService.pricings.map((pricing, index) => (
-                        <Card key={index}>
-                          <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="text-base">Fiyat Seçeneği {index + 1}</CardTitle>
-                              {newService.pricings.length > 1 && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removePricing(index)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label>Fiyat Adı</Label>
-                                <Input
-                                  value={pricing.name}
-                                  onChange={(e) => updatePricing(index, 'name', e.target.value)}
-                                  placeholder="Küçük Boy, Orta Boy..."
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Fiyatlandırma Tipi</Label>
-                                <Select
-                                  value={pricing.pricingType}
-                                  onValueChange={(value) => updatePricing(index, 'pricingType', value)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {pricingTypes.map((type) => (
-                                      <SelectItem key={type.value} value={type.value}>
-                                        {type.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div className="space-y-2">
-                                <Label>Fiyat (₺)</Label>
-                                <Input
-                                  type="number"
-                                  value={pricing.basePrice}
-                                  onChange={(e) => updatePricing(index, 'basePrice', parseFloat(e.target.value) || 0)}
-                                  placeholder="0"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Birim</Label>
-                                <Input
-                                  value={pricing.unit || ""}
-                                  onChange={(e) => updatePricing(index, 'unit', e.target.value)}
-                                  placeholder="adet, kg, m2..."
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Min. Miktar</Label>
-                                <Input
-                                  type="number"
-                                  value={pricing.minQuantity || ""}
-                                  onChange={(e) => updatePricing(index, 'minQuantity', parseInt(e.target.value) || 1)}
-                                  placeholder="1"
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Açıklama</Label>
-                              <Textarea
-                                value={pricing.description}
-                                onChange={(e) => updatePricing(index, 'description', e.target.value)}
-                                placeholder="Fiyat açıklaması..."
-                                rows={2}
-                              />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsAddServiceOpen(false)}>
-                      İptal
-                    </Button>
-                    <Button 
-                      onClick={handleAddService}
-                      disabled={!newService.name || !newService.category}
-                    >
-                      Hizmet Ekle
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            {/* Services Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {services.map((service) => (
-                <Card key={service.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{service.name}</CardTitle>
-                        <CardDescription className="mt-1">
-                          {serviceCategories.find(cat => cat.value === service.category)?.label}
-                        </CardDescription>
-                      </div>
-                      <Badge variant={service.isActive ? "default" : "secondary"}>
-                        {service.isActive ? "Aktif" : "Pasif"}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {service.description && (
-                      <p className="text-sm text-muted-foreground">
-                        {service.description}
-                      </p>
-                    )}
-                    
-                    {/* Pricing Options */}
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium flex items-center">
-                        <DollarSign className="h-4 w-4 mr-1" />
-                        Fiyat Seçenekleri ({service.pricings.length})
-                      </h4>
-                      <div className="space-y-2">
-                        {service.pricings.slice(0, 3).map((pricing) => (
-                          <div key={pricing.id} className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">
-                              {pricing.name}
-                              {pricing.unit && ` (${pricing.unit})`}
-                            </span>
-                            <span className="font-medium">₺{pricing.basePrice}</span>
-                          </div>
-                        ))}
-                        {service.pricings.length > 3 && (
-                          <p className="text-xs text-muted-foreground">
-                            +{service.pricings.length - 3} daha fazla seçenek
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex space-x-2 pt-2">
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <Edit className="h-3 w-3 mr-1" />
-                        Düzenle
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {services.length === 0 && !isLoading && (
-              <div className="text-center py-12">
-                <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
-                  <DollarSign className="h-12 w-12 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">Henüz hizmet eklenmemiş</h3>
-                <p className="text-muted-foreground mb-4">
-                  İlk hizmetinizi ekleyerek başlayın
-                </p>
-                <Button onClick={() => setIsAddServiceOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  İlk Hizmeti Ekle
-                </Button>
-              </div>
-            )}
-          </div>
-        </main>
+    <div className="container mx-auto py-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Hizmet Yönetimi</h1>
+          <p className="text-muted-foreground">
+            İşletmenizin hizmetlerini ve fiyatlandırmalarını yönetin
+          </p>
+        </div>
+        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => resetForm()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Yeni Servis
+            </Button>
+          </DialogTrigger>
+          {renderServiceModal(false)}
+        </Dialog>
       </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Toplam Servis</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Aktif</CardTitle>
+            <Eye className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {stats.active}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pasif</CardTitle>
+            <EyeOff className="h-4 w-4 text-gray-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-500">
+              {stats.inactive}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Kategori</CardTitle>
+            <Filter className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.categories}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Servis ara..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+            <div className="w-full sm:w-48">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Kategori filtrele" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tüm Kategoriler</SelectItem>
+                  {CATEGORIES.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.icon} {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Services Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Hizmetler ({filteredServices.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-pulse">Yükleniyor...</div>
+            </div>
+          ) : filteredServices.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchQuery || categoryFilter !== "all"
+                ? "Filtreye uygun servis bulunamadı"
+                : "Henüz servis bulunmuyor"}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Servis</TableHead>
+                  <TableHead>Kategori</TableHead>
+                  <TableHead>Fiyat Seçenekleri</TableHead>
+                  <TableHead>Durum</TableHead>
+                  <TableHead>İşlemler</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredServices.map((service) => {
+                  const category = CATEGORIES.find(
+                    (c) => c.value === service.category
+                  );
+                  return (
+                    <TableRow key={service.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{service.name}</div>
+                          {service.description && (
+                            <div className="text-sm text-muted-foreground">
+                              {service.description}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {category?.icon} {category?.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {service.pricings.slice(0, 2).map((pricing) => (
+                            <div key={pricing.id} className="text-sm">
+                              <span className="font-medium">
+                                ₺{pricing.basePrice.toLocaleString("tr-TR")}
+                              </span>
+                              <span className="text-muted-foreground">
+                                /{pricing.unit} ({pricing.name})
+                              </span>
+                            </div>
+                          ))}
+                          {service.pricings.length > 2 && (
+                            <div className="text-xs text-muted-foreground">
+                              +{service.pricings.length - 2} seçenek daha
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={service.isActive ? "default" : "secondary"}
+                        >
+                          {service.isActive ? "Aktif" : "Pasif"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Dialog
+                            open={
+                              isEditModalOpen &&
+                              currentService?.id === service.id
+                            }
+                            onOpenChange={setIsEditModalOpen}
+                          >
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openEditModal(service)}
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            {renderServiceModal(true)}
+                          </Dialog>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteService(service.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
