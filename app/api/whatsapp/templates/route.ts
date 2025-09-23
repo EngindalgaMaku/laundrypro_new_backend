@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { createWhatsAppService } from "@/lib/whatsapp-service";
 
-const prisma = new PrismaClient();
 
+
+import { prisma } from "@/lib/db";
 // Get WhatsApp message templates for a business
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -44,10 +45,7 @@ export async function GET(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Create or update a WhatsApp message template
 export async function POST(request: NextRequest) {
@@ -111,10 +109,7 @@ export async function POST(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Update template status
 export async function PATCH(request: NextRequest) {
@@ -155,10 +150,7 @@ export async function PATCH(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Delete a template
 export async function DELETE(request: NextRequest) {
@@ -193,7 +185,4 @@ export async function DELETE(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}

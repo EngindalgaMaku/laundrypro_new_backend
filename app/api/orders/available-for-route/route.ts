@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { UserDatabaseService } from "@/lib/database/users";
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
 
+
+
+import { prisma } from "@/lib/db";
 // Returns orders eligible to be added to a new route
 // - Status: from CONFIRMED and later, excluding COMPLETED and CANCELLED
 // - Not already attached to any route (no RouteStopOrder relation)

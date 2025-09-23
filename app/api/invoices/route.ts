@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+
+
+import { prisma } from "@/lib/db";
 const anyPrisma: any = prisma;
 
 // GET /api/invoices - List basic invoices
@@ -74,10 +75,7 @@ export async function GET(request: NextRequest) {
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // POST /api/invoices - Create basic invoice
 export async function POST(request: NextRequest) {
@@ -211,10 +209,7 @@ export async function POST(request: NextRequest) {
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Generate basic invoice number
 async function generateBasicInvoiceNumber(businessId: string): Promise<string> {

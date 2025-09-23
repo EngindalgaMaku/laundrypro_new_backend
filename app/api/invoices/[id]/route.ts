@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+
+
+import { prisma } from "@/lib/db";
 const anyPrisma: any = prisma;
 
 // GET /api/invoices/[id] - Get individual invoice
@@ -94,10 +95,7 @@ export async function GET(
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // PATCH /api/invoices/[id] - Update invoice status
 export async function PATCH(
@@ -205,10 +203,7 @@ export async function PATCH(
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // DELETE /api/invoices/[id] - Delete invoice (soft delete)
 export async function DELETE(
@@ -278,7 +273,4 @@ export async function DELETE(
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}

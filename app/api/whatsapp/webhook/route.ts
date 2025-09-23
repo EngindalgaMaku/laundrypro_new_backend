@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { createWhatsAppService } from "@/lib/whatsapp-service";
 
-const prisma = new PrismaClient();
 
+
+import { prisma } from "@/lib/db";
 // Webhook verification for WhatsApp Business API
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

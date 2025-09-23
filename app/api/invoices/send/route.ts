@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getPlanForBusiness } from "@/lib/entitlements";
 import { GIBPortalService } from "@/lib/e-fatura/gib-portal-service";
 
-const prisma = new PrismaClient();
 
+
+import { prisma } from "@/lib/db";
 export async function POST(request: NextRequest) {
   let invoiceId: string | undefined;
 
@@ -202,10 +203,7 @@ export async function POST(request: NextRequest) {
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Generate Electronic Tax Transaction Number (ETTN)
 function generateETTN(): string {
@@ -307,7 +305,4 @@ export async function PUT(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}

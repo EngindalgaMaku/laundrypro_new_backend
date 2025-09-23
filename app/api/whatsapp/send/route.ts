@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { createWhatsAppService } from "@/lib/whatsapp-service";
 
-const prisma = new PrismaClient();
 
+
+import { prisma } from "@/lib/db";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -85,10 +86,7 @@ export async function POST(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -136,7 +134,4 @@ export async function GET(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}

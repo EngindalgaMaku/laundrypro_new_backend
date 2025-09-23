@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getPlanForBusiness } from "@/lib/entitlements";
 import { GIBPortalService } from "@/lib/e-fatura/gib-portal-service";
 
-const prisma = new PrismaClient();
 
+
+import { prisma } from "@/lib/db";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -146,10 +147,7 @@ export async function POST(request: NextRequest) {
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Bulk cancel invoices
 export async function PUT(request: NextRequest) {
@@ -236,10 +234,7 @@ export async function PUT(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Decrypt password (simple base64 decode - replace with proper decryption in production)
 async function decryptPassword(encryptedPassword: string): Promise<string> {

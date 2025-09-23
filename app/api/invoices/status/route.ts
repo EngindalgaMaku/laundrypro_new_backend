@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getPlanForBusiness } from "@/lib/entitlements";
 import { GIBPortalService } from "@/lib/e-fatura/gib-portal-service";
 
-const prisma = new PrismaClient();
 
+
+import { prisma } from "@/lib/db";
 // Get invoice status from GIB Portal
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -84,10 +85,7 @@ export async function GET(request: NextRequest) {
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Update invoice status manually
 export async function PATCH(request: NextRequest) {
@@ -175,10 +173,7 @@ export async function PATCH(request: NextRequest) {
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Sync invoice status from GIB Portal
 async function syncInvoiceStatusFromGIB(
@@ -341,7 +336,4 @@ export async function PUT(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getPlanForBusiness } from "@/lib/entitlements";
 import {
   UBLXMLGenerator,
@@ -7,8 +7,9 @@ import {
 } from "@/lib/e-fatura/ubl-xml-generator";
 import { getVATRateForService } from "@/lib/e-fatura/ubl-xml-generator";
 
-const prisma = new PrismaClient();
 
+
+import { prisma } from "@/lib/db";
 // Helper function to use any Prisma methods (bypassing TypeScript issues)
 const anyPrisma: any = prisma;
 
@@ -238,10 +239,7 @@ export async function POST(request: NextRequest) {
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Generate sequential invoice number
 async function generateInvoiceNumber(businessId: string): Promise<string> {
@@ -492,7 +490,4 @@ export async function GET(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}

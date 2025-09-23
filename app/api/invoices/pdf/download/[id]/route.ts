@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
 
+
+
+import { prisma } from "@/lib/db";
 // GET /api/invoices/pdf/download/[id] - Download PDF for an invoice
 export async function GET(
   request: NextRequest,
@@ -141,10 +142,7 @@ export async function GET(
       },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // HEAD /api/invoices/pdf/download/[id] - Check if PDF is available for download
 export async function HEAD(
@@ -204,7 +202,4 @@ export async function HEAD(
   } catch (error) {
     console.error("PDF HEAD request error:", error);
     return new NextResponse(null, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}

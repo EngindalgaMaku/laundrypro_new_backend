@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getPlanForBusiness } from "@/lib/entitlements";
 
-const prisma = new PrismaClient();
 
+
+import { prisma } from "@/lib/db";
 // Get WhatsApp Business API settings for a business
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -45,10 +46,7 @@ export async function GET(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Create or update WhatsApp Business API settings
 export async function POST(request: NextRequest) {
@@ -165,10 +163,7 @@ export async function POST(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Test WhatsApp Business API connection
 export async function PUT(request: NextRequest) {
@@ -223,10 +218,7 @@ export async function PUT(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Delete WhatsApp settings (disable integration)
 export async function DELETE(request: NextRequest) {
@@ -260,10 +252,7 @@ export async function DELETE(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 // Test WhatsApp Business API configuration
 async function testWhatsAppConfiguration(config: {

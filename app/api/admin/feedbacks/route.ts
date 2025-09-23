@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getUserFromRequest } from "@/lib/auth";
 
-const prisma = new PrismaClient();
 
+
+import { prisma } from "@/lib/db";
 async function assertIsAdmin(request: NextRequest) {
   const token = getUserFromRequest(request);
   if (!token) throw new Error("UNAUTHORIZED");
@@ -52,10 +53,7 @@ export async function GET(request: NextRequest) {
     if (e.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     console.error("Admin feedbacks GET error:", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -79,7 +77,4 @@ export async function PATCH(request: NextRequest) {
     if (e.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     console.error("Admin feedbacks PATCH error:", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}

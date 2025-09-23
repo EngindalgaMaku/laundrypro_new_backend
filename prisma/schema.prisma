@@ -367,6 +367,13 @@ model Business {
 
   // Subscription (one-to-one)
   subscription Subscription?
+  
+  // Flexible service system relations
+  serviceSettings     BusinessServiceSettings?
+  materialTypes       BusinessMaterialType[]
+  serviceCategories   BusinessServiceCategory[]
+  seasonalPricing     SeasonalPricing[]
+  promotions          ServicePromotion[]
 
   @@map("businesses")
 }
@@ -463,7 +470,10 @@ model Customer {
   whatsappMessages WhatsAppMessage[]
   
   // Route Planning Relations
-  routeStops      RouteStop[]
+  routeStops        RouteStop[]
+  
+  // Flexible pricing relations
+  pricingOverrides  CustomerPricingOverride[]
 
   @@map("customers")
 }
@@ -474,14 +484,28 @@ model Service {
   name        String          // "Salon Halısı Yıkama", "Takım Elbise Temizlik"
   description String?         @db.Text
   category    ServiceCategory
+  
+  // Flexible category support
+  customCategoryId String?    @map("custom_category_id")
+  
+  // Service properties
   isActive    Boolean         @default(true) @map("is_active")
+  sortOrder   Int             @default(0) @map("sort_order")
+  
+  // Base price for display (minimum price from pricings)
+  price       Decimal         @default(0) @db.Decimal(10, 2)
+  
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
   // Relations
-  business    Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  pricings    ServicePricing[]
-  orderItems  OrderItem[]
+  business        Business                   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customCategory  BusinessServiceCategory?   @relation(fields: [customCategoryId], references: [id])
+  pricings        ServicePricing[]
+  orderItems      OrderItem[]
+  pricingRules    ServicePricingRule[]
+  customerOverrides CustomerPricingOverride[]
+  seasonalPricing SeasonalPricing[]
 
   @@map("services")
 }
@@ -618,9 +642,10 @@ model ServicePricing {
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
   // Relations
-  service     Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  orderItems  OrderItem[]
+  service       Service               @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  business      Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  orderItems    OrderItem[]
+  priceHistory  ServicePriceHistory[]
 
   @@map("service_pricings")
 }
@@ -1277,4 +1302,262 @@ model VehicleTrackingLog {
   
   @@index([vehicleId, timestamp])
   @@map("vehicle_tracking_logs")
+}
+
+// ==========================================
+// FLEXIBLE SERVICE SYSTEM MODELS
+// ==========================================
+
+// İşletme bazında hizmet ayarları
+model BusinessServiceSettings {
+  id                    String   @id @default(cuid())
+  businessId            String   @unique @map("business_id")
+  
+  // Acil hizmet ayarları
+  urgentServiceEnabled  Boolean  @default(true) @map("urgent_service_enabled")
+  urgentMultiplier      Decimal  @default(1.25) @map("urgent_multiplier") @db.Decimal(5, 2)
+  
+  // Toplu indirim ayarları
+  bulkDiscountEnabled   Boolean  @default(true) @map("bulk_discount_enabled")
+  bulkDiscountThreshold Int      @default(10) @map("bulk_discount_threshold")
+  bulkDiscountPercent   Decimal  @default(0.10) @map("bulk_discount_percent") @db.Decimal(5, 2)
+  
+  // Minimum sipariş tutarı
+  minOrderAmount        Decimal? @map("min_order_amount") @db.Decimal(10, 2)
+  
+  // KDV ayarları
+  defaultVatRate        Decimal  @default(20) @map("default_vat_rate") @db.Decimal(5, 2)
+  vatIncluded           Boolean  @default(true) @map("vat_included")
+  
+  // Fiyat yuvarlama
+  priceRounding         Boolean  @default(true) @map("price_rounding")
+  roundingUnit          Decimal  @default(0.50) @map("rounding_unit") @db.Decimal(3, 2)
+  
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  
+  business              Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  @@map("business_service_settings")
+}
+
+// İşletme bazında malzeme tipleri
+model BusinessMaterialType {
+  id          String   @id @default(cuid())
+  businessId  String   @map("business_id")
+  
+  // Malzeme bilgileri
+  name        String   // "Premium Yün", "Özel İpek", "Standart Pamuk"
+  code        String   // "PREMIUM_WOOL", "SPECIAL_SILK"
+  description String?  @db.Text
+  
+  // Kategori bağlantısı
+  category    String   // "DRY_CLEANING", "CARPET_CLEANING" vs
+  
+  // Fiyat çarpanı
+  multiplier  Decimal  @map("multiplier") @db.Decimal(5, 2)
+  
+  // Özel ayarlar
+  requiresSpecialHandling Boolean @default(false) @map("requires_special_handling")
+  extraServiceTime       Int?     @map("extra_service_time") // dakika
+  
+  // Aktiflik
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  @@unique([businessId, code])
+  @@map("business_material_types")
+}
+
+// Hizmet bazında özel kurallar
+model ServicePricingRule {
+  id            String      @id @default(cuid())
+  serviceId     String      @map("service_id")
+  
+  // Kural bilgileri
+  name          String      // "Büyük Boy Ek Ücreti", "Weekend Surcharge"
+  description   String?     @db.Text
+  ruleType      String      // "MULTIPLIER", "FIXED_AMOUNT", "PERCENTAGE_DISCOUNT"
+  
+  // Kural değeri
+  value         Decimal     @db.Decimal(10, 2)
+  
+  // Uygulama koşulları
+  minQuantity   Int?        @map("min_quantity")
+  maxQuantity   Int?        @map("max_quantity")
+  appliesTo     String?     @map("applies_to") // "ALL", "WEEKEND", "URGENT", specific material codes
+  
+  // Zaman kısıtlamaları
+  validFrom     DateTime?   @map("valid_from")
+  validUntil    DateTime?   @map("valid_until")
+  
+  // Gün/saat kısıtlamaları (JSON)
+  timeConstraints String?   @map("time_constraints") @db.Text
+  
+  isActive      Boolean     @default(true) @map("is_active")
+  priority      Int         @default(0) // Yüksek priority önce uygulanır
+  
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  
+  service       Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  
+  @@map("service_pricing_rules")
+}
+
+// İşletme bazında hizmet kategorileri (özelleştirilebilir)
+model BusinessServiceCategory {
+  id          String    @id @default(cuid())
+  businessId  String    @map("business_id")
+  
+  // Kategori bilgileri
+  code        String    // "DRY_CLEANING", "CUSTOM_SERVICE_1"
+  name        String    // "Kuru Temizleme", "Özel Hizmetimiz"
+  description String?   @db.Text
+  icon        String?   // Emoji veya icon kodu
+  color       String?   // Hex renk kodu
+  
+  // Görünüm ayarları
+  isActive    Boolean   @default(true) @map("is_active")
+  isDefault   Boolean   @default(false) @map("is_default")
+  sortOrder   Int       @default(0) @map("sort_order")
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  services    Service[]
+  
+  @@unique([businessId, code])
+  @@map("business_service_categories")
+}
+
+// Fiyat geçmişi ve versiyonlama
+model ServicePriceHistory {
+  id              String         @id @default(cuid())
+  servicePricingId String        @map("service_pricing_id")
+  
+  // Eski fiyat bilgileri
+  oldPrice        Decimal        @map("old_price") @db.Decimal(10, 2)
+  newPrice        Decimal        @map("new_price") @db.Decimal(10, 2)
+  changeReason    String?        @map("change_reason") @db.Text
+  changeType      String         // "INCREASE", "DECREASE", "ADJUSTMENT"
+  
+  // Kim değiştirdi
+  changedBy       String         @map("changed_by")
+  changeDate      DateTime       @map("change_date")
+  
+  // Geçerlilik tarihleri
+  effectiveFrom   DateTime       @map("effective_from")
+  effectiveUntil  DateTime?      @map("effective_until")
+  
+  servicePricing  ServicePricing @relation(fields: [servicePricingId], references: [id], onDelete: Cascade)
+  
+  @@map("service_price_history")
+}
+
+// Müşteri bazında özel fiyatlandırma
+model CustomerPricingOverride {
+  id            String    @id @default(cuid())
+  customerId    String    @map("customer_id")
+  serviceId     String    @map("service_id")
+  
+  // Özel fiyat bilgileri
+  overrideType  String    // "FIXED_PRICE", "DISCOUNT_PERCENT", "DISCOUNT_AMOUNT"
+  value         Decimal   @db.Decimal(10, 2)
+  
+  // Geçerlilik
+  validFrom     DateTime  @map("valid_from")
+  validUntil    DateTime? @map("valid_until")
+  isActive      Boolean   @default(true) @map("is_active")
+  
+  // Notlar
+  notes         String?   @db.Text
+  approvedBy    String?   @map("approved_by")
+  
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  service       Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  
+  @@unique([customerId, serviceId])
+  @@map("customer_pricing_overrides")
+}
+
+// Sezonsal fiyatlandırma
+model SeasonalPricing {
+  id          String      @id @default(cuid())
+  businessId  String      @map("business_id")
+  serviceId   String?     @map("service_id") // null ise tüm hizmetlere uygulanır
+  
+  // Sezon bilgileri
+  name        String      // "Kış Sezonu", "Yılbaşı Özel"
+  description String?     @db.Text
+  
+  // Tarih aralığı
+  startDate   DateTime    @map("start_date")
+  endDate     DateTime    @map("end_date")
+  
+  // Fiyat değişikliği
+  priceType   String      // "MULTIPLIER", "FIXED_INCREASE", "PERCENTAGE"
+  value       Decimal     @db.Decimal(10, 2)
+  
+  // Uygulama koşulları
+  applyTo     String      @default("ALL") @map("apply_to") // "ALL", "NEW_CUSTOMERS", "EXISTING_CUSTOMERS"
+  minAmount   Decimal?    @map("min_amount") @db.Decimal(10, 2)
+  
+  isActive    Boolean     @default(true) @map("is_active")
+  priority    Int         @default(0)
+  
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  service     Service?    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  
+  @@map("seasonal_pricing")
+}
+
+// Promosyon ve kampanyalar
+model ServicePromotion {
+  id              String    @id @default(cuid())
+  businessId      String    @map("business_id")
+  
+  // Promosyon bilgileri
+  name            String
+  description     String?   @db.Text
+  code            String?   // Promosyon kodu
+  
+  // Tarih aralığı
+  startDate       DateTime  @map("start_date")
+  endDate         DateTime  @map("end_date")
+  
+  // İndirim bilgileri
+  discountType    String    // "PERCENTAGE", "FIXED_AMOUNT", "BUY_X_GET_Y"
+  discountValue   Decimal   @map("discount_value") @db.Decimal(10, 2)
+  
+  // Uygulama koşulları
+  minOrderAmount  Decimal?  @map("min_order_amount") @db.Decimal(10, 2)
+  maxDiscountAmount Decimal? @map("max_discount_amount") @db.Decimal(10, 2)
+  usageLimit      Int?      @map("usage_limit")
+  usageCount      Int       @default(0) @map("usage_count")
+  
+  // Hangi hizmetlere uygulanır (JSON array)
+  applicableServices String? @map("applicable_services") @db.Text
+  
+  isActive        Boolean   @default(true) @map("is_active")
+  
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  business        Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  @@unique([businessId, code])
+  @@map("service_promotions")
 }

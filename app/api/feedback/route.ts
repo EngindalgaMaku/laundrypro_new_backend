@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+
 import { getUserFromRequest } from "@/lib/auth";
 
-const prisma = new PrismaClient();
 
+
+import { prisma } from "@/lib/db";
 export async function POST(request: NextRequest) {
   try {
     const user = getUserFromRequest(request);
@@ -33,7 +34,4 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Feedback API error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+  }}
