@@ -1,7 +1,6 @@
-import { PrismaClient, Customer } from "@prisma/client";
+import { Customer } from "@prisma/client";
 import { WhatsAppDatabaseService } from "./whatsapp";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
 
 export interface CustomerFilters {
   businessId: string;

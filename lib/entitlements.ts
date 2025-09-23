@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
 
 // Local Plan type to avoid type errors before prisma generate
 export type Plan = "FREE" | "PRO";
@@ -17,10 +15,13 @@ const ACTIVE_STATUSES = new Set(["active", "trialing", "grace_period"]);
 
 export async function getPlanForBusiness(businessId: string): Promise<Plan> {
   const anyPrisma: any = prisma;
-  const sub = await anyPrisma.subscription.findUnique({ where: { businessId } });
+  const sub = await anyPrisma.subscription.findUnique({
+    where: { businessId },
+  });
   if (!sub) {
     // Beta: grant PRO if enabled via env
-    const grant = String(process.env.BETA_GRANT_PRO || "false").toLowerCase() === "true";
+    const grant =
+      String(process.env.BETA_GRANT_PRO || "false").toLowerCase() === "true";
     const untilRaw = process.env.BETA_PRO_UNTIL;
     let withinWindow = true;
     if (untilRaw) {
@@ -32,11 +33,14 @@ export async function getPlanForBusiness(businessId: string): Promise<Plan> {
     if (grant && withinWindow) return "PRO";
     return "FREE";
   }
-  if (sub?.status && ACTIVE_STATUSES.has(String(sub.status).toLowerCase())) return sub.plan as Plan;
+  if (sub?.status && ACTIVE_STATUSES.has(String(sub.status).toLowerCase()))
+    return sub.plan as Plan;
   return "FREE";
 }
 
-export async function getEntitlements(businessId: string): Promise<Entitlements> {
+export async function getEntitlements(
+  businessId: string
+): Promise<Entitlements> {
   const plan = await getPlanForBusiness(businessId);
   const isPro = plan === "PRO";
   return {

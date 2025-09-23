@@ -4,10 +4,26 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Enhanced Prisma client with connection timeout
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+// Check if we're in build mode (DATABASE_URL is undefined)
+const isBuildTime = !process.env.DATABASE_URL;
+
+// Build-safe Prisma client factory
+function createPrismaClient(): PrismaClient {
+  if (isBuildTime) {
+    console.warn(
+      "⚠️  DATABASE_URL is undefined, creating mock Prisma client for build"
+    );
+    // Return a mock client that won't actually connect during build
+    return new PrismaClient({
+      datasources: {
+        db: {
+          url: "mysql://build:build@localhost:3306/build", // Dummy URL for build
+        },
+      },
+    });
+  }
+
+  return new PrismaClient({
     log:
       process.env.NODE_ENV === "development"
         ? ["query", "error", "warn"]
@@ -18,6 +34,10 @@ export const prisma =
       },
     },
   });
+}
+
+// Enhanced Prisma client with build-time safety
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
@@ -25,6 +45,12 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 export async function testConnection(
   timeoutMs: number = 10000
 ): Promise<boolean> {
+  // Skip connection test during build time
+  if (isBuildTime) {
+    console.warn("⚠️  Skipping database connection test during build");
+    return true;
+  }
+
   try {
     // Create a timeout promise
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -134,6 +160,17 @@ export async function queryWithRetry<T>(
 
 // Connection health check with detailed status
 export async function getDatabaseHealth() {
+  // Return build-time status
+  if (isBuildTime) {
+    return {
+      status: "build-time",
+      responseTime: null,
+      timestamp: new Date(),
+      healthy: true, // Consider healthy during build
+      message: "Database health check skipped during build",
+    };
+  }
+
   try {
     const startTime = Date.now();
 
@@ -165,6 +202,12 @@ export async function getDatabaseHealth() {
 
 // Graceful shutdown with timeout
 export async function disconnectDB(timeoutMs: number = 5000) {
+  // Skip disconnect during build time
+  if (isBuildTime) {
+    console.warn("⚠️  Skipping database disconnect during build");
+    return;
+  }
+
   try {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error("Disconnect timeout")), timeoutMs);

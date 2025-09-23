@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
 
 export interface PermissionContext {
   userId: string;
@@ -89,7 +87,12 @@ export class PermissionService {
         const legacyRole: string = (user as any).role;
         const allowByLegacy = (perm: string) => {
           if (legacyRole === "OWNER") return true;
-          if (legacyRole === "MANAGER") return perm.startsWith("users:read") || perm.startsWith("users:update") || perm === "users:read";
+          if (legacyRole === "MANAGER")
+            return (
+              perm.startsWith("users:read") ||
+              perm.startsWith("users:update") ||
+              perm === "users:read"
+            );
           if (legacyRole === "EMPLOYEE") return perm === "users:read";
           return false;
         };
@@ -100,7 +103,10 @@ export class PermissionService {
             "GRANTED",
             context
           );
-          return { granted: true, reason: `Granted by legacy role fallback (${legacyRole})` };
+          return {
+            granted: true,
+            reason: `Granted by legacy role fallback (${legacyRole})`,
+          };
         }
       }
 

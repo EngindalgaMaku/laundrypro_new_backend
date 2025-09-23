@@ -1,7 +1,6 @@
-import { PrismaClient, UserRole } from "@prisma/client";
+import { UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
 
 export interface UserFilters {
   businessId?: string;
@@ -192,7 +191,7 @@ export class UserDatabaseService {
    */
   static async getUserById(userId: string) {
     console.log(`[DEBUG] getUserById called with userId: ${userId}`);
-    
+
     try {
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -231,7 +230,10 @@ export class UserDatabaseService {
         },
       });
 
-      console.log(`[DEBUG] Database query result for userId ${userId}:`, user ? "Found" : "Not found");
+      console.log(
+        `[DEBUG] Database query result for userId ${userId}:`,
+        user ? "Found" : "Not found"
+      );
 
       if (!user) {
         console.log(`[DEBUG] User not found with ID: ${userId}`);
@@ -245,7 +247,10 @@ export class UserDatabaseService {
       const { passwordHash, ...userWithoutPassword } = user;
       return userWithoutPassword;
     } catch (error) {
-      console.error(`[DEBUG] Error in getUserById for userId ${userId}:`, error);
+      console.error(
+        `[DEBUG] Error in getUserById for userId ${userId}:`,
+        error
+      );
       throw error;
     }
   }
@@ -406,7 +411,7 @@ export class UserDatabaseService {
    */
   static async authenticateUser(email: string, password: string) {
     console.log(`[AUTH] Attempting to authenticate user: ${email}`);
-    
+
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
@@ -422,12 +427,12 @@ export class UserDatabaseService {
     });
 
     console.log(`[AUTH] User found in database:`, !!user);
-    
+
     if (!user) {
       // Let's check what users actually exist
       const allUsers = await prisma.user.findMany({
         select: { email: true, firstName: true, lastName: true },
-        take: 5
+        take: 5,
       });
       console.log(`[AUTH] Available users in database:`, allUsers);
       throw new Error("Invalid credentials");
