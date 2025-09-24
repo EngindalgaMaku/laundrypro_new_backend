@@ -7,8 +7,6 @@ import {
 } from "@/lib/e-fatura/ubl-xml-generator";
 import { getVATRateForService } from "@/lib/e-fatura/ubl-xml-generator";
 
-
-
 import { prisma } from "@/lib/db";
 // Helper function to use any Prisma methods (bypassing TypeScript issues)
 const anyPrisma: any = prisma;
@@ -67,7 +65,14 @@ export async function POST(request: NextRequest) {
         business: true,
         orderItems: {
           include: {
-            service: true,
+            service: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                category: true,
+              },
+            },
             servicePricing: true,
           },
         },
@@ -138,15 +143,29 @@ export async function POST(request: NextRequest) {
         email: order.customer.email ?? undefined,
         phone: order.customer.phone,
       },
-      invoiceLines: order.orderItems.map((item, index) => {
-        const vatRate = getVATRateForService(item.service.category);
+      invoiceLines: order.orderItems.map((item: any, index: number) => {
+        // Handle both manual entries and database services
+        let serviceName, serviceDescription, serviceCategory;
+
+        if (item.isManualEntry) {
+          serviceName = item.serviceName || "Manual Service";
+          serviceDescription =
+            item.serviceDescription || "Custom service entry";
+          serviceCategory = "OTHER"; // Default category for manual entries
+        } else {
+          serviceName = item.service?.name || "Unknown Service";
+          serviceDescription = item.service?.description;
+          serviceCategory = item.service?.category || "OTHER";
+        }
+
+        const vatRate = getVATRateForService(serviceCategory);
         const vatAmount =
           (parseFloat(item.totalPrice.toString()) * vatRate) / 100;
 
         return {
           id: (index + 1).toString(),
-          name: item.service.name,
-          description: item.service.description ?? undefined,
+          name: serviceName,
+          description: serviceDescription ?? undefined,
           quantity: parseFloat(item.quantity.toString()),
           unitCode: "C62", // Piece
           unitPrice: parseFloat(item.unitPrice.toString()),
@@ -239,7 +258,8 @@ export async function POST(request: NextRequest) {
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  }}
+  }
+}
 
 // Generate sequential invoice number
 async function generateInvoiceNumber(businessId: string): Promise<string> {
@@ -284,7 +304,14 @@ async function createBasicInvoice(
       business: true,
       orderItems: {
         include: {
-          service: true,
+          service: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              category: true,
+            },
+          },
           servicePricing: true,
         },
       },
@@ -338,11 +365,15 @@ async function createBasicInvoice(
 
   // Create invoice items
   await anyPrisma.invoiceItem.createMany({
-    data: order.orderItems.map((item) => ({
+    data: order.orderItems.map((item: any) => ({
       invoiceId: invoice.id,
       orderItemId: item.id,
-      name: item.service.name,
-      description: item.service.description,
+      name: item.isManualEntry
+        ? item.serviceName || "Manual Service"
+        : item.service?.name || "Unknown Service",
+      description: item.isManualEntry
+        ? item.serviceDescription
+        : item.service?.description,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       lineAmount: item.totalPrice,
@@ -490,4 +521,5 @@ export async function GET(request: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
-  }}
+  }
+}

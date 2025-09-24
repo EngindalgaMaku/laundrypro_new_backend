@@ -27,9 +27,18 @@ export interface CreateOrderData {
   businessId: string;
   customerId: string;
   services?: Array<{
-    serviceId: string;
+    serviceId?: string; // Optional for manual entries
+    serviceName?: string; // For manual entries
+    serviceDescription?: string; // For manual entries
+    isManualEntry?: boolean; // Flag to identify manual entries
+    // Frontend compatibility fields
+    id?: string; // Frontend sends this for both DB and manual services
+    name?: string; // Frontend sends service name here
+    price?: number; // Frontend sends unit price as 'price'
+    description?: string; // Frontend description field
+    // Backend fields
     quantity: number;
-    unitPrice: number;
+    unitPrice?: number; // Make optional since frontend uses 'price'
     notes?: string;
     fabricType?: string;
     stainType?: string;
@@ -100,7 +109,10 @@ export class OrderDatabaseService {
     // Calculate totals
     let subtotal = 0;
     const serviceItems: Array<{
-      serviceId: string;
+      serviceId: string | null;
+      serviceName: string;
+      serviceDescription?: string;
+      isManualEntry: boolean;
       quantity: number;
       unitPrice: number;
       totalPrice: number;
@@ -109,23 +121,60 @@ export class OrderDatabaseService {
 
     if (data.services && data.services.length > 0) {
       for (const service of data.services) {
-        const serviceData = await prisma.service.findUnique({
-          where: { id: service.serviceId },
-        });
+        let serviceData = null;
 
-        if (!serviceData) {
-          throw new Error(`Service with ID ${service.serviceId} not found`);
+        // Normalize data from frontend format to backend format
+        const isManualEntry =
+          service.isManualEntry ||
+          (service.id && service.id.startsWith("temp-")) ||
+          (service.id && service.id.startsWith("manual-")) ||
+          !service.serviceId;
+
+        const serviceName =
+          service.serviceName || service.name || "Manual Service";
+        const serviceDescription =
+          service.serviceDescription ||
+          service.description ||
+          "Custom service entry";
+        const unitPrice = service.unitPrice || service.price || 0;
+
+        // Handle manual entries vs database services
+        if (isManualEntry) {
+          // Manual entry - create a temporary service record for processing
+          serviceData = {
+            id: null, // Will be null in database for manual entries
+            name: serviceName,
+            description: serviceDescription,
+            category: "OTHER", // Default category for manual entries
+            businessId: data.businessId,
+            isManualEntry: true,
+          };
+        } else {
+          // Database service - validate it exists
+          const serviceId = service.serviceId || service.id;
+          serviceData = await prisma.service.findUnique({
+            where: { id: serviceId },
+          });
+
+          if (!serviceData) {
+            throw new Error(`Service with ID ${serviceId} not found`);
+          }
         }
 
-        const itemTotal = service.quantity * service.unitPrice;
+        const itemTotal = service.quantity * unitPrice;
         subtotal += itemTotal;
 
         serviceItems.push({
-          serviceId: service.serviceId,
+          serviceId: isManualEntry
+            ? null
+            : service.serviceId || service.id || null, // null for manual entries
+          serviceName: serviceData.name,
+          serviceDescription: serviceData.description || undefined,
+          isManualEntry: isManualEntry,
           quantity: service.quantity,
-          unitPrice: service.unitPrice,
+          unitPrice: unitPrice,
           totalPrice: itemTotal,
-          notes: service.notes,
+          notes: service.notes || service.description,
         });
       }
     } else {
@@ -163,16 +212,27 @@ export class OrderDatabaseService {
 
       // Create order items if provided
       if (serviceItems.length > 0) {
-        await tx.orderItem.createMany({
-          data: serviceItems.map((item) => ({
+        for (const item of serviceItems) {
+          const orderItemData: any = {
             orderId: newOrder.id,
-            serviceId: item.serviceId,
+            serviceName: item.serviceName, // Store name directly for manual entries
+            serviceDescription: item.serviceDescription,
+            isManualEntry: item.isManualEntry,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             totalPrice: item.totalPrice,
             notes: item.notes,
-          })),
-        });
+          };
+
+          // Only include serviceId if it's not null (for database services)
+          if (item.serviceId) {
+            orderItemData.serviceId = item.serviceId;
+          }
+
+          await tx.orderItem.create({
+            data: orderItemData,
+          });
+        }
       }
 
       // Fetch complete order with relations

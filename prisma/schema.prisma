@@ -558,8 +558,14 @@ model Order {
 model OrderItem {
   id               String          @id @default(cuid())
   orderId          String          @map("order_id")
-  serviceId        String          @map("service_id")
+  serviceId        String?         @map("service_id") // Optional for manual entries
   servicePricingId String?         @map("service_pricing_id")
+  
+  // Manual entry support
+  serviceName      String?         @map("service_name") // For manual entries
+  serviceDescription String?       @map("service_description") @db.Text // For manual entries
+  isManualEntry    Boolean         @default(false) @map("is_manual_entry") // Flag for manual entries
+  
   quantity         Decimal         @db.Decimal(10, 2)
   unitPrice        Decimal         @map("unit_price") @db.Decimal(10, 2)
   totalPrice       Decimal         @map("total_price") @db.Decimal(10, 2)
@@ -569,7 +575,7 @@ model OrderItem {
   createdAt        DateTime        @default(now()) @map("created_at")
 
   order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  service        Service         @relation(fields: [serviceId], references: [id])
+  service        Service?        @relation(fields: [serviceId], references: [id]) // Optional for manual entries
   servicePricing ServicePricing? @relation(fields: [servicePricingId], references: [id])
   eInvoiceItems  EInvoiceItem[]
   invoiceItems   InvoiceItem[]   // Basic invoice items
