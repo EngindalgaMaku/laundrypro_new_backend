@@ -23,21 +23,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Allow optional query param to explicitly specify businessId (useful for mobile)
-    const url = new URL(request.url);
-    const paramBusinessId = (url.searchParams.get("businessId") ??
-      undefined) as string | undefined;
-    const businessIdToUse = paramBusinessId || currentUser.businessId;
+    // SECURITY FIX: Always use businessId from authenticated token ONLY
+    // Remove businessId query parameter acceptance to prevent cross-business data access
+    const businessIdToUse = currentUser.businessId;
 
     // Debug logging
     console.log(
-      "[SERVICES-GET] Using businessId:",
+      "[SERVICES-GET] Using businessId from token:",
       businessIdToUse,
-      "(token businessId:",
-      currentUser.businessId,
-      ", param:",
-      paramBusinessId,
-      ")"
+      "User ID:",
+      user.userId
     );
 
     // Get services with pricing for the business (do NOT filter by isActive at DB level to avoid null/legacy issues)

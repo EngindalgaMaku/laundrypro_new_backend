@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
     }
 
     const url = new URL(request.url);
-    const businessId =
-      url.searchParams.get("businessId") || currentUser.businessId;
+    // SECURITY FIX: Always use businessId from authenticated token ONLY
+    const businessId = currentUser.businessId;
     const query = url.searchParams.get("q") || "";
     const status = url.searchParams.get("status");
     const customerId = url.searchParams.get("customerId");

@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
     }
 
     const url = new URL(request.url);
-    const businessId =
-      url.searchParams.get("businessId") || tokenUser.businessId;
+    // SECURITY FIX: Always use businessId from authenticated token ONLY
+    const businessId = tokenUser.businessId;
     const days = parseInt(url.searchParams.get("days") || "30");
 
     console.log(

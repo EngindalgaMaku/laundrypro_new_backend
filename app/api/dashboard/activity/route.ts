@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    // Use businessId from authenticated user, but allow query parameter override for consistency
-    const businessId = searchParams.get("businessId") || user.businessId;
+    // SECURITY FIX: Always use businessId from authenticated token ONLY
+    const businessId = user.businessId;
     const limit = parseInt(searchParams.get("limit") || "20");
 
     // Verify user has access to the requested business

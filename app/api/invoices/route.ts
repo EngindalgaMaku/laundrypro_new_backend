@@ -1,14 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 
-
-
 import { prisma } from "@/lib/db";
 const anyPrisma: any = prisma;
 
 // GET /api/invoices - List basic invoices
 export async function GET(request: NextRequest) {
+  const user = getUserFromRequest(request);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Get current user's business ID
+  const currentUser = await prisma.user.findUnique({
+    where: { id: user.userId },
+    select: { businessId: true },
+  });
+
+  if (!currentUser?.businessId) {
+    return NextResponse.json(
+      { error: "User has no business associated" },
+      { status: 400 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
+  // SECURITY FIX: Always use businessId from authenticated token ONLY
+  const businessId = currentUser.businessId;
   const orderId = searchParams.get("orderId");
 
   if (!businessId) {
@@ -75,7 +92,8 @@ export async function GET(request: NextRequest) {
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  }}
+  }
+}
 
 // POST /api/invoices - Create basic invoice
 export async function POST(request: NextRequest) {
@@ -174,8 +192,8 @@ export async function POST(request: NextRequest) {
       data: order.orderItems.map((item) => ({
         invoiceId: invoice.id,
         orderItemId: item.id,
-        name: item.service.name,
-        description: item.service.description,
+        name: item.service?.name || "Unknown Service",
+        description: item.service?.description || "",
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         lineAmount: item.totalPrice,
@@ -209,7 +227,8 @@ export async function POST(request: NextRequest) {
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
-  }}
+  }
+}
 
 // Generate basic invoice number
 async function generateBasicInvoiceNumber(businessId: string): Promise<string> {

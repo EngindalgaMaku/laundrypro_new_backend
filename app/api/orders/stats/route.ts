@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
     }
 
     const url = new URL(request.url);
-    const businessId =
-      url.searchParams.get("businessId") || currentUser.businessId;
+    // SECURITY FIX: Always use businessId from authenticated token ONLY
+    const businessId = currentUser.businessId;
     const startDate = url.searchParams.get("startDate");
     const endDate = url.searchParams.get("endDate");
     console.log("📊 Stats API - Parameters:", {
