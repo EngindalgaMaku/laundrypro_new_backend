@@ -344,6 +344,7 @@ model Business {
   longitude   Float?      // GPS coordinates
   taxNumber   String?     @map("tax_number")
   isActive    Boolean     @default(true) @map("is_active")
+  onboardingCompleted Boolean @default(false) @map("onboarding_completed") // Phase 1: Track onboarding status
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 

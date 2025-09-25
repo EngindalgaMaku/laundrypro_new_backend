@@ -14,8 +14,8 @@ interface RegisterData {
   };
   business: {
     name: string;
-    type: BusinessType; // Primary business type
-    types: string[]; // Multiple service types
+    type?: BusinessType; // Primary business type (optional)
+    types?: string[]; // Multiple service types (optional)
     phone?: string;
     address?: string;
     city: string;
@@ -47,19 +47,17 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (
       !data.business.name ||
-      !data.business.type ||
       !data.user.email ||
       !data.user.password ||
       !data.user.firstName ||
       !data.user.lastName ||
       !data.business.city ||
-      !data.business.district ||
-      !data.business.types?.length
+      !data.business.district
     ) {
       return NextResponse.json(
         {
           error:
-            "Tüm zorunlu alanlar doldurulmalıdır (İşletme adı, hizmet türleri, e-posta, şifre, ad, soyad, il ve ilçe)",
+            "Tüm zorunlu alanlar doldurulmalıdır (İşletme adı, e-posta, şifre, ad, soyad, il ve ilçe)",
         },
         { status: 400 }
       );
@@ -106,7 +104,7 @@ export async function POST(request: NextRequest) {
       const business = await tx.business.create({
         data: {
           name: data.business.name,
-          businessType: data.business.type,
+          businessType: data.business.type || "DRY_CLEANING", // Default fallback
           email: data.user.email,
           phone: data.business.phone,
           address: data.business.address,
@@ -115,7 +113,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Create business service types for multiple services
+      // Create business service types for multiple services (optional)
       if (data.business.types && data.business.types.length > 0) {
         const serviceTypePromises = data.business.types.map((serviceType) =>
           tx.businessServiceType.create({
@@ -131,6 +129,10 @@ export async function POST(request: NextRequest) {
         console.log(
           "[REGISTER] Created business service types:",
           data.business.types
+        );
+      } else {
+        console.log(
+          "[REGISTER] No service types provided - will be set up during onboarding"
         );
       }
 
@@ -217,7 +219,7 @@ export async function POST(request: NextRequest) {
             id: business.id,
             name: business.name,
             businessType: business.businessType,
-            serviceTypes: data.business.types,
+            serviceTypes: data.business.types || [],
             email: business.email,
             phone: business.phone,
             address: business.address,

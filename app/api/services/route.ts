@@ -27,18 +27,89 @@ export async function GET(request: NextRequest) {
     // Remove businessId query parameter acceptance to prevent cross-business data access
     const businessIdToUse = currentUser.businessId;
 
-    // Debug logging
+    // BUSINESS SERVICE TYPES FILTERING: Check query parameter
+    const { searchParams } = new URL(request.url);
+    const respectBusinessTypes =
+      searchParams.get("respectBusinessTypes") === "true";
+
+    console.log("🔧 [SERVICES-GET] Business Service Types filtering:", {
+      respectBusinessTypes,
+      businessId: businessIdToUse,
+    });
+
+    // ENHANCED DEBUG logging for business isolation issue
+    console.log("🚨 [SERVICES-GET] BUSINESS ISOLATION DEBUG:");
+    console.log("🚨 [SERVICES-GET] User ID from token:", user.userId);
+    console.log("🚨 [SERVICES-GET] User email from token:", user.email);
     console.log(
-      "[SERVICES-GET] Using businessId from token:",
-      businessIdToUse,
-      "User ID:",
-      user.userId
+      "🚨 [SERVICES-GET] BusinessId from DB lookup:",
+      businessIdToUse
     );
+    console.log(
+      "🚨 [SERVICES-GET] Current user object:",
+      JSON.stringify(currentUser)
+    );
+
+    // PHASE 1: Check business onboarding status for hybrid registration approach
+    const businessData = (await prisma.$queryRaw`
+      SELECT onboarding_completed
+      FROM businesses
+      WHERE id = ${businessIdToUse}
+    `) as any[];
+
+    const onboardingCompleted =
+      businessData?.[0]?.onboarding_completed || false;
+    console.log(
+      "🔧 [SERVICES-GET] Business onboarding completed:",
+      onboardingCompleted
+    );
+
+    // BUSINESS SERVICE TYPES FILTERING: Get business service types first
+    let businessServiceTypes: string[] = [];
+    let shouldFilterByServiceTypes = false;
+
+    if (respectBusinessTypes) {
+      const businessServiceTypeRecords =
+        await prisma.businessServiceType.findMany({
+          where: {
+            businessId: businessIdToUse,
+            isActive: true,
+          },
+          select: { serviceType: true },
+        });
+
+      businessServiceTypes = businessServiceTypeRecords.map(
+        (bst) => bst.serviceType
+      );
+
+      console.log(
+        "🔧 [SERVICES-GET] Business service types found:",
+        businessServiceTypes
+      );
+
+      // PHASE 1: Updated logic for hybrid registration
+      // Only filter by service types if onboarding is completed AND service types exist
+      shouldFilterByServiceTypes =
+        onboardingCompleted && businessServiceTypes.length > 0;
+
+      if (!shouldFilterByServiceTypes) {
+        console.log(
+          "🔧 [SERVICES-GET] Showing all services with smart categorization:",
+          onboardingCompleted
+            ? "No service types selected"
+            : "Onboarding not completed"
+        );
+      }
+    }
 
     // Get services with pricing for the business (do NOT filter by isActive at DB level to avoid null/legacy issues)
     let services = await prisma.service.findMany({
       where: {
         businessId: businessIdToUse,
+        // PHASE 1: Apply category filter only if onboarding completed and service types exist
+        ...(shouldFilterByServiceTypes && {
+          category: { in: businessServiceTypes as any[] },
+        }),
       },
       include: {
         pricings: {
@@ -49,18 +120,51 @@ export async function GET(request: NextRequest) {
       orderBy: { name: "asc" },
     });
 
+    console.log("🔧 [SERVICES-GET] Services query result:", {
+      totalServices: services.length,
+      filteringEnabled: respectBusinessTypes,
+      allowedServiceTypes: businessServiceTypes,
+      actualCategories: [...new Set(services.map((s) => s.category))],
+    });
+
     // Auto-seed comprehensive default services if none exist (first-run UX)
     if (!services || services.length === 0) {
       console.log(
-        "[SERVICES-GET] No services found for business, seeding comprehensive defaults…",
+        "[SERVICES-GET] No services found for business, seeding defaults…",
         businessIdToUse
       );
+
+      // PHASE 1: Determine which categories to seed based on onboarding status
+      let categoriesToSeed: string[] = [];
+      if (shouldFilterByServiceTypes) {
+        categoriesToSeed = businessServiceTypes;
+        console.log(
+          "[SERVICES-SEED] Seeding only selected business service types:",
+          categoriesToSeed
+        );
+      } else {
+        // PHASE 1: Seed all categories for businesses that haven't completed onboarding
+        // or haven't selected service types yet
+        categoriesToSeed = [
+          "DRY_CLEANING",
+          "LAUNDRY",
+          "IRONING",
+          "CARPET_CLEANING",
+          "UPHOLSTERY_CLEANING",
+          "CURTAIN_CLEANING",
+          "STAIN_REMOVAL",
+        ];
+        console.log(
+          "[SERVICES-SEED] Seeding all service categories for hybrid registration approach"
+        );
+      }
 
       const seedingStartTime = Date.now();
       await prisma.$transaction(
         async (tx) => {
           // Create comprehensive service catalog with multiple pricing options
-          const seed = [
+          // BUSINESS SERVICE TYPES FILTERING: Filter seed data by allowed categories
+          const allSeedData = [
             // Dry Cleaning Services
             {
               name: "Kuru Temizleme - Gömlek",
@@ -399,6 +503,15 @@ export async function GET(request: NextRequest) {
             },
           ];
 
+          // BUSINESS SERVICE TYPES FILTERING: Filter seed data to only include allowed categories
+          const seed = allSeedData.filter((serviceData) =>
+            categoriesToSeed.includes(serviceData.category)
+          );
+
+          console.log(
+            `[SERVICES-SEED] Filtered seed data: ${seed.length}/${allSeedData.length} services to create`
+          );
+
           let servicesCreated = 0;
           let pricingsCreated = 0;
 
@@ -449,9 +562,15 @@ export async function GET(request: NextRequest) {
         }
       );
 
-      // Re-fetch after seeding
+      // Re-fetch after seeding with same filtering logic
       services = await prisma.service.findMany({
-        where: { businessId: businessIdToUse },
+        where: {
+          businessId: businessIdToUse,
+          // PHASE 1: Apply same filter after seeding
+          ...(shouldFilterByServiceTypes && {
+            category: { in: businessServiceTypes as any[] },
+          }),
+        },
         include: {
           pricings: {
             where: { isActive: true },
@@ -480,12 +599,50 @@ export async function GET(request: NextRequest) {
 
     // Filter out explicitly inactive at application layer
     const visible = normalized.filter((s) => s.isActive !== false);
+
+    console.log("🚨 [SERVICES-GET] RESPONSE ANALYSIS:");
+    console.log("🚨 [SERVICES-GET] Raw services from DB:", services.length);
     console.log(
-      "[SERVICES-GET] Found services:",
-      services.length,
-      "Visible after filter:",
+      "🚨 [SERVICES-GET] Visible services after filter:",
       visible.length
     );
+    console.log(
+      "🚨 [SERVICES-GET] Business ID used for query:",
+      businessIdToUse
+    );
+    console.log(
+      "🚨 [SERVICES-GET] PHASE 1 - Business service types filtering:",
+      {
+        enabled: respectBusinessTypes,
+        shouldFilter: shouldFilterByServiceTypes,
+        onboardingCompleted,
+        allowedTypes: businessServiceTypes,
+        actualCategories: [...new Set(visible.map((s) => s.category))],
+      }
+    );
+
+    // Log first few services with their business IDs to verify filtering
+    console.log("🚨 [SERVICES-GET] Sample services (first 5):");
+    visible.slice(0, 5).forEach((service, index) => {
+      console.log(
+        `🚨   ${index + 1}. ${service.name} (BusinessID: ${service.businessId})`
+      );
+    });
+
+    // Check if all services belong to the same business
+    const uniqueBusinessIds = [...new Set(visible.map((s) => s.businessId))];
+    console.log(
+      "🚨 [SERVICES-GET] Unique business IDs in response:",
+      uniqueBusinessIds
+    );
+
+    if (uniqueBusinessIds.length > 1) {
+      console.error(
+        "🔥 SECURITY BREACH: Multiple business IDs in single response!"
+      );
+      console.error("🔥 This indicates business isolation failure!");
+    }
+
     return NextResponse.json(visible);
   } catch (error) {
     console.error("Get services error:", error);
