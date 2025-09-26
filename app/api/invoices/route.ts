@@ -1,22 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-
+import { withAuth } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 const anyPrisma: any = prisma;
 
 // GET /api/invoices - List basic invoices
-export async function GET(request: NextRequest) {
-  const user = getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+async function getHandler(
+  request: NextRequest,
+  authData: { user: any; business?: any }
+) {
+  const { user } = authData;
 
-  // Get current user's business ID
-  const currentUser = await prisma.user.findUnique({
-    where: { id: user.userId },
-    select: { businessId: true },
-  });
-
-  if (!currentUser?.businessId) {
+  if (!user.businessId) {
     return NextResponse.json(
       { error: "User has no business associated" },
       { status: 400 }
@@ -25,7 +19,7 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   // SECURITY FIX: Always use businessId from authenticated token ONLY
-  const businessId = currentUser.businessId;
+  const businessId = user.businessId;
   const orderId = searchParams.get("orderId");
 
   if (!businessId) {
@@ -95,23 +89,33 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export const GET = withAuth(getHandler);
+
 // POST /api/invoices - Create basic invoice
-export async function POST(request: NextRequest) {
+async function postHandler(
+  request: NextRequest,
+  authData: { user: any; business?: any }
+) {
+  const { user } = authData;
+
   try {
     const body = await request.json();
-    const { orderId, businessId, customerVknTckn } = body;
+    const { orderId, customerVknTckn } = body;
+
+    // Use businessId from authenticated user
+    const businessId = user.businessId;
+
+    if (!businessId) {
+      return NextResponse.json(
+        { error: "User has no business associated" },
+        { status: 400 }
+      );
+    }
 
     // Validation
     if (!orderId || typeof orderId !== "string") {
       return NextResponse.json(
         { error: "Valid Order ID is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!businessId || typeof businessId !== "string") {
-      return NextResponse.json(
-        { error: "Valid Business ID is required" },
         { status: 400 }
       );
     }
@@ -229,6 +233,8 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAuth(postHandler);
 
 // Generate basic invoice number
 async function generateBasicInvoiceNumber(businessId: string): Promise<string> {
