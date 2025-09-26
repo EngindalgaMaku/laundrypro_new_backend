@@ -97,123 +97,44 @@ export async function GET(
       // Add syncStatus for frontend compatibility
       syncStatus: "synced" as const,
 
-      // CRITICAL FIX: Enhanced items transformation with fallback logic
-      // This prevents empty items arrays that cause mobile app Turkish error messages
-      items: (() => {
-        const existingItems = order.orderItems || [];
+      // Transform real order items - no fallback logic
+      items: (order.orderItems || []).map((item: any) => {
+        console.log(`[ORDER-GET] Processing item ${item.id}:`, {
+          hasServiceId: !!item.serviceId,
+          hasService: !!item.service,
+          serviceName: item.service?.name,
+          isManualEntry: item.isManualEntry,
+        });
 
-        // Log the current state for debugging
-        console.log(
-          `[ORDER-GET] Processing ${existingItems.length} existing items for order ${order.id}`
-        );
-
-        // If we have existing order items, process them normally
-        if (existingItems.length > 0) {
-          return existingItems.map((item: any) => {
-            console.log(`[ORDER-GET] Processing existing item ${item.id}:`, {
-              hasServiceId: !!item.serviceId,
-              hasServiceName: !!item.serviceName,
-              isManualEntry: item.isManualEntry,
-              hasService: !!item.service,
-            });
-
-            return {
-              id: item.id,
-              serviceId: item.serviceId || `manual-${item.id}`,
-              serviceName:
-                item.serviceName || item.service?.name || "Manual Service",
-              serviceDescription:
-                item.serviceDescription || item.service?.description || "",
-              serviceCategory: item.service?.category || "OTHER",
-              isManualEntry: item.isManualEntry || !item.serviceId,
-              quantity: Number(item.quantity) || 1,
-              unitPrice: Number(item.unitPrice) || 0,
-              totalPrice:
-                Number(item.totalPrice) ||
-                (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0),
-              notes: item.notes || "",
-              // Include service reference for non-manual entries
-              service: item.service
-                ? {
-                    id: item.service.id,
-                    name: item.service.name,
-                    category: item.service.category,
-                    description: item.service.description,
-                  }
-                : null,
-            };
-          });
-        }
-
-        // FALLBACK: If no orderItems exist, create a fallback item from order data
-        // This prevents the mobile app from showing "Service details could not be loaded" errors
-        console.warn(
-          `[ORDER-GET] No orderItems found for order ${order.id}, creating fallback item`
-        );
-
-        const fallbackItem = {
-          id: `fallback-${order.id}`,
-          serviceId: `fallback-${order.id}`,
-          serviceName: order.orderInfo || "Temizlik Hizmeti",
+        return {
+          id: item.id,
+          serviceId: item.serviceId,
+          serviceName:
+            item.service?.name || item.serviceName || "Unknown Service",
           serviceDescription:
-            order.notes || order.deliveryNotes || "Manuel hizmet girişi",
-          serviceCategory: "OTHER",
-          isManualEntry: true,
-          quantity: 1,
-          unitPrice: Number(order.totalAmount || 0),
-          totalPrice: Number(order.totalAmount || 0),
-          notes:
-            [
-              order.orderInfo,
-              order.notes,
-              order.deliveryNotes,
-              order.specialInstructions,
-              order.referenceCode ? `Referans: ${order.referenceCode}` : null,
-            ]
-              .filter(Boolean)
-              .join(" - ") || "Manuel hizmet",
-          service: null, // No service reference for fallback items
+            item.service?.description || item.serviceDescription || "",
+          serviceCategory: item.service?.category || "OTHER",
+          isManualEntry: item.isManualEntry || false,
+          quantity: Number(item.quantity) || 1,
+          unitPrice: Number(item.unitPrice) || 0,
+          totalPrice: Number(item.totalPrice) || 0,
+          notes: item.notes || "",
+          // Include service reference for database services
+          service: item.service
+            ? {
+                id: item.service.id,
+                name: item.service.name,
+                category: item.service.category,
+                description: item.service.description,
+              }
+            : null,
         };
-
-        console.log(
-          `[ORDER-GET] Created fallback item for order ${order.id}:`,
-          {
-            serviceName: fallbackItem.serviceName,
-            totalPrice: fallbackItem.totalPrice,
-            notes: fallbackItem.notes,
-          }
-        );
-
-        return [fallbackItem];
-      })(),
+      }),
 
       photos: [], // Add photos support later
       // Initialize statusHistory as empty array for frontend compatibility
       statusHistory: [],
     };
-
-    // CRITICAL VALIDATION: Ensure items array is never empty
-    if (!transformedOrder.items || transformedOrder.items.length === 0) {
-      console.error(
-        `[ORDER-GET] CRITICAL: Items array is empty after transformation for order ${order.id}!`
-      );
-      // This should never happen with our fallback logic, but add extra protection
-      transformedOrder.items = [
-        {
-          id: `emergency-fallback-${order.id}`,
-          serviceId: `emergency-fallback-${order.id}`,
-          serviceName: "Hizmet Bilgisi Yükleniyor",
-          serviceDescription: "Manuel hizmet girişi",
-          serviceCategory: "OTHER",
-          isManualEntry: true,
-          quantity: 1,
-          unitPrice: Number(order.totalAmount || 0),
-          totalPrice: Number(order.totalAmount || 0),
-          notes: "Acil durum yedek kaydı",
-          service: null,
-        },
-      ];
-    }
 
     console.log(
       `[ORDER-GET] Successfully transformed order ${order.id} with ${transformedOrder.items.length} items:`,
@@ -221,9 +142,6 @@ export async function GET(
         hasOrderItems: !!(order.orderItems && order.orderItems.length > 0),
         itemsCount: transformedOrder.items.length,
         firstItemName: transformedOrder.items[0]?.serviceName,
-        isFallbackUsed: transformedOrder.items[0]?.id?.includes("fallback"),
-        isEmergencyFallback:
-          transformedOrder.items[0]?.id?.includes("emergency-fallback"),
       }
     );
 
@@ -380,115 +298,43 @@ export async function PUT(
       deliveryDate: updatedOrder.deliveryDate?.toISOString(),
       // Add syncStatus for frontend compatibility
       syncStatus: "synced" as const,
-      // CRITICAL FIX: Enhanced items transformation with fallback logic for updates
-      items: (() => {
-        const existingItems = updatedOrder.orderItems || [];
+      // Transform real order items - no fallback logic
+      items: (updatedOrder.orderItems || []).map((item: any) => {
+        console.log(`[ORDER-UPDATE] Processing item ${item.id}:`, {
+          hasServiceId: !!item.serviceId,
+          hasService: !!item.service,
+          serviceName: item.service?.name,
+          isManualEntry: item.isManualEntry,
+        });
 
-        // Log the current state for debugging
-        console.log(
-          `[ORDER-UPDATE] Processing ${existingItems.length} existing items for updated order ${updatedOrder.id}`
-        );
-
-        // If we have existing order items, process them normally
-        if (existingItems.length > 0) {
-          return existingItems.map((item: any) => ({
-            id: item.id,
-            serviceId: item.serviceId || `manual-${item.id}`,
-            serviceName:
-              item.serviceName || item.service?.name || "Manual Service",
-            serviceDescription:
-              item.serviceDescription || item.service?.description || "",
-            serviceCategory: item.service?.category || "OTHER",
-            isManualEntry: item.isManualEntry || false,
-            quantity: Number(item.quantity) || 1,
-            unitPrice: Number(item.unitPrice) || 0,
-            totalPrice:
-              Number(item.totalPrice) ||
-              (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0),
-            notes: item.notes || "",
-            // Include service reference for non-manual entries
-            service: item.service
-              ? {
-                  id: item.service.id,
-                  name: item.service.name,
-                  category: item.service.category,
-                  description: item.service.description,
-                }
-              : null,
-          }));
-        }
-
-        // FALLBACK: If no orderItems exist, create a fallback item from order data
-        console.warn(
-          `[ORDER-UPDATE] No orderItems found for updated order ${updatedOrder.id}, creating fallback item`
-        );
-
-        const fallbackItem = {
-          id: `fallback-${updatedOrder.id}`,
-          serviceId: `fallback-${updatedOrder.id}`,
-          serviceName: updatedOrder.orderInfo || "Temizlik Hizmeti",
+        return {
+          id: item.id,
+          serviceId: item.serviceId,
+          serviceName:
+            item.service?.name || item.serviceName || "Unknown Service",
           serviceDescription:
-            updatedOrder.notes ||
-            updatedOrder.deliveryNotes ||
-            "Manuel hizmet girişi",
-          serviceCategory: "OTHER",
-          isManualEntry: true,
-          quantity: 1,
-          unitPrice: Number(updatedOrder.totalAmount || 0),
-          totalPrice: Number(updatedOrder.totalAmount || 0),
-          notes:
-            [
-              updatedOrder.orderInfo,
-              updatedOrder.notes,
-              updatedOrder.deliveryNotes,
-              updatedOrder.specialInstructions,
-              updatedOrder.referenceCode
-                ? `Referans: ${updatedOrder.referenceCode}`
-                : null,
-            ]
-              .filter(Boolean)
-              .join(" - ") || "Manuel hizmet",
-          service: null,
+            item.service?.description || item.serviceDescription || "",
+          serviceCategory: item.service?.category || "OTHER",
+          isManualEntry: item.isManualEntry || false,
+          quantity: Number(item.quantity) || 1,
+          unitPrice: Number(item.unitPrice) || 0,
+          totalPrice: Number(item.totalPrice) || 0,
+          notes: item.notes || "",
+          // Include service reference for database services
+          service: item.service
+            ? {
+                id: item.service.id,
+                name: item.service.name,
+                category: item.service.category,
+                description: item.service.description,
+              }
+            : null,
         };
-
-        console.log(
-          `[ORDER-UPDATE] Created fallback item for updated order ${updatedOrder.id}:`,
-          {
-            serviceName: fallbackItem.serviceName,
-            totalPrice: fallbackItem.totalPrice,
-            notes: fallbackItem.notes,
-          }
-        );
-
-        return [fallbackItem];
-      })(),
+      }),
       photos: [], // Add photos support later
       // Initialize statusHistory as empty array for frontend compatibility
       statusHistory: [],
     };
-
-    // CRITICAL VALIDATION: Ensure items array is never empty for updates
-    if (!transformedOrder.items || transformedOrder.items.length === 0) {
-      console.error(
-        `[ORDER-UPDATE] CRITICAL: Items array is empty after transformation for updated order ${updatedOrder.id}!`
-      );
-      // This should never happen with our fallback logic, but add extra protection
-      transformedOrder.items = [
-        {
-          id: `emergency-fallback-${updatedOrder.id}`,
-          serviceId: `emergency-fallback-${updatedOrder.id}`,
-          serviceName: "Hizmet Bilgisi Yükleniyor",
-          serviceDescription: "Manuel hizmet girişi",
-          serviceCategory: "OTHER",
-          isManualEntry: true,
-          quantity: 1,
-          unitPrice: Number(updatedOrder.totalAmount || 0),
-          totalPrice: Number(updatedOrder.totalAmount || 0),
-          notes: "Acil durum yedek kaydı",
-          service: null,
-        },
-      ];
-    }
 
     console.log(
       `[ORDER-UPDATE] Successfully transformed updated order ${updatedOrder.id} with ${transformedOrder.items.length} items:`,
@@ -498,9 +344,6 @@ export async function PUT(
         ),
         itemsCount: transformedOrder.items.length,
         firstItemName: transformedOrder.items[0]?.serviceName,
-        isFallbackUsed: transformedOrder.items[0]?.id?.includes("fallback"),
-        isEmergencyFallback:
-          transformedOrder.items[0]?.id?.includes("emergency-fallback"),
       }
     );
 
