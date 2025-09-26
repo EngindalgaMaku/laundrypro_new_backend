@@ -33,7 +33,22 @@ export async function GET(
     const transformedOrder = {
       id: order.id, // Use actual database ID
       orderNumber: order.orderNumber,
-      customer: `${order.customer.firstName} ${order.customer.lastName}`,
+      // Customer as object for proper frontend handling
+      customer: {
+        id: order.customer.id,
+        name:
+          `${order.customer.firstName || ""} ${
+            order.customer.lastName || ""
+          }`.trim() || "İsimsiz",
+        firstName: order.customer.firstName || "",
+        lastName: order.customer.lastName || "",
+        phone: order.customer.phone || "",
+        whatsapp: order.customer.whatsapp || order.customer.phone || "",
+        email: order.customer.email || "",
+        address: order.customer.address || "",
+        district: order.customer.district || "",
+        city: order.customer.city || "",
+      },
       service: order.orderItems?.[0]?.service?.name || "Çeşitli Hizmetler",
       serviceType: order.orderItems?.[0]?.service?.category || "OTHER",
       status: order.status,
@@ -58,7 +73,33 @@ export async function GET(
       updatedAt: order.updatedAt.toISOString(),
       pickupDate: order.pickupDate?.toISOString(),
       deliveryDate: order.deliveryDate?.toISOString(),
-      items: order.orderItems || [],
+      // Enhanced items transformation for proper frontend handling
+      items:
+        order.orderItems?.map((item: any) => ({
+          id: item.id,
+          serviceId: item.serviceId || `manual-${item.id}`,
+          serviceName:
+            item.serviceName || item.service?.name || "Manual Service",
+          serviceDescription:
+            item.serviceDescription || item.service?.description || "",
+          serviceCategory: item.service?.category || "OTHER",
+          isManualEntry: item.isManualEntry || false,
+          quantity: Number(item.quantity) || 1,
+          unitPrice: Number(item.unitPrice) || 0,
+          totalPrice:
+            Number(item.totalPrice) ||
+            (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0),
+          notes: item.notes || "",
+          // Include service reference for non-manual entries
+          service: item.service
+            ? {
+                id: item.service.id,
+                name: item.service.name,
+                category: item.service.category,
+                description: item.service.description,
+              }
+            : null,
+        })) || [],
       photos: [], // Add photos support later
     };
 
@@ -108,7 +149,23 @@ export async function PUT(
     const transformedOrder = {
       id: updatedOrder.id, // Use actual database ID
       orderNumber: updatedOrder.orderNumber,
-      customer: `${updatedOrder.customer.firstName} ${updatedOrder.customer.lastName}`,
+      // Customer as object for proper frontend handling
+      customer: {
+        id: updatedOrder.customer.id,
+        name:
+          `${updatedOrder.customer.firstName || ""} ${
+            updatedOrder.customer.lastName || ""
+          }`.trim() || "İsimsiz",
+        firstName: updatedOrder.customer.firstName || "",
+        lastName: updatedOrder.customer.lastName || "",
+        phone: updatedOrder.customer.phone || "",
+        whatsapp:
+          updatedOrder.customer.whatsapp || updatedOrder.customer.phone || "",
+        email: (updatedOrder.customer as any).email || "",
+        address: (updatedOrder.customer as any).address || "",
+        district: (updatedOrder.customer as any).district || "",
+        city: (updatedOrder.customer as any).city || "",
+      },
       service:
         updatedOrder.orderItems?.[0]?.service?.name || "Çeşitli Hizmetler",
       serviceType: updatedOrder.orderItems?.[0]?.service?.category || "OTHER",
@@ -135,7 +192,33 @@ export async function PUT(
       updatedAt: updatedOrder.updatedAt.toISOString(),
       pickupDate: updatedOrder.pickupDate?.toISOString(),
       deliveryDate: updatedOrder.deliveryDate?.toISOString(),
-      items: updatedOrder.orderItems || [],
+      // Enhanced items transformation for proper frontend handling
+      items:
+        updatedOrder.orderItems?.map((item: any) => ({
+          id: item.id,
+          serviceId: item.serviceId || `manual-${item.id}`,
+          serviceName:
+            item.serviceName || item.service?.name || "Manual Service",
+          serviceDescription:
+            item.serviceDescription || item.service?.description || "",
+          serviceCategory: item.service?.category || "OTHER",
+          isManualEntry: item.isManualEntry || false,
+          quantity: Number(item.quantity) || 1,
+          unitPrice: Number(item.unitPrice) || 0,
+          totalPrice:
+            Number(item.totalPrice) ||
+            (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0),
+          notes: item.notes || "",
+          // Include service reference for non-manual entries
+          service: item.service
+            ? {
+                id: item.service.id,
+                name: item.service.name,
+                category: item.service.category,
+                description: item.service.description,
+              }
+            : null,
+        })) || [],
       photos: [], // Add photos support later
     };
 
@@ -201,7 +284,11 @@ export async function DELETE(
     }
     if (err?.code === "ORDER_NOT_DELETABLE") {
       return NextResponse.json(
-        { error: err.message, code: err.code, currentStatus: err.currentStatus },
+        {
+          error: err.message,
+          code: err.code,
+          currentStatus: err.currentStatus,
+        },
         { status: 400 }
       );
     }
