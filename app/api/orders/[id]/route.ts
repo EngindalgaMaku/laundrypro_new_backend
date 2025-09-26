@@ -60,7 +60,7 @@ export async function GET(
         district: order.customer.district || "",
         city: order.customer.city || "",
       },
-      service: order.orderItems?.[0]?.service?.name || "Çeşitli Hizmetler",
+      service: order.orderItems?.[0]?.service?.name,
       serviceType: order.orderItems?.[0]?.service?.category || "OTHER",
       status: order.status,
       amount: `₺${Number(order.totalAmount || 0).toLocaleString("tr-TR")}`,
@@ -109,8 +109,7 @@ export async function GET(
         return {
           id: item.id,
           serviceId: item.serviceId,
-          serviceName:
-            item.service?.name || item.serviceName || "Unknown Service",
+          serviceName: item.service?.name || item.serviceName,
           serviceDescription:
             item.service?.description || item.serviceDescription || "",
           serviceCategory: item.service?.category || "OTHER",
@@ -264,8 +263,7 @@ export async function PUT(
         district: (updatedOrder.customer as any).district || "",
         city: (updatedOrder.customer as any).city || "",
       },
-      service:
-        updatedOrder.orderItems?.[0]?.service?.name || "Çeşitli Hizmetler",
+      service: updatedOrder.orderItems?.[0]?.service?.name,
       serviceType: updatedOrder.orderItems?.[0]?.service?.category || "OTHER",
       status: updatedOrder.status,
       amount: `₺${Number(updatedOrder.totalAmount).toLocaleString("tr-TR")}`,
@@ -310,8 +308,7 @@ export async function PUT(
         return {
           id: item.id,
           serviceId: item.serviceId,
-          serviceName:
-            item.service?.name || item.serviceName || "Unknown Service",
+          serviceName: item.service?.name || item.serviceName,
           serviceDescription:
             item.service?.description || item.serviceDescription || "",
           serviceCategory: item.service?.category || "OTHER",
