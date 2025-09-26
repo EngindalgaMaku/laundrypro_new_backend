@@ -951,11 +951,55 @@ export async function getDashboardStats(businessId: string, days: number = 30) {
   // Import CustomerDatabaseService dynamically to avoid circular dependency
   const { CustomerDatabaseService } = await import("./customers");
 
-  // Get both order and customer stats
+  // Get active orders count WITHOUT date filtering for dashboard display
+  console.log("[DEBUG] Getting current active orders count...");
+  const activeOrdersCount = await prisma.order.count({
+    where: {
+      businessId,
+      status: {
+        in: [
+          "PENDING",
+          "IN_PROGRESS",
+          "CONFIRMED",
+          "READY_FOR_PICKUP",
+          "READY_FOR_DELIVERY",
+          "OUT_FOR_DELIVERY",
+        ],
+      },
+    },
+  });
+
+  console.log(
+    `[DEBUG] Active orders count (no date filter): ${activeOrdersCount}`
+  );
+
+  // Get current status distribution WITHOUT date filtering
+  const currentStatusCounts = await prisma.order.groupBy({
+    by: ["status"],
+    where: {
+      businessId,
+    },
+    _count: { _all: true },
+  });
+
+  console.log(
+    "[DEBUG] Current status counts (no date filter):",
+    currentStatusCounts
+  );
+
+  // Get both order and customer stats (with date filtering for trends)
   const [orderStats, customerStats] = await Promise.all([
     OrderDatabaseService.getOrderStats(businessId, days),
     CustomerDatabaseService.getCustomerStats(businessId, days),
   ]);
+
+  // Format current status counts without date filtering
+  const currentByStatus = currentStatusCounts.reduce((acc, item) => {
+    acc[item.status] = (item._count as any)._all as number;
+    return acc;
+  }, {} as Record<string, number>);
+
+  console.log("[DEBUG] Formatted current status counts:", currentByStatus);
 
   // Calculate week-based customer metrics
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -987,9 +1031,25 @@ export async function getDashboardStats(businessId: string, days: number = 30) {
       ? 100
       : 0;
 
+  // Calculate active orders from current status counts (no date filtering)
+  const activeOrdersFromStatus =
+    (currentByStatus.PENDING || 0) +
+    (currentByStatus.IN_PROGRESS || 0) +
+    (currentByStatus.CONFIRMED || 0) +
+    (currentByStatus.READY_FOR_PICKUP || 0) +
+    (currentByStatus.READY_FOR_DELIVERY || 0) +
+    (currentByStatus.OUT_FOR_DELIVERY || 0);
+
+  console.log(
+    `[DEBUG] Calculated active orders from status: ${activeOrdersFromStatus}`
+  );
+  console.log(`[DEBUG] Direct active orders count: ${activeOrdersCount}`);
+
   // Return combined stats with customer data matching frontend expectations
+  // Use current status counts (no date filter) for byStatus to show actual current state
   return {
     ...orderStats,
+    byStatus: currentByStatus, // Use current status counts instead of date-filtered
     customers: {
       total: customerStats.total,
       newThisWeek,
