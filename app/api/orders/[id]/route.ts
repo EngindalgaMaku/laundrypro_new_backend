@@ -101,6 +101,8 @@ export async function GET(
             : null,
         })) || [],
       photos: [], // Add photos support later
+      // Initialize statusHistory as empty array for frontend compatibility
+      statusHistory: [],
     };
 
     return NextResponse.json(transformedOrder);
@@ -220,6 +222,8 @@ export async function PUT(
             : null,
         })) || [],
       photos: [], // Add photos support later
+      // Initialize statusHistory as empty array for frontend compatibility
+      statusHistory: [],
     };
 
     return NextResponse.json({
