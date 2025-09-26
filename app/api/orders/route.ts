@@ -108,47 +108,110 @@ export async function GET(request: NextRequest) {
       offset
     );
 
-    // Transform orders for frontend
-    const transformedOrders = orders.map((order) => ({
-      id: order.id, // Use actual database ID, not orderNumber
-      orderNumber: order.orderNumber,
-      customer: `${order.customer.firstName} ${order.customer.lastName}`,
-      service: order.orderItems?.[0]?.service?.name || "Çeşitli Hizmetler",
-      serviceType: order.orderItems?.[0]?.service?.category || "OTHER",
-      status: order.status,
-      amount: `₺${Number(order.totalAmount).toLocaleString("tr-TR")}`,
-      totalAmount: Number(order.totalAmount),
-      date: order.createdAt.toISOString().split("T")[0],
-      phone: order.customer.phone,
-      whatsapp: order.customer.whatsapp || order.customer.phone,
-      email: order.customer.email,
-      description: order.notes || `${order.orderItems?.length || 0} hizmet`,
-      priority: order.priority,
-      address: order.customer.address,
-      district: order.customer.district || "",
-      city: order.customer.city || "",
-      customerId: order.customer.id,
-      createdAt: order.createdAt.toISOString(),
-      pickupDate: order.pickupDate?.toISOString(),
-      deliveryDate: order.deliveryDate?.toISOString(),
-      // Critical missing fields identified in testing
-      orderInfo: order.orderInfo || null,
-      deliveryNotes: order.deliveryNotes || null,
-      referenceCode: order.referenceCode || null,
-      notes: order.notes || null, // Dedicated notes field (not just for description)
-      specialInstructions: order.specialInstructions || null,
-    }));
+    // Transform orders for frontend with comprehensive field mapping
+    const transformedOrders = orders.map((order) => {
+      // Log order data for debugging missing fields
+      console.log(`[ORDERS-GET] Processing order ${order.id}:`, {
+        hasOrderInfo: !!order.orderInfo,
+        hasDeliveryNotes: !!order.deliveryNotes,
+        hasReferenceCode: !!order.referenceCode,
+        hasNotes: !!order.notes,
+        hasSpecialInstructions: !!order.specialInstructions,
+        orderItemsCount: order.orderItems?.length || 0,
+      });
+
+      return {
+        id: order.id, // Use actual database ID, not orderNumber
+        orderNumber: order.orderNumber,
+        customer:
+          `${order.customer.firstName || ""} ${
+            order.customer.lastName || ""
+          }`.trim() || "İsimsiz",
+        service: order.orderItems?.[0]?.service?.name || "Çeşitli Hizmetler",
+        serviceType: order.orderItems?.[0]?.service?.category || "OTHER",
+        status: order.status,
+        amount: `₺${Number(order.totalAmount || 0).toLocaleString("tr-TR")}`,
+        totalAmount: Number(order.totalAmount || 0),
+        date: order.createdAt.toISOString().split("T")[0],
+        phone: order.customer.phone || "",
+        whatsapp: order.customer.whatsapp || order.customer.phone || "",
+        email: order.customer.email || "",
+        description: order.notes || `${order.orderItems?.length || 0} hizmet`,
+        priority: order.priority || "NORMAL",
+        address: order.customer.address || "",
+        district: order.customer.district || "",
+        city: order.customer.city || "",
+        customerId: order.customer.id,
+        createdAt: order.createdAt.toISOString(),
+        pickupDate: order.pickupDate?.toISOString() || null,
+        deliveryDate: order.deliveryDate?.toISOString() || null,
+        // CRITICAL FIELDS: Always include these fields, even if null/empty
+        // This prevents frontend conditional rendering from hiding entire sections
+        orderInfo: order.orderInfo || null, // Sipariş Bilgisi - Primary order details
+        deliveryNotes: order.deliveryNotes || null, // Teslimat Notu - Delivery instructions
+        referenceCode: order.referenceCode || null, // Referans Kodu - Reference identifier
+        notes: order.notes || null, // Genel notlar - General notes
+        specialInstructions: order.specialInstructions || null, // Özel talimatlar - Special instructions
+        // Enhanced order items with proper transformation
+        items: (order.orderItems || []).map((item: any) => ({
+          id: item.id,
+          serviceId: item.serviceId || `manual-${item.id}`,
+          serviceName:
+            item.serviceName || item.service?.name || "Manual Service",
+          serviceDescription:
+            item.serviceDescription || item.service?.description || "",
+          serviceCategory: item.service?.category || "OTHER",
+          isManualEntry: item.isManualEntry || !item.serviceId,
+          quantity: Number(item.quantity) || 1,
+          unitPrice: Number(item.unitPrice) || 0,
+          totalPrice:
+            Number(item.totalPrice) ||
+            (Number(item.quantity) || 1) * (Number(item.unitPrice) || 0),
+          notes: item.notes || "",
+          // Include service reference for non-manual entries
+          service: item.service
+            ? {
+                id: item.service.id,
+                name: item.service.name,
+                category: item.service.category,
+                description: item.service.description,
+              }
+            : null,
+        })),
+      };
+    });
+
+    // Log successful response
+    console.log(
+      `[ORDERS-GET] Successfully transformed ${transformedOrders.length} orders`
+    );
 
     return NextResponse.json({
       orders: transformedOrders,
       total,
       page,
       totalPages: Math.ceil(total / limit),
+      meta: {
+        hasFilters: !!(status || search || customerName),
+        appliedFilters: {
+          status: status || "ALL",
+          search: search || customerName,
+        },
+      },
     });
   } catch (error) {
-    console.error("Orders API error:", error);
+    console.error("[ORDERS-GET] Critical error in orders API:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
+
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        message: "Failed to load orders",
+        code: "ORDERS_FETCH_ERROR",
+      },
       { status: 500 }
     );
   }

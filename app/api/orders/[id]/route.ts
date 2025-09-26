@@ -29,7 +29,17 @@ export async function GET(
       currentUser.businessId
     );
 
-    // Transform order for frontend
+    // Log order data for debugging
+    console.log(`[ORDER-GET] Processing order ${order.id}:`, {
+      hasOrderInfo: !!order.orderInfo,
+      hasDeliveryNotes: !!order.deliveryNotes,
+      hasReferenceCode: !!order.referenceCode,
+      hasNotes: !!order.notes,
+      hasSpecialInstructions: !!order.specialInstructions,
+      orderItemsCount: order.orderItems?.length || 0,
+    });
+
+    // Transform order for frontend with comprehensive field mapping
     const transformedOrder = {
       id: order.id, // Use actual database ID
       businessId: order.businessId, // Add missing businessId
@@ -53,38 +63,50 @@ export async function GET(
       service: order.orderItems?.[0]?.service?.name || "Çeşitli Hizmetler",
       serviceType: order.orderItems?.[0]?.service?.category || "OTHER",
       status: order.status,
-      amount: `₺${Number(order.totalAmount).toLocaleString("tr-TR")}`,
-      totalAmount: Number(order.totalAmount),
+      amount: `₺${Number(order.totalAmount || 0).toLocaleString("tr-TR")}`,
+      totalAmount: Number(order.totalAmount || 0),
       // Add missing payment fields for frontend compatibility
       paymentMethod: order.paymentMethod || "CASH",
       paymentStatus: order.paymentStatus || "PENDING",
       date: order.createdAt.toISOString().split("T")[0],
-      phone: order.customer.phone,
-      whatsapp: order.customer.whatsapp || order.customer.phone,
-      email: order.customer.email,
+      phone: order.customer.phone || "",
+      whatsapp: order.customer.whatsapp || order.customer.phone || "",
+      email: order.customer.email || "",
       description: order.notes || `${order.orderItems?.length || 0} hizmet`,
-      orderInfo: order.orderInfo, // Sipariş Bilgisi
-      deliveryNotes: order.deliveryNotes, // Teslimat Notu
-      referenceCode: order.referenceCode, // Referans Kodu
-      notes: order.notes, // Genel notlar
-      specialInstructions: order.specialInstructions, // Özel talimatlar
-      priority: order.priority,
+
+      // CRITICAL FIELDS: Always include these fields, even if null/empty
+      // This prevents frontend conditional rendering from hiding entire sections
+      orderInfo: order.orderInfo || null, // Sipariş Bilgisi - Primary order details
+      deliveryNotes: order.deliveryNotes || null, // Teslimat Notu - Delivery instructions
+      referenceCode: order.referenceCode || null, // Referans Kodu - Reference identifier
+      notes: order.notes || null, // Genel notlar - General notes
+      specialInstructions: order.specialInstructions || null, // Özel talimatlar - Special instructions
+
+      priority: order.priority || "NORMAL",
       // Add missing fields for frontend
       isUrgent: order.priority === "URGENT" || false,
       whatsappNotifications: true, // Default value since not in database yet
-      address: order.customer.address,
+      address: order.customer.address || "",
       district: order.customer.district || "",
       city: order.customer.city || "",
       customerId: order.customer.id,
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
-      pickupDate: order.pickupDate?.toISOString(),
-      deliveryDate: order.deliveryDate?.toISOString(),
+      pickupDate: order.pickupDate?.toISOString() || null,
+      deliveryDate: order.deliveryDate?.toISOString() || null,
       // Add syncStatus for frontend compatibility
       syncStatus: "synced" as const,
-      // Enhanced items transformation for proper frontend handling
-      items:
-        order.orderItems?.map((item: any) => ({
+
+      // Enhanced items transformation with comprehensive error handling
+      items: (order.orderItems || []).map((item: any) => {
+        console.log(`[ORDER-GET] Processing item ${item.id}:`, {
+          hasServiceId: !!item.serviceId,
+          hasServiceName: !!item.serviceName,
+          isManualEntry: item.isManualEntry,
+          hasService: !!item.service,
+        });
+
+        return {
           id: item.id,
           serviceId: item.serviceId || `manual-${item.id}`,
           serviceName:
@@ -92,7 +114,7 @@ export async function GET(
           serviceDescription:
             item.serviceDescription || item.service?.description || "",
           serviceCategory: item.service?.category || "OTHER",
-          isManualEntry: item.isManualEntry || false,
+          isManualEntry: item.isManualEntry || !item.serviceId,
           quantity: Number(item.quantity) || 1,
           unitPrice: Number(item.unitPrice) || 0,
           totalPrice:
@@ -108,20 +130,43 @@ export async function GET(
                 description: item.service.description,
               }
             : null,
-        })) || [],
+        };
+      }),
+
       photos: [], // Add photos support later
       // Initialize statusHistory as empty array for frontend compatibility
       statusHistory: [],
     };
 
+    console.log(
+      `[ORDER-GET] Successfully transformed order ${order.id} with ${transformedOrder.items.length} items`
+    );
+
     return NextResponse.json(transformedOrder);
   } catch (error) {
-    console.error("Get order error:", error);
+    console.error(`[ORDER-GET] Critical error fetching order ${params.id}:`, {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      orderId: params.id,
+      timestamp: new Date().toISOString(),
+    });
+
     if (error instanceof Error && error.message === "Order not found") {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: "Order not found",
+          code: "ORDER_NOT_FOUND",
+          orderId: params.id,
+        },
+        { status: 404 }
+      );
     }
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        message: "Failed to load order details",
+        code: "ORDER_FETCH_ERROR",
+      },
       { status: 500 }
     );
   }

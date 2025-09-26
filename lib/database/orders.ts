@@ -298,76 +298,204 @@ export class OrderDatabaseService {
   }
 
   /**
-   * Get orders with filters and pagination
+   * Get orders with filters and pagination - Enhanced with comprehensive error handling
    */
   static async getOrders(
     filters: OrderFilters,
     limit: number = 50,
     offset: number = 0
   ) {
-    const where: any = {
-      businessId: filters.businessId,
-    };
+    try {
+      console.log(`[ORDERS-DB] Starting getOrders with filters:`, {
+        businessId: filters.businessId,
+        hasStatus: !!filters.status,
+        hasSearch: !!filters.search,
+        limit,
+        offset,
+      });
 
-    if (filters.customerId) {
-      where.customerId = filters.customerId;
-    }
-
-    if (filters.status && filters.status.length > 0) {
-      where.status = { in: filters.status };
-    }
-
-    if (filters.assignedUserId) {
-      where.assignedUserId = filters.assignedUserId;
-    }
-
-    if (filters.priority) {
-      where.priority = filters.priority;
-    }
-
-    if (filters.dateRange) {
-      where.createdAt = {
-        gte: filters.dateRange.startDate,
-        lte: filters.dateRange.endDate,
+      const where: any = {
+        businessId: filters.businessId,
       };
-    }
 
-    if (filters.search) {
-      where.OR = [
-        { orderNumber: { contains: filters.search } },
-        { notes: { contains: filters.search } },
-        {
-          customer: {
-            OR: [
-              { firstName: { contains: filters.search } },
-              { lastName: { contains: filters.search } },
-              { phone: { contains: filters.search } },
-            ],
+      if (filters.customerId) {
+        where.customerId = filters.customerId;
+      }
+
+      if (filters.status && filters.status.length > 0) {
+        where.status = { in: filters.status };
+      }
+
+      if (filters.assignedUserId) {
+        where.assignedUserId = filters.assignedUserId;
+      }
+
+      if (filters.priority) {
+        where.priority = filters.priority;
+      }
+
+      if (filters.dateRange) {
+        where.createdAt = {
+          gte: filters.dateRange.startDate,
+          lte: filters.dateRange.endDate,
+        };
+      }
+
+      if (filters.search) {
+        where.OR = [
+          { orderNumber: { contains: filters.search } },
+          { notes: { contains: filters.search } },
+          {
+            customer: {
+              OR: [
+                { firstName: { contains: filters.search } },
+                { lastName: { contains: filters.search } },
+                { phone: { contains: filters.search } },
+              ],
+            },
           },
-        },
-      ];
-    }
+        ];
+      }
 
-    if (filters.serviceCategory && filters.serviceCategory.length > 0) {
-      where.orderItems = {
-        some: {
-          service: {
-            category: { in: filters.serviceCategory },
+      if (filters.serviceCategory && filters.serviceCategory.length > 0) {
+        where.orderItems = {
+          some: {
+            service: {
+              category: { in: filters.serviceCategory },
+            },
           },
+        };
+      }
+
+      const orderBy: any = {};
+      if (filters.sortBy) {
+        orderBy[filters.sortBy] = filters.sortOrder || "desc";
+      } else {
+        orderBy.createdAt = "desc";
+      }
+
+      console.log(`[ORDERS-DB] Executing database query with where:`, where);
+
+      const [orders, total] = await Promise.all([
+        prisma.order.findMany({
+          where,
+          include: {
+            customer: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+                whatsapp: true,
+                email: true,
+                address: true,
+                city: true,
+                district: true,
+              },
+            },
+            assignedUser: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+            orderItems: {
+              include: {
+                service: {
+                  select: {
+                    id: true,
+                    name: true,
+                    category: true,
+                    description: true,
+                  },
+                },
+              },
+            },
+            _count: {
+              select: {
+                orderItems: true,
+              },
+            },
+          },
+          orderBy,
+          take: limit,
+          skip: offset,
+        }),
+        prisma.order.count({ where }),
+      ]);
+
+      // Log results and validate data integrity
+      console.log(`[ORDERS-DB] Query completed successfully:`, {
+        ordersCount: orders.length,
+        total,
+        hasOrderItems: orders.some(
+          (o) => o.orderItems && o.orderItems.length > 0
+        ),
+      });
+
+      // Validate each order has essential fields and log missing data
+      orders.forEach((order, index) => {
+        const missingFields = [];
+        if (
+          !order.orderInfo &&
+          !order.notes &&
+          !order.deliveryNotes &&
+          !order.specialInstructions &&
+          !order.referenceCode
+        ) {
+          missingFields.push("all_critical_fields");
+        }
+        if (!order.orderItems || order.orderItems.length === 0) {
+          missingFields.push("orderItems");
+        }
+        if (!order.customer) {
+          missingFields.push("customer");
+        }
+
+        if (missingFields.length > 0) {
+          console.warn(
+            `[ORDERS-DB] Order ${order.id} is missing fields:`,
+            missingFields
+          );
+        }
+      });
+
+      return { orders, total };
+    } catch (error) {
+      console.error(`[ORDERS-DB] Critical error in getOrders:`, {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        filters,
+        limit,
+        offset,
+      });
+      throw new Error(
+        `Failed to retrieve orders: ${
+          error instanceof Error ? error.message : "Unknown database error"
+        }`
+      );
+    }
+  }
+
+  /**
+   * Get order by ID - Enhanced with comprehensive error handling and validation
+   */
+  static async getOrderById(orderId: string, businessId: string) {
+    try {
+      console.log(
+        `[ORDERS-DB] Fetching order ${orderId} for business ${businessId}`
+      );
+
+      if (!orderId || !businessId) {
+        throw new Error("Order ID and Business ID are required");
+      }
+
+      const order = await prisma.order.findFirst({
+        where: {
+          id: orderId,
+          businessId,
         },
-      };
-    }
-
-    const orderBy: any = {};
-    if (filters.sortBy) {
-      orderBy[filters.sortBy] = filters.sortOrder || "desc";
-    } else {
-      orderBy.createdAt = "desc";
-    }
-
-    const [orders, total] = await Promise.all([
-      prisma.order.findMany({
-        where,
         include: {
           customer: {
             select: {
@@ -387,6 +515,7 @@ export class OrderDatabaseService {
               id: true,
               firstName: true,
               lastName: true,
+              email: true,
             },
           },
           orderItems: {
@@ -401,82 +530,87 @@ export class OrderDatabaseService {
               },
             },
           },
-          _count: {
+          eInvoices: {
             select: {
-              orderItems: true,
+              id: true,
+              invoiceNumber: true,
+              gibStatus: true,
+              totalAmount: true,
+              createdAt: true,
             },
           },
         },
-        orderBy,
-        take: limit,
-        skip: offset,
-      }),
-      prisma.order.count({ where }),
-    ]);
+      });
 
-    return { orders, total };
-  }
+      if (!order) {
+        console.warn(
+          `[ORDERS-DB] Order ${orderId} not found for business ${businessId}`
+        );
+        throw new Error("Order not found");
+      }
 
-  /**
-   * Get order by ID
-   */
-  static async getOrderById(orderId: string, businessId: string) {
-    const order = await prisma.order.findFirst({
-      where: {
-        id: orderId,
+      // Validate order data integrity and log issues
+      const validationIssues = [];
+
+      if (!order.customer) {
+        validationIssues.push("missing_customer");
+      }
+
+      if (!order.orderItems || order.orderItems.length === 0) {
+        validationIssues.push("missing_order_items");
+      }
+
+      // Check for missing critical fields
+      const missingCriticalFields = [];
+      if (!order.orderInfo) missingCriticalFields.push("orderInfo");
+      if (!order.deliveryNotes) missingCriticalFields.push("deliveryNotes");
+      if (!order.referenceCode) missingCriticalFields.push("referenceCode");
+      if (!order.notes) missingCriticalFields.push("notes");
+      if (!order.specialInstructions)
+        missingCriticalFields.push("specialInstructions");
+
+      if (missingCriticalFields.length > 0) {
+        validationIssues.push(
+          `missing_critical_fields:${missingCriticalFields.join(",")}`
+        );
+      }
+
+      // Log validation issues for monitoring
+      if (validationIssues.length > 0) {
+        console.warn(
+          `[ORDERS-DB] Order ${orderId} has validation issues:`,
+          validationIssues
+        );
+      }
+
+      // Log successful retrieval with item count
+      console.log(`[ORDERS-DB] Successfully retrieved order ${orderId}:`, {
+        hasCustomer: !!order.customer,
+        orderItemsCount: order.orderItems?.length || 0,
+        hasCriticalFields: missingCriticalFields.length < 5,
+        validationIssues: validationIssues.length,
+      });
+
+      return order;
+    } catch (error) {
+      console.error(`[ORDERS-DB] Critical error fetching order ${orderId}:`, {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        orderId,
         businessId,
-      },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            phone: true,
-            whatsapp: true,
-            email: true,
-            address: true,
-            city: true,
-            district: true,
-          },
-        },
-        assignedUser: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        orderItems: {
-          include: {
-            service: {
-              select: {
-                id: true,
-                name: true,
-                category: true,
-                description: true,
-              },
-            },
-          },
-        },
-        eInvoices: {
-          select: {
-            id: true,
-            invoiceNumber: true,
-            gibStatus: true,
-            totalAmount: true,
-            createdAt: true,
-          },
-        },
-      },
-    });
+      });
 
-    if (!order) {
-      throw new Error("Order not found");
+      // Re-throw with enhanced error message
+      if (error instanceof Error && error.message === "Order not found") {
+        throw error; // Keep original error for 404 handling
+      }
+
+      throw new Error(
+        `Failed to retrieve order: ${
+          error instanceof Error ? error.message : "Unknown database error"
+        }`
+      );
     }
-
-    return order;
   }
 
   /**
@@ -745,10 +879,11 @@ export class OrderDatabaseService {
       return acc;
     }, {} as Record<string, number>);
 
-    // Get service category counts (need to fetch service data)
+    // Get service category counts (need to fetch service data) - with null handling
     const serviceIds = [
       ...new Set(serviceTypeCounts.map((item) => item.serviceId)),
-    ];
+    ].filter((id): id is string => id !== null); // Filter out null values and type assertion
+
     const services = await prisma.service.findMany({
       where: { id: { in: serviceIds } },
       select: { id: true, category: true },
@@ -760,7 +895,10 @@ export class OrderDatabaseService {
     }, {} as Record<string, string>);
 
     const byServiceCategory = serviceTypeCounts.reduce((acc, item) => {
-      const serviceCategory = serviceCategoryMap[item.serviceId] || "OTHER";
+      // Handle null serviceId (manual services)
+      const serviceCategory = item.serviceId
+        ? serviceCategoryMap[item.serviceId] || "OTHER"
+        : "MANUAL";
       const count = (item._count as any)._all as number;
       acc[serviceCategory] = (acc[serviceCategory] || 0) + count;
       return acc;
