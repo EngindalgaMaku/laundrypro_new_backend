@@ -401,6 +401,7 @@ model User {
   firstName    String   @map("first_name")
   lastName     String   @map("last_name")
   phone        String?
+  profilePhoto String?  @map("profile_photo") // Profile photo URL/path
   
   // RBAC Enhancement: Replace role enum with roleId reference
   role         UserRole @default(EMPLOYEE) // Keep for backward compatibility during transition
