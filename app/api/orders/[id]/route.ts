@@ -150,10 +150,32 @@ export async function PUT(
 
     const body = await request.json();
 
+    // Transform frontend data structure to backend format for updates
+    let transformedUpdateData = { ...body };
+
+    // If frontend sends items, we need to handle them (though order items updating is complex)
+    if (body.items && Array.isArray(body.items)) {
+      console.log(
+        "⚠️ Order update with items detected - this requires special handling"
+      );
+
+      // For now, preserve the items in the update data but don't crash
+      // Full item updates would require deleting/recreating order items
+      // which is a complex operation that should be handled carefully
+    }
+
+    // Log the update operation for debugging
+    console.log("🔄 Order update data:", {
+      orderId: params.id,
+      hasItems: !!body.items,
+      itemCount: body.items?.length || 0,
+      updateFields: Object.keys(transformedUpdateData),
+    });
+
     const updatedOrder = await OrderDatabaseService.updateOrder(
       params.id,
       currentUser.businessId,
-      body
+      transformedUpdateData
     );
 
     // Transform order for frontend

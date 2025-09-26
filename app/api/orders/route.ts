@@ -216,13 +216,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Add business ID to the order data
-    const orderData = {
+    // Transform frontend data structure to backend format
+    let transformedData = {
       ...body,
       businessId: currentUser.businessId,
     };
 
-    const order = await OrderDatabaseService.createOrder(orderData);
+    // Map frontend 'items' to backend 'services' format
+    if (body.items && Array.isArray(body.items)) {
+      transformedData.services = body.items.map((item: any) => ({
+        // Handle both manual and database services
+        serviceId: item.serviceId || item.id,
+        serviceName: item.serviceName || item.name,
+        serviceDescription: item.serviceDescription || item.description,
+        isManualEntry: item.isManualEntry || false,
+        quantity: item.quantity || 1,
+        unitPrice: item.unitPrice || item.price || 0,
+        notes: item.notes || "",
+        // Additional frontend fields
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        description: item.description,
+      }));
+
+      // Remove items field since we've mapped to services
+      delete transformedData.items;
+
+      console.log("🔄 Mapped frontend items to backend services:", {
+        originalItems: body.items.length,
+        mappedServices: transformedData.services.length,
+        sampleService: transformedData.services[0],
+      });
+    }
+
+    const order = await OrderDatabaseService.createOrder(transformedData);
 
     return NextResponse.json(
       {
