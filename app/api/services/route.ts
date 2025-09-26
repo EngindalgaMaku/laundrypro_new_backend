@@ -127,6 +127,31 @@ export async function GET(request: NextRequest) {
       actualCategories: [...new Set(services.map((s) => s.category))],
     });
 
+    
+    // FALLBACK: If filtering results in empty array but business has services, 
+    // return all services with a warning
+    if (services.length === 0 && shouldFilterByServiceTypes) {
+      console.log("[SERVICES-GET] Business types filtering returned empty, checking unfiltered...");
+      
+      const unfilteredServices = await prisma.service.findMany({
+        where: {
+          businessId: businessIdToUse,
+        },
+        include: {
+          pricings: {
+            where: { isActive: true },
+            orderBy: { basePrice: "asc" },
+          },
+        },
+        orderBy: { name: "asc" },
+      });
+      
+      if (unfilteredServices.length > 0) {
+        console.log(`[SERVICES-GET] Using all services as fallback (${unfilteredServices.length} found)`);
+        services = unfilteredServices;
+      }
+    }
+
     // Auto-seed comprehensive default services if none exist (first-run UX)
     if (!services || services.length === 0) {
       console.log(
