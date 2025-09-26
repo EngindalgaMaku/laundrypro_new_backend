@@ -32,6 +32,7 @@ export async function GET(
     // Transform order for frontend
     const transformedOrder = {
       id: order.id, // Use actual database ID
+      businessId: order.businessId, // Add missing businessId
       orderNumber: order.orderNumber,
       // Customer as object for proper frontend handling
       customer: {
@@ -54,6 +55,9 @@ export async function GET(
       status: order.status,
       amount: `₺${Number(order.totalAmount).toLocaleString("tr-TR")}`,
       totalAmount: Number(order.totalAmount),
+      // Add missing payment fields for frontend compatibility
+      paymentMethod: order.paymentMethod || "CASH",
+      paymentStatus: order.paymentStatus || "PENDING",
       date: order.createdAt.toISOString().split("T")[0],
       phone: order.customer.phone,
       whatsapp: order.customer.whatsapp || order.customer.phone,
@@ -65,6 +69,9 @@ export async function GET(
       notes: order.notes, // Genel notlar
       specialInstructions: order.specialInstructions, // Özel talimatlar
       priority: order.priority,
+      // Add missing fields for frontend
+      isUrgent: order.priority === "URGENT" || false,
+      whatsappNotifications: true, // Default value since not in database yet
       address: order.customer.address,
       district: order.customer.district || "",
       city: order.customer.city || "",
@@ -73,6 +80,8 @@ export async function GET(
       updatedAt: order.updatedAt.toISOString(),
       pickupDate: order.pickupDate?.toISOString(),
       deliveryDate: order.deliveryDate?.toISOString(),
+      // Add syncStatus for frontend compatibility
+      syncStatus: "synced" as const,
       // Enhanced items transformation for proper frontend handling
       items:
         order.orderItems?.map((item: any) => ({
@@ -150,6 +159,7 @@ export async function PUT(
     // Transform order for frontend
     const transformedOrder = {
       id: updatedOrder.id, // Use actual database ID
+      businessId: updatedOrder.businessId, // Add missing businessId
       orderNumber: updatedOrder.orderNumber,
       // Customer as object for proper frontend handling
       customer: {
@@ -174,6 +184,9 @@ export async function PUT(
       status: updatedOrder.status,
       amount: `₺${Number(updatedOrder.totalAmount).toLocaleString("tr-TR")}`,
       totalAmount: Number(updatedOrder.totalAmount),
+      // Add missing payment fields for frontend compatibility
+      paymentMethod: updatedOrder.paymentMethod || "CASH",
+      paymentStatus: updatedOrder.paymentStatus || "PENDING",
       date: updatedOrder.createdAt.toISOString().split("T")[0],
       phone: updatedOrder.customer.phone,
       whatsapp: updatedOrder.customer.whatsapp || updatedOrder.customer.phone,
@@ -186,6 +199,9 @@ export async function PUT(
       notes: updatedOrder.notes, // Genel notlar
       specialInstructions: updatedOrder.specialInstructions, // Özel talimatlar
       priority: updatedOrder.priority,
+      // Add missing fields for frontend
+      isUrgent: updatedOrder.priority === "URGENT" || false,
+      whatsappNotifications: true, // Default value since not in database yet
       address: (updatedOrder.customer as any).address,
       district: (updatedOrder.customer as any).district || "",
       city: (updatedOrder.customer as any).city || "",
@@ -194,6 +210,8 @@ export async function PUT(
       updatedAt: updatedOrder.updatedAt.toISOString(),
       pickupDate: updatedOrder.pickupDate?.toISOString(),
       deliveryDate: updatedOrder.deliveryDate?.toISOString(),
+      // Add syncStatus for frontend compatibility
+      syncStatus: "synced" as const,
       // Enhanced items transformation for proper frontend handling
       items:
         updatedOrder.orderItems?.map((item: any) => ({
