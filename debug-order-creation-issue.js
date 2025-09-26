@@ -1,216 +1,306 @@
-/**
- * DEBUG SCRIPT: Order Creation Service Display Issue
- *
- * This script validates the critical bug where OrderCreateScreen
- * doesn't send service data to the backend, causing services
- * to not display in OrderEditScreen.
- */
-
 const { PrismaClient } = require("@prisma/client");
+const { OrderDatabaseService } = require("./lib/database/orders.js");
 
 const prisma = new PrismaClient();
 
 async function debugOrderCreationIssue() {
-  console.log("🔍 DEBUGGING ORDER CREATION SERVICE DISPLAY ISSUE");
-  console.log("=".repeat(60));
-
   try {
-    // 1. Check recent orders and their items
-    console.log("\n📋 1. CHECKING RECENT ORDERS AND ITEMS:");
-    const recentOrders = await prisma.order.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: {
-        customer: {
-          select: {
-            firstName: true,
-            lastName: true,
-            phone: true,
-          },
-        },
-        orderItems: {
-          include: {
-            service: {
-              select: {
-                id: true,
-                name: true,
-                category: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    console.log("🔍 DEBUGGING ORDER CREATION ISSUE");
+    console.log("=================================");
 
-    recentOrders.forEach((order, index) => {
-      console.log(`\n   Order ${index + 1}: #${order.orderNumber}`);
-      console.log(
-        `   Customer: ${order.customer.firstName} ${order.customer.lastName}`
-      );
-      console.log(`   Total Items: ${order.orderItems.length}`);
-      console.log(`   Total Amount: ₺${order.totalAmount}`);
+    const businessId = "cmfwk364w0000pn0llvdmym3j"; // Dalga Temizlik
 
-      if (order.orderItems.length === 0) {
-        console.log(`   ❌ NO ITEMS - This order has no service items!`);
-      } else {
-        order.orderItems.forEach((item, i) => {
-          console.log(`     Item ${i + 1}:`);
-          console.log(`       ServiceId: ${item.serviceId || "NULL"}`);
-          console.log(`       ServiceName: ${item.serviceName || "NULL"}`);
-          console.log(`       IsManualEntry: ${item.isManualEntry}`);
-          console.log(
-            `       Service Join: ${
-              item.service ? item.service.name : "NO JOIN"
-            }`
-          );
-          console.log(`       Quantity: ${item.quantity}`);
-          console.log(`       UnitPrice: ₺${item.unitPrice}`);
-        });
-      }
-    });
+    // First, check what services exist for this business
+    console.log("1️⃣ CHECKING AVAILABLE SERVICES FOR BUSINESS");
+    console.log("============================================");
 
-    // 2. Check if there are orders with empty items but positive total amount
-    console.log("\n🚨 2. CHECKING ORDERS WITH EMPTY ITEMS BUT POSITIVE TOTAL:");
-    const emptyItemsOrders = await prisma.order.findMany({
-      where: {
-        AND: [
-          { totalAmount: { gt: 0 } },
-          {
-            orderItems: {
-              none: {}, // No order items
-            },
-          },
-        ],
-      },
-      include: {
-        customer: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-    });
-
-    console.log(
-      `   Found ${emptyItemsOrders.length} orders with positive total but no items:`
-    );
-    emptyItemsOrders.forEach((order, index) => {
-      console.log(`     ${index + 1}. Order #${order.orderNumber}`);
-      console.log(
-        `        Customer: ${order.customer.firstName} ${order.customer.lastName}`
-      );
-      console.log(`        Total: ₺${order.totalAmount}`);
-      console.log(`        Created: ${order.createdAt.toISOString()}`);
-      console.log(`        Order Info: ${order.orderInfo || "N/A"}`);
-    });
-
-    // 3. Check available services
-    console.log("\n🛠️ 3. CHECKING AVAILABLE SERVICES:");
-    const availableServices = await prisma.service.findMany({
-      where: { isActive: true },
-      take: 5,
+    const services = await prisma.service.findMany({
+      where: { businessId },
       select: {
         id: true,
         name: true,
         category: true,
+        description: true,
+        isActive: true,
         price: true,
-        businessId: true,
       },
-    });
-
-    console.log(`   Available services count: ${availableServices.length}`);
-    availableServices.forEach((service, index) => {
-      console.log(`     ${index + 1}. ${service.name}`);
-      console.log(`        ID: ${service.id}`);
-      console.log(`        Category: ${service.category}`);
-      console.log(`        Price: ₺${service.price}`);
-    });
-
-    // 4. Check order items with valid service references
-    console.log("\n✅ 4. CHECKING ITEMS WITH VALID SERVICE REFERENCES:");
-    const itemsWithServices = await prisma.orderItem.findMany({
-      where: {
-        serviceId: { not: null },
-      },
-      take: 10,
-      include: {
-        service: {
-          select: {
-            name: true,
-            category: true,
-          },
-        },
-        order: {
-          select: {
-            orderNumber: true,
-            createdAt: true,
-          },
-        },
-      },
+      orderBy: { name: "asc" },
     });
 
     console.log(
-      `   Items with valid service reference: ${itemsWithServices.length}`
+      `Found ${services.length} services for business ${businessId}:`
     );
-    itemsWithServices.forEach((item, index) => {
-      console.log(`     ${index + 1}. Order #${item.order.orderNumber}`);
-      console.log(`        ServiceName in DB: ${item.serviceName}`);
+    services.forEach((service, index) => {
+      console.log(`  ${index + 1}. ID: ${service.id}`);
+      console.log(`     Name: "${service.name}"`);
+      console.log(`     Category: ${service.category}`);
+      console.log(`     Price: ₺${service.price || 0}`);
+      console.log(`     Active: ${service.isActive}`);
+      console.log("");
+    });
+
+    // Look for carpet cleaning service specifically
+    const carpetServices = services.filter(
+      (s) =>
+        s.name.toLowerCase().includes("halı") ||
+        s.name.toLowerCase().includes("carpet")
+    );
+
+    console.log(`Found ${carpetServices.length} carpet-related services:`);
+    carpetServices.forEach((service) => {
+      console.log(`  - ${service.name} (ID: ${service.id})`);
+    });
+
+    // Check if "Halı yıkama - büyük" exists
+    const bigCarpetService = services.find(
+      (s) =>
+        s.name.toLowerCase().includes("halı") &&
+        s.name.toLowerCase().includes("büyük")
+    );
+
+    if (bigCarpetService) {
       console.log(
-        `        Service via Join: ${
-          item.service ? item.service.name : "NO JOIN"
-        }`
+        `✅ Found "Halı yıkama - büyük" service: ${bigCarpetService.name} (ID: ${bigCarpetService.id})`
       );
-      console.log(`        IsManualEntry: ${item.isManualEntry}`);
-      console.log(`        Created: ${item.order.createdAt.toISOString()}`);
+    } else {
+      console.log('❌ "Halı yıkama - büyük" service NOT FOUND');
+      // Show closest matches
+      const hallServices = services.filter((s) =>
+        s.name.toLowerCase().includes("halı")
+      );
+      console.log("Available carpet services:");
+      hallServices.forEach((s) => console.log(`  - ${s.name}`));
+    }
+
+    console.log("\n2️⃣ SIMULATING ORDER CREATION PROCESS");
+    console.log("===================================");
+
+    // Get a customer to use for testing
+    const customer = await prisma.customer.findFirst({
+      where: { businessId },
+      select: { id: true, firstName: true, lastName: true, phone: true },
     });
 
-    // 5. Check manual entries
-    console.log("\n📝 5. CHECKING MANUAL SERVICE ENTRIES:");
-    const manualItems = await prisma.orderItem.findMany({
-      where: {
-        isManualEntry: true,
-      },
-      take: 10,
-      include: {
-        order: {
-          select: {
-            orderNumber: true,
-            createdAt: true,
+    if (!customer) {
+      console.log("❌ No customer found for testing");
+      return;
+    }
+
+    console.log(
+      `Using customer: ${customer.firstName} ${customer.lastName} (${customer.id})`
+    );
+
+    // Test 1: Create order with real service (if exists)
+    if (bigCarpetService) {
+      console.log("\n🧪 TEST 1: Creating order with real carpet service");
+      console.log("================================================");
+
+      const testOrderData = {
+        businessId,
+        customerId: customer.id,
+        services: [
+          {
+            serviceId: bigCarpetService.id,
+            serviceName: bigCarpetService.name,
+            serviceDescription: bigCarpetService.description,
+            isManualEntry: false,
+            quantity: 1,
+            unitPrice: bigCarpetService.price || 100,
+            notes: "Test order for debugging",
+          },
+        ],
+        orderInfo: "Test order with carpet cleaning service",
+        notes: "Debug test order",
+        deliveryDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+      };
+
+      console.log(
+        "Order data being sent:",
+        JSON.stringify(testOrderData, null, 2)
+      );
+
+      try {
+        const createdOrder = await OrderDatabaseService.createOrder(
+          testOrderData
+        );
+        console.log("✅ Order created successfully:", createdOrder.id);
+        console.log("Order Number:", createdOrder.orderNumber);
+
+        // Check if orderItems were created
+        const orderWithItems = await prisma.order.findUnique({
+          where: { id: createdOrder.id },
+          include: {
+            orderItems: {
+              include: {
+                service: true,
+              },
+            },
+          },
+        });
+
+        console.log(`Order has ${orderWithItems.orderItems.length} items:`);
+        orderWithItems.orderItems.forEach((item, index) => {
+          console.log(`  Item ${index + 1}:`);
+          console.log(`    Service ID: ${item.serviceId}`);
+          console.log(`    Service Name (stored): ${item.serviceName}`);
+          console.log(
+            `    Service Name (from service): ${
+              item.service?.name || "NO SERVICE"
+            }`
+          );
+          console.log(`    Is Manual: ${item.isManualEntry}`);
+          console.log(`    Quantity: ${item.quantity}`);
+          console.log(`    Unit Price: ₺${item.unitPrice}`);
+          console.log(`    Total Price: ₺${item.totalPrice}`);
+        });
+
+        if (orderWithItems.orderItems.length === 0) {
+          console.log(
+            "❌ CRITICAL ISSUE: Order created but NO orderItems were saved!"
+          );
+        } else if (orderWithItems.orderItems.every((item) => !item.service)) {
+          console.log(
+            "❌ CRITICAL ISSUE: OrderItems exist but have no service references!"
+          );
+        } else {
+          console.log("✅ Order created successfully with proper orderItems");
+        }
+      } catch (error) {
+        console.log("❌ Order creation failed:", error.message);
+        console.log("Error details:", error);
+      }
+    }
+
+    // Test 2: Create order with manual service
+    console.log("\n🧪 TEST 2: Creating order with manual service");
+    console.log("===========================================");
+
+    const manualOrderData = {
+      businessId,
+      customerId: customer.id,
+      services: [
+        {
+          serviceId: `manual-${Date.now()}`,
+          serviceName: "Halı yıkama - büyük (Manuel)",
+          serviceDescription: "Manuel olarak eklenen halı yıkama hizmeti",
+          isManualEntry: true,
+          quantity: 1,
+          unitPrice: 150,
+          notes: "Manuel test order",
+        },
+      ],
+      orderInfo: "Test order with manual service",
+      notes: "Debug manual service test",
+      deliveryDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+    };
+
+    try {
+      const manualOrder = await OrderDatabaseService.createOrder(
+        manualOrderData
+      );
+      console.log("✅ Manual order created successfully:", manualOrder.id);
+
+      const manualOrderWithItems = await prisma.order.findUnique({
+        where: { id: manualOrder.id },
+        include: {
+          orderItems: {
+            include: {
+              service: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    console.log(`   Manual service entries: ${manualItems.length}`);
-    manualItems.forEach((item, index) => {
-      console.log(`     ${index + 1}. Order #${item.order.orderNumber}`);
-      console.log(`        ServiceName: ${item.serviceName}`);
       console.log(
-        `        ServiceDescription: ${item.serviceDescription || "N/A"}`
+        `Manual order has ${manualOrderWithItems.orderItems.length} items:`
       );
-      console.log(`        ServiceId: ${item.serviceId || "NULL"}`);
-      console.log(`        Created: ${item.order.createdAt.toISOString()}`);
-    });
+      manualOrderWithItems.orderItems.forEach((item, index) => {
+        console.log(`  Item ${index + 1}:`);
+        console.log(
+          `    Service ID: ${item.serviceId} (should be null for manual)`
+        );
+        console.log(`    Service Name (stored): ${item.serviceName}`);
+        console.log(`    Is Manual: ${item.isManualEntry}`);
+        console.log(`    Quantity: ${item.quantity}`);
+        console.log(`    Unit Price: ₺${item.unitPrice}`);
+      });
+    } catch (error) {
+      console.log("❌ Manual order creation failed:", error.message);
+    }
 
-    // 6. Root Cause Analysis
-    console.log("\n🔍 6. ROOT CAUSE ANALYSIS:");
-    console.log("   Issue: OrderCreateScreen.tsx line 573 sets items: []");
-    console.log(
-      "   Expected: items should contain mapped selectedServices data"
-    );
-    console.log("   Impact: All orders created with no service items");
-    console.log(
-      "   Fix Required: Map selectedServices to proper backend format"
-    );
+    // Test 3: Check what happens with invalid service ID
+    console.log("\n🧪 TEST 3: Testing with invalid service ID");
+    console.log("=========================================");
 
-    console.log("\n✅ DIAGNOSTIC COMPLETE");
+    const invalidOrderData = {
+      businessId,
+      customerId: customer.id,
+      services: [
+        {
+          serviceId: "invalid-service-id-123",
+          serviceName: "Halı yıkama - büyük",
+          serviceDescription: "Test with invalid service ID",
+          isManualEntry: false, // This should cause validation to fail
+          quantity: 1,
+          unitPrice: 100,
+          notes: "Invalid service ID test",
+        },
+      ],
+      orderInfo: "Test order with invalid service ID",
+      notes: "Debug invalid service test",
+      deliveryDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    };
+
+    try {
+      await OrderDatabaseService.createOrder(invalidOrderData);
+      console.log(
+        "🔴 UNEXPECTED: Order with invalid service ID should have failed but succeeded"
+      );
+    } catch (error) {
+      console.log(
+        "✅ EXPECTED: Order with invalid service ID failed:",
+        error.message
+      );
+      console.log(
+        "   This explains why orders might be created without proper service references"
+      );
+    }
+
+    console.log("\n🎯 DIAGNOSIS SUMMARY");
+    console.log("==================");
+
+    if (!bigCarpetService) {
+      console.log(
+        '❌ ISSUE IDENTIFIED: "Halı yıkama - büyük" service does not exist in database'
+      );
+      console.log(
+        "   Mobile app is trying to create orders with non-existent service IDs"
+      );
+      console.log(
+        "   This causes either order creation failure or fallback to manual services"
+      );
+    } else {
+      console.log('✅ "Halı yıkama - büyük" service exists in database');
+      console.log(
+        "   Issue might be in the service ID mapping or validation logic"
+      );
+    }
+
+    console.log("\n📋 RECOMMENDED ACTIONS:");
+    console.log(
+      "1. Verify service IDs being sent from mobile app match database"
+    );
+    console.log("2. Add proper error handling in order creation API");
+    console.log("3. Add logging to track when service validation fails");
+    console.log(
+      "4. Implement fallback to create manual services when DB services fail"
+    );
   } catch (error) {
-    console.error("Error during diagnosis:", error);
+    console.error("❌ Debug script error:", error);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-// Run the diagnosis
+// Run the debug function
 debugOrderCreationIssue().catch(console.error);

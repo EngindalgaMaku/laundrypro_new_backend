@@ -150,31 +150,113 @@ export class OrderDatabaseService {
             isManualEntry: true,
           };
         } else {
-          // Database service - validate it exists
+          // Database service - validate it exists with comprehensive logging and fallback
           const serviceId = service.serviceId || service.id;
+
+          console.log(`[ORDER-CREATION] Validating database service:`, {
+            originalService: {
+              serviceId: service.serviceId,
+              id: service.id,
+              name: service.name,
+              serviceName: service.serviceName,
+            },
+            resolvedServiceId: serviceId,
+            businessId: data.businessId,
+          });
+
+          // First, let's get all available services for this business to debug
+          const availableServices = await prisma.service.findMany({
+            where: { businessId: data.businessId },
+            select: { id: true, name: true, category: true },
+          });
+
+          console.log(
+            `[ORDER-CREATION] Available services in business ${data.businessId}:`,
+            availableServices.map((s) => ({
+              id: s.id,
+              name: s.name,
+              category: s.category,
+            }))
+          );
+
+          // Try to find the service
           serviceData = await prisma.service.findUnique({
             where: { id: serviceId },
           });
 
           if (!serviceData) {
-            throw new Error(`Service with ID ${serviceId} not found`);
+            console.warn(`[ORDER-CREATION] Service validation failed:`, {
+              requestedServiceId: serviceId,
+              availableServiceIds: availableServices.map((s) => s.id),
+              availableServiceNames: availableServices.map((s) => s.name),
+              originalServiceData: service,
+            });
+
+            // Instead of throwing error, convert to manual entry as graceful fallback
+            console.log(
+              `[ORDER-CREATION] Converting failed service validation to manual entry`
+            );
+            serviceData = {
+              id: null, // Will be null for manual entries
+              name:
+                service.serviceName ||
+                service.name ||
+                "Manual Service (Failed Validation)",
+              description:
+                service.serviceDescription ||
+                service.description ||
+                `Original service ID: ${serviceId} not found`,
+              category: "OTHER",
+              businessId: data.businessId,
+              isManualEntry: true,
+            };
+
+            // Update the isManualEntry flag to reflect this fallback
+            // We'll handle this in the service item creation below
+          } else {
+            console.log(`[ORDER-CREATION] Service validation successful:`, {
+              serviceId: serviceData.id,
+              serviceName: serviceData.name,
+              serviceCategory: serviceData.category,
+            });
           }
         }
 
         const itemTotal = service.quantity * unitPrice;
         subtotal += itemTotal;
 
-        serviceItems.push({
-          serviceId: isManualEntry
+        // Check if this became a manual entry due to validation fallback
+        const isFallbackManual = serviceData && serviceData.id === null;
+        const finalIsManualEntry = isManualEntry || isFallbackManual;
+
+        console.log(`[ORDER-CREATION] Creating service item:`, {
+          originalIsManualEntry: isManualEntry,
+          isFallbackManual,
+          finalIsManualEntry,
+          serviceName: serviceData.name,
+          serviceId: finalIsManualEntry
             ? null
-            : service.serviceId || service.id || null, // null for manual entries
+            : service.serviceId || service.id || null,
+        });
+
+        serviceItems.push({
+          serviceId: finalIsManualEntry
+            ? null
+            : service.serviceId || service.id || null, // null for manual entries and fallbacks
           serviceName: serviceData.name,
           serviceDescription: serviceData.description || undefined,
-          isManualEntry: isManualEntry,
+          isManualEntry: finalIsManualEntry,
           quantity: service.quantity,
           unitPrice: unitPrice,
           totalPrice: itemTotal,
-          notes: service.notes || service.description,
+          notes:
+            service.notes ||
+            service.description ||
+            (isFallbackManual
+              ? `Fallback: Original service ID ${
+                  service.serviceId || service.id
+                } not found`
+              : undefined),
         });
       }
     } else {
