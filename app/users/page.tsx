@@ -63,6 +63,7 @@ interface TeamMember {
   isActive: boolean;
   createdAt: string;
   phone?: string;
+  businessId?: string; // for client-side scoping safety
 }
 
 const roleLabels: Record<TeamMember["role"], { label: string; color: string }> = {
@@ -132,7 +133,14 @@ export default function UsersPage() {
           : Array.isArray(data?.users)
           ? data.users
           : [];
-        setTeamMembers(list);
+        // Defense-in-depth: also scope on client by current user's businessId
+        const current = JSON.parse(localStorage.getItem("user") || "null") as
+          | { businessId?: string }
+          | null;
+        const scoped = current?.businessId
+          ? list.filter((m: any) => m?.businessId === current.businessId)
+          : list;
+        setTeamMembers(scoped);
       }
     } catch (error) {
       console.error("Failed to fetch users:", error);
