@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { LogoMark } from "@/components/brand/logo";
 import {
   ChevronRight,
   ChevronLeft,
@@ -28,7 +29,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     {
       title: "Siparişlerinizi Yönetin",
       subtitle: "Her şey bir tık uzağında",
-      visual: "💫",
       theme: "from-violet-600 via-purple-600 to-blue-600",
       accent: "from-pink-500 to-rose-500",
       mockup: (
@@ -68,7 +68,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     {
       title: "Akıllı Dağıtım",
       subtitle: "Rotalarınızı optimize edin",
-      visual: "🚀",
       theme: "from-emerald-500 via-teal-600 to-cyan-600",
       accent: "from-yellow-500 to-orange-500",
       mockup: (
@@ -127,7 +126,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     {
       title: "Mobil & Modern",
       subtitle: "Her yerden erişin",
-      visual: "✨",
       theme: "from-pink-500 via-rose-500 to-orange-500",
       accent: "from-purple-500 to-indigo-600",
       mockup: (
@@ -245,12 +243,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 lg:p-8">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30 shadow-lg">
-              <span className="text-2xl">{currentPageData.visual}</span>
-            </div>
+            <LogoMark className="w-12 h-12" />
             <div>
               <h1 className="text-xl font-bold text-white">LaundryPro</h1>
-              <p className="text-white/70 text-sm">Halı ve Döşeme Yıkama</p>
+              <p className="text-white/70 text-sm">Temizlik işletmeleri için</p>
             </div>
           </div>
 

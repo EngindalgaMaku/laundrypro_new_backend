@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
+import { LogoMark } from "@/components/brand/logo";
 
 export default function HomePage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -44,9 +45,7 @@ export default function HomePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-cyan-400">
         <div className="text-center">
-          <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <span className="text-2xl">🧼</span>
-          </div>
+          <LogoMark className="w-16 h-16" />
           <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
@@ -94,9 +93,7 @@ export default function HomePage() {
         <div className="flex-1 flex flex-col justify-center max-w-sm sm:max-w-md mx-auto w-full">
           {/* Ultra compact header */}
           <div className="text-center mb-3 sm:mb-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-lg rounded-xl flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-2xl ring-1 ring-white/20">
-              <div className="text-lg sm:text-xl">🧼</div>
-            </div>
+            <LogoMark className="w-10 h-10 sm:w-12 sm:h-12" />
 
             <h1 className="text-xl sm:text-2xl font-bold text-white mb-1 tracking-tight">
               Laundry<span className="text-white/80">Pro</span>

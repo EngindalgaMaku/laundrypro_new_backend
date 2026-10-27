@@ -25,6 +25,7 @@ import {
   UserCog,
 } from "lucide-react";
 import { useState } from "react";
+import { LogoMark } from "@/components/brand/logo";
 
 interface User {
   id: string;
@@ -117,9 +118,7 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
               isMobileMenuOpen ? "opacity-0 scale-95" : "opacity-100 scale-100"
             }`}
           >
-            <div className="w-8 h-8 bg-gradient-primary rounded-xl flex items-center justify-center shadow-md ring-1 ring-primary/20">
-              <span className="text-lg">🧼</span>
-            </div>
+            <LogoMark className="w-8 h-8" />
             <span className="font-semibold text-foreground text-mobile-base truncate">
               LaundryPro
             </span>

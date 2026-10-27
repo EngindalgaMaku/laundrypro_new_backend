@@ -22,6 +22,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { LogoMark } from "@/components/brand/logo";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -132,9 +133,7 @@ export function Sidebar({
       {isMobile && (
         <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border bg-gradient-card">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-lg ring-1 ring-primary/20">
-              <span className="text-xl">🧼</span>
-            </div>
+            <LogoMark className="w-10 h-10" />
             <div className="flex flex-col">
               <span className="font-bold text-sidebar-foreground text-base">
                 LaundryPro
@@ -162,9 +161,7 @@ export function Sidebar({
       {/* Enhanced Desktop/Tablet Header */}
       <div className="hidden md:flex h-16 items-center px-4 border-b border-sidebar-border bg-gradient-card">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-lg ring-1 ring-primary/20">
-            <span className="text-xl">🧼</span>
-          </div>
+          <LogoMark className="w-10 h-10" />
           <div className="flex flex-col">
             <span className="font-bold text-sidebar-foreground text-base">
               LaundryPro
@@ -302,9 +299,7 @@ export function Sidebar({
               isCollapsed ? "justify-center flex-1" : "flex-1 gap-3"
             )}
           >
-            <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-lg ring-1 ring-primary/20 transition-transform duration-300 hover:scale-105">
-              <span className="text-xl">🧼</span>
-            </div>
+            <LogoMark className="w-10 h-10" />
             {!isCollapsed && (
               <div className="flex flex-col min-w-0">
                 <span className="font-bold text-sidebar-foreground text-base truncate">

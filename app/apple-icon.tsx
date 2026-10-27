@@ -10,39 +10,16 @@ export const size = {
 }
 export const contentType = 'image/png'
 
-// Image generation
+// LaundryPro mark, full-bleed: iOS rounds the corners itself
 export default function AppleIcon() {
   return new ImageResponse(
     (
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          borderRadius: '20px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-        }}
-      >
-        <svg
-          width="120"
-          height="120"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Washing Machine Icon */}
-          <rect x="3" y="3" width="18" height="18" rx="2" stroke="white" strokeWidth="1.5" fill="none"/>
-          <circle cx="12" cy="13" r="5" stroke="white" strokeWidth="1.5" fill="none"/>
-          <circle cx="12" cy="13" r="2" fill="white"/>
-          <circle cx="7" cy="7" r="1" fill="white"/>
-          <circle cx="10" cy="7" r="1" fill="white"/>
-          <path d="M8 13c0-2.2 1.8-4 4-4" stroke="white" strokeWidth="1.2" strokeLinecap="round"/>
-        </svg>
-      </div>
+      <svg width="180" height="180" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" fill="#0A5C99" />
+        <circle cx="36" cy="38" r="18" fill="none" stroke="#FFFFFF" strokeWidth="4.5" />
+        <path d="M25.5 41.5c3.5-3.5 7-3.5 10.5 0s7 3.5 10.5 0" fill="none" stroke="#7FD8CC" strokeWidth="4.5" strokeLinecap="round" />
+        <circle cx="22" cy="17" r="2.7" fill="#FFFFFF" />
+      </svg>
     ),
     {
       ...size,

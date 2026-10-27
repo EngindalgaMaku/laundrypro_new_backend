@@ -6,7 +6,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#3b82f6' },
-    { media: '(prefers-color-scheme: dark)', color: '#1e40af' },
+    { media: '(prefers-color-scheme: light)', color: '#0A5C99' },
+    { media: '(prefers-color-scheme: dark)', color: '#0E1A24' },
   ],
 }

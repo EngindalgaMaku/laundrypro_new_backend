@@ -21,6 +21,7 @@ import {
   Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LogoMark } from "@/components/brand/logo";
 
 export default function Homepage() {
   const [isVisible, setIsVisible] = useState(false);
@@ -99,9 +100,7 @@ export default function Homepage() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-xl">🧼</span>
-              </div>
+              <LogoMark className="w-10 h-10" />
               <div className="flex flex-col">
                 <span className="font-bold text-foreground text-lg">
                   LaundryPro
@@ -477,9 +476,7 @@ export default function Homepage() {
             {/* Company Info */}
             <div className="md:col-span-2">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-xl">🧼</span>
-                </div>
+                <LogoMark className="w-10 h-10" />
                 <div className="flex flex-col">
                   <span className="font-bold text-foreground text-lg">
                     LaundryPro

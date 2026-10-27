@@ -1,5 +1,4 @@
 import { ImageResponse } from 'next/og'
-import { NextRequest } from 'next/server'
 
 // Route segment config
 export const runtime = 'edge'
@@ -11,43 +10,21 @@ export const size = {
 }
 export const contentType = 'image/png'
 
-// Image generation
+// LaundryPro mark (components/brand/logo.tsx); the wave is dropped below 48px to stay legible
 export default function Icon({ searchParams }: { searchParams?: { size?: string } }) {
   const iconSize = searchParams?.size ? parseInt(searchParams.size) : 32
-  const fontSize = Math.floor(iconSize * 0.75)
-  const borderRadius = Math.floor(iconSize * 0.1875) // 6px for 32px icon
-  
+  const simple = iconSize < 48
+
   return new ImageResponse(
     (
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          borderRadius: `${borderRadius}px`,
-          boxShadow: iconSize > 64 ? '0 4px 20px rgba(59, 130, 246, 0.3)' : 'none',
-        }}
-      >
-        <svg
-          width={fontSize}
-          height={fontSize}
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Washing Machine Icon */}
-          <rect x="3" y="3" width="18" height="18" rx="2" stroke="white" strokeWidth="2" fill="none"/>
-          <circle cx="12" cy="13" r="5" stroke="white" strokeWidth="2" fill="none"/>
-          <circle cx="12" cy="13" r="2" fill="white"/>
-          <circle cx="7" cy="7" r="1" fill="white"/>
-          <circle cx="10" cy="7" r="1" fill="white"/>
-          <path d="M8 13c0-2.2 1.8-4 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      </div>
+      <svg width={iconSize} height={iconSize} viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <rect width="72" height="72" rx="18" fill="#0A5C99" />
+        <circle cx="36" cy="38" r="20" fill="none" stroke="#FFFFFF" strokeWidth={simple ? 7 : 5} />
+        {!simple && (
+          <path d="M24 42c4-4 8-4 12 0s8 4 12 0" fill="none" stroke="#7FD8CC" strokeWidth="5" strokeLinecap="round" />
+        )}
+        {!simple && <circle cx="20" cy="15" r="3" fill="#FFFFFF" />}
+      </svg>
     ),
     {
       width: iconSize,

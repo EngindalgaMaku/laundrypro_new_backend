@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BusinessTypeSelector } from "@/components/business/business-type-selector"
 import { getBusinessTypeLabels } from "@/lib/business-types"
+import { LogoMark } from "@/components/brand/logo"
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1)
@@ -60,9 +61,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-3xl">🧺</span>
-          </div>
+          <LogoMark className="w-20 h-20" />
           <h1 className="text-3xl font-bold text-foreground">LaundryPro'ya Hoş Geldiniz</h1>
           <p className="text-muted-foreground mt-2">
             Adım {step} / 3 - {step === 1 ? "İşletme Türleri" : step === 2 ? "İşletme Bilgileri" : "Hesap Oluştur"}
