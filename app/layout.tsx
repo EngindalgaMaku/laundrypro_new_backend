@@ -9,6 +9,7 @@ import {
   NetworkProvider,
   NavigationBlocker,
 } from "@/components/providers/network-provider";
+import { CapacitorProvider } from "@/components/providers/capacitor-provider";
 import "./globals.css";
 
 // Import auth interceptor to automatically handle stale tokens
@@ -56,6 +57,7 @@ export default function RootLayout({
   return (
     <html lang="tr">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+        <CapacitorProvider />
         <NetworkProvider>
           <NavigationBlocker>
             <Suspense fallback={null}>{children}</Suspense>
