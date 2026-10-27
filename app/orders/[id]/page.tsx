@@ -12,6 +12,7 @@ import { OrderTimeline } from "@/components/orders/order-timeline"
 import { OrderStatusUpdater } from "@/components/orders/order-status-updater"
 import { CustomerInfo } from "@/components/orders/customer-info"
 import { CustomerMap } from "@/components/maps/customer-map"
+import { toast } from "sonner"
 
 interface User {
   id: string
@@ -21,8 +22,19 @@ interface User {
   businessName: string
 }
 
+type OrderStatusValue =
+  | "PENDING"
+  | "CONFIRMED"
+  | "READY_FOR_PICKUP"
+  | "IN_PROGRESS"
+  | "READY_FOR_DELIVERY"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "COMPLETED"
+  | "CANCELLED"
+
 interface OrderStatus {
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "DELIVERED" | "CANCELLED"
+  status: OrderStatusValue
   timestamp: string
   note?: string
   updatedBy: string
@@ -30,6 +42,7 @@ interface OrderStatus {
 
 interface Order {
   id: string
+  orderNumber: string
   customer: {
     name: string
     phone: string
@@ -37,13 +50,12 @@ interface Order {
     address?: string
   }
   service: string
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "DELIVERED" | "CANCELLED"
+  status: OrderStatusValue
   amount: string
   date: string
   deliveryDate?: string
   description: string
   notes?: string
-  trackingNumber?: string
   statusHistory: OrderStatus[]
   items: Array<{
     name: string
@@ -52,62 +64,79 @@ interface Order {
   }>
 }
 
-// Mock detailed order data
-const mockOrderDetails: Record<string, Order> = {
-  "ORD-001": {
-    id: "ORD-001",
-    customer: {
-      name: "Ahmet Yılmaz",
-      phone: "0555 123 45 67",
-      email: "ahmet@example.com",
-      address: "Atatürk Mah. Cumhuriyet Cad. No:15 Kadıköy/İstanbul",
-    },
-    service: "Kuru Temizleme",
-    status: "IN_PROGRESS",
-    amount: "₺150",
-    date: "2024-01-15",
-    deliveryDate: "2024-01-18",
-    description: "2 takım elbise, 1 palto",
-    notes: "Palto üzerinde leke var, özel dikkat gerekli",
-    trackingNumber: "TRK-001-2024",
-    items: [
-      { name: "Takım Elbise", quantity: 2, price: "₺50" },
-      { name: "Palto", quantity: 1, price: "₺50" },
-    ],
-    statusHistory: [
-      {
-        status: "PENDING",
-        timestamp: "2024-01-15T09:00:00Z",
-        note: "Sipariş alındı",
-        updatedBy: "Sistem",
-      },
-      {
-        status: "IN_PROGRESS",
-        timestamp: "2024-01-15T14:30:00Z",
-        note: "Temizlik işlemi başladı",
-        updatedBy: "Mehmet Çalışan",
-      },
-    ],
-  },
-}
-
 const statusLabels: Record<
-  string,
+  OrderStatusValue,
   { label: string; variant: "default" | "secondary" | "destructive" | "outline"; color: string }
 > = {
-  PENDING: { label: "Beklemede", variant: "outline", color: "text-yellow-600" },
-  IN_PROGRESS: { label: "İşlemde", variant: "default", color: "text-blue-600" },
-  COMPLETED: { label: "Tamamlandı", variant: "secondary", color: "text-green-600" },
-  DELIVERED: { label: "Teslim Edildi", variant: "secondary", color: "text-green-700" },
-  CANCELLED: { label: "İptal", variant: "destructive", color: "text-red-600" },
+  PENDING: { label: "Beklemede", variant: "outline", color: "text-amber-700" },
+  CONFIRMED: { label: "Onaylandı", variant: "default", color: "text-primary" },
+  READY_FOR_PICKUP: { label: "Alınmaya Hazır", variant: "default", color: "text-primary" },
+  IN_PROGRESS: { label: "İşlemde", variant: "default", color: "text-primary" },
+  READY_FOR_DELIVERY: { label: "Teslimata Hazır", variant: "secondary", color: "text-secondary" },
+  OUT_FOR_DELIVERY: { label: "Dağıtımda", variant: "secondary", color: "text-secondary" },
+  DELIVERED: { label: "Teslim Edildi", variant: "secondary", color: "text-secondary" },
+  COMPLETED: { label: "Tamamlandı", variant: "secondary", color: "text-secondary" },
+  CANCELLED: { label: "İptal", variant: "destructive", color: "text-destructive" },
+}
+
+const formatDate = (value?: string | null) =>
+  value ? new Date(value).toLocaleDateString("tr-TR") : undefined
+
+const formatPrice = (value: number) =>
+  `₺${value.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+// Maps the /api/orders/[id] response onto what this page renders
+function toOrder(data: any): Order {
+  return {
+    id: data.id,
+    orderNumber: data.orderNumber,
+    customer: {
+      name: data.customer?.name || "İsimsiz",
+      phone: data.customer?.phone || "",
+      email: data.customer?.email || undefined,
+      address:
+        [data.customer?.address, data.customer?.district, data.customer?.city]
+          .filter(Boolean)
+          .join(", ") || undefined,
+    },
+    service: data.service || data.items?.[0]?.serviceName || "Hizmet belirtilmedi",
+    status: data.status,
+    amount: formatPrice(Number(data.totalAmount || 0)),
+    date: formatDate(data.createdAt) || "",
+    deliveryDate: formatDate(data.deliveryDate),
+    description: data.orderInfo || data.description || "",
+    notes: data.notes || data.deliveryNotes || undefined,
+    statusHistory:
+      data.statusHistory?.length > 0
+        ? data.statusHistory
+        : [{ status: "PENDING", timestamp: data.createdAt, note: "Sipariş alındı", updatedBy: "Sistem" }],
+    items: (data.items || []).map((item: any) => ({
+      name: item.serviceName || "Hizmet",
+      quantity: item.quantity,
+      price: formatPrice(Number(item.totalPrice || 0)),
+    })),
+  }
 }
 
 export default function OrderDetailPage() {
   const [user, setUser] = useState<User | null>(null)
   const [order, setOrder] = useState<Order | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const router = useRouter()
   const params = useParams()
   const orderId = params.id as string
+
+  const loadOrder = async () => {
+    const token = localStorage.getItem("token")
+    const response = await fetch(`/api/orders/${orderId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) {
+      setLoadError(response.status === 404 ? "Sipariş bulunamadı." : "Sipariş yüklenemedi.")
+      return
+    }
+    setOrder(toOrder(await response.json()))
+  }
 
   useEffect(() => {
     const userData = localStorage.getItem("user")
@@ -116,36 +145,48 @@ export default function OrderDetailPage() {
       return
     }
     setUser(JSON.parse(userData))
-
-    // Load order details
-    const orderData = mockOrderDetails[orderId]
-    if (orderData) {
-      setOrder(orderData)
-    }
+    loadOrder().catch(() => setLoadError("Sipariş yüklenemedi."))
   }, [router, orderId])
 
-  const handleStatusUpdate = (newStatus: Order["status"], note?: string) => {
+  const handleStatusUpdate = async (newStatus: OrderStatusValue, note?: string) => {
     if (!order) return
 
-    const newStatusEntry: OrderStatus = {
-      status: newStatus,
-      timestamp: new Date().toISOString(),
-      note,
-      updatedBy: user?.businessName || "Kullanıcı",
+    const token = localStorage.getItem("token")
+    const response = await fetch(`/api/orders/${order.id}/status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status: newStatus, notes: note }),
+    })
+
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}))
+      toast.error(result.error === "Invalid status transition" ? "Bu duruma geçilemez." : "Durum güncellenemedi.")
+      return
     }
 
-    const updatedOrder = {
-      ...order,
-      status: newStatus,
-      statusHistory: [...order.statusHistory, newStatusEntry],
-    }
+    toast.success(`Durum güncellendi: ${statusLabels[newStatus].label}`)
+    await loadOrder()
+  }
 
-    setOrder(updatedOrder)
-    // Here you would typically make an API call to update the order
+  if (loadError) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background p-6">
+        <div className="text-center space-y-4">
+          <p className="text-lg font-medium text-foreground">{loadError}</p>
+          <Button variant="outline" onClick={() => router.push("/orders")}>
+            Siparişlere dön
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   if (!user || !order) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground">Sipariş yükleniyor…</p>
+      </div>
+    )
   }
 
   const currentStatusInfo = statusLabels[order.status]
@@ -155,13 +196,13 @@ export default function OrderDetailPage() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header user={user} />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="flex items-center space-x-3">
-                  <h1 className="text-3xl font-bold text-foreground">Sipariş {order.id}</h1>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Sipariş <span className="font-mono">{order.orderNumber}</span></h1>
                   <Badge variant={currentStatusInfo.variant} className="text-sm">
                     {currentStatusInfo.label}
                   </Badge>
@@ -170,38 +211,37 @@ export default function OrderDetailPage() {
                   {order.customer.name} • {order.service} • {order.date}
                 </p>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex gap-2">
                 <Button variant="outline" onClick={() => router.push("/orders")}>
                   Geri Dön
                 </Button>
-                <Button variant="outline">Yazdır</Button>
-                <Button>Düzenle</Button>
+                <Button variant="outline" onClick={() => window.print()}>Yazdır</Button>
               </div>
             </div>
 
             {/* Order Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-2xl font-bold">{order.amount}</div>
+                  <div className="text-lg sm:text-2xl font-bold font-mono break-words">{order.amount}</div>
                   <p className="text-xs text-muted-foreground">Toplam Tutar</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-blue-600">{order.trackingNumber}</div>
-                  <p className="text-xs text-muted-foreground">Takip Numarası</p>
+                  <div className="text-lg sm:text-2xl font-bold font-mono text-primary break-words">{order.orderNumber}</div>
+                  <p className="text-xs text-muted-foreground">Sipariş Numarası</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <div className="text-2xl font-bold text-green-600">{order.deliveryDate}</div>
+                  <div className="text-lg sm:text-2xl font-bold text-secondary">{order.deliveryDate || "Belirtilmedi"}</div>
                   <p className="text-xs text-muted-foreground">Teslim Tarihi</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <div className={`text-2xl font-bold ${currentStatusInfo.color}`}>{currentStatusInfo.label}</div>
+                  <div className={`text-lg sm:text-2xl font-bold ${currentStatusInfo.color}`}>{currentStatusInfo.label}</div>
                   <p className="text-xs text-muted-foreground">Mevcut Durum</p>
                 </CardContent>
               </Card>
@@ -209,7 +249,7 @@ export default function OrderDetailPage() {
 
             {/* Main Content Tabs */}
             <Tabs defaultValue="details" className="space-y-4">
-              <TabsList>
+              <TabsList className="w-full justify-start overflow-x-auto">
                 <TabsTrigger value="details">Sipariş Detayları</TabsTrigger>
                 <TabsTrigger value="timeline">Takip Geçmişi</TabsTrigger>
                 <TabsTrigger value="customer">Müşteri Bilgileri</TabsTrigger>

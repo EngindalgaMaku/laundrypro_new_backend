@@ -87,6 +87,10 @@ const PRICING_TYPES = [
   { value: "HOURLY", label: "Saatlik", unit: "saat" },
 ];
 
+const authHeaders = (): Record<string, string> => ({
+  Authorization: `Bearer ${localStorage.getItem("token") ?? ""}`,
+});
+
 export default function ServicesManagement() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,7 +128,9 @@ export default function ServicesManagement() {
   const fetchServices = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/services");
+      const response = await fetch("/api/services", {
+        headers: authHeaders(),
+      });
       if (response.ok) {
         const data = await response.json();
         setServices(data);
@@ -153,6 +159,7 @@ export default function ServicesManagement() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...authHeaders(),
         },
         body: JSON.stringify(formData),
       });
@@ -191,6 +198,7 @@ export default function ServicesManagement() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          ...authHeaders(),
         },
         body: JSON.stringify(formData),
       });
@@ -228,6 +236,7 @@ export default function ServicesManagement() {
     try {
       const response = await fetch(`/api/services/${serviceId}`, {
         method: "DELETE",
+        headers: authHeaders(),
       });
 
       if (response.ok) {

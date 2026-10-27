@@ -99,7 +99,8 @@ export default function CustomerDetailPage() {
 
       if (ordersResponse.ok) {
         const ordersData = await ordersResponse.json();
-        setOrders(ordersData);
+        // The API returns { customer, orders, stats }
+        setOrders(Array.isArray(ordersData) ? ordersData : ordersData.orders ?? []);
       }
     } catch (error) {
       console.error("Failed to fetch customer details:", error);
@@ -347,7 +348,7 @@ export default function CustomerDetailPage() {
                             <div className="text-right">
                               <Badge variant="outline">{order.status}</Badge>
                               <p className="text-sm font-medium mt-1">
-                                ₺{order.totalAmount.toFixed(2)}
+                                ₺{Number(order.totalAmount).toFixed(2)}
                               </p>
                             </div>
                           </div>

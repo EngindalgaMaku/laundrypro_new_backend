@@ -192,8 +192,10 @@ export default function SettingsPage() {
       });
 
       if (userResponse.ok) {
-        const userData = await userResponse.json();
-        
+        const userResult = await userResponse.json();
+        // The API wraps the record as { user: {...} }
+        const userData = userResult.user ?? userResult;
+
         // If user doesn't have a business, create one
         if (!userData.businessId && !userData.business) {
           
@@ -212,7 +214,6 @@ export default function SettingsPage() {
               district: user.district || "",
               description: user.description || "",
               businessTypes: user.businessTypes || ["LAUNDRY"],
-              userId: user.id
             }),
           });
 

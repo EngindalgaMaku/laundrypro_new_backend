@@ -30,7 +30,7 @@ interface OrderStatusUpdaterProps {
       | "COMPLETED"
       | "CANCELLED",
     note?: string,
-  ) => void
+  ) => void | Promise<void>
 }
 
 const statusOptions = [
@@ -64,7 +64,7 @@ const getNextStatuses = (currentStatus: string) => {
     case "COMPLETED":
       return []
     case "CANCELLED":
-      return ["PENDING"]
+      return []
     default:
       return []
   }
@@ -82,14 +82,13 @@ export function OrderStatusUpdater({ currentStatus, onStatusUpdate }: OrderStatu
     if (!selectedStatus) return
 
     setIsUpdating(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      onStatusUpdate(selectedStatus as any, note || undefined)
+    try {
+      await onStatusUpdate(selectedStatus as any, note || undefined)
       setSelectedStatus("")
       setNote("")
+    } finally {
       setIsUpdating(false)
-    }, 1000)
+    }
   }
 
   const currentStatusInfo = statusOptions.find((s) => s.value === currentStatus)

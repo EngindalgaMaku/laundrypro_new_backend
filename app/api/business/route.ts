@@ -22,8 +22,19 @@ export async function POST(request: NextRequest) {
       district,
       description,
       businessTypes,
-      userId,
     } = body;
+
+    // A user may only create a business for themselves, and only if they have none
+    const currentUser = await UserDatabaseService.getUserById(user.userId);
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (currentUser.businessId) {
+      return NextResponse.json(
+        { error: "User already belongs to a business" },
+        { status: 409 }
+      );
+    }
 
     // Create new business
     const newBusiness = await createBusiness({
@@ -82,12 +93,10 @@ export async function POST(request: NextRequest) {
       // Non-fatal – proceed
     }
 
-    // Update user to associate with this business
-    if (userId) {
-      await UserDatabaseService.updateUser(userId, {
-        businessId: newBusiness.id,
-      });
-    }
+    // Associate the caller with the new business
+    await UserDatabaseService.updateUser(currentUser.id, {
+      businessId: newBusiness.id,
+    });
 
     return NextResponse.json({
       message: "Business created successfully",
