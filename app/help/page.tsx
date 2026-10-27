@@ -126,19 +126,7 @@ export default function HelpPage() {
               Bildirim almıyorsanız, cihaz izinleri ve uygulama bildirim
               ayarlarını gözden geçirin.
             </li>
-            <li>
-              Entegrasyon sorunlarında test uç noktalarını kullanarak bağlantıyı
-              doğrulayın.
-            </li>
           </ul>
-          <div className="mt-3">
-            <Link
-              href="/test-network"
-              className="text-blue-600 hover:underline"
-            >
-              Ağ bağlantı testi →
-            </Link>
-          </div>
         </Card>
 
         <Card title="Özellikler ve En İyi Uygulamalar">
