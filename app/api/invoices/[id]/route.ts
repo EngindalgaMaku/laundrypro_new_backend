@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 
 
 
@@ -10,17 +11,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { id } = await params;
-
-  // Validation
-  if (!businessId || typeof businessId !== "string") {
-    return NextResponse.json(
-      { error: "Valid Business ID is required" },
-      { status: 400 }
-    );
-  }
 
   if (!id || typeof id !== "string") {
     return NextResponse.json(
@@ -30,7 +24,7 @@ export async function GET(
   }
 
   // Basic ID format validation (should be cuid)
-  if (id.length < 20 || businessId.length < 20) {
+  if (id.length < 20) {
     return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
   }
 
@@ -102,17 +96,14 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
+
   try {
     const body = await request.json();
-    const { businessId, status, paymentStatus, paymentMethod, paidAt } = body;
+    const { status, paymentStatus, paymentMethod, paidAt } = body;
     const { id } = await params;
-
-    if (!businessId) {
-      return NextResponse.json(
-        { error: "Business ID is required" },
-        { status: 400 }
-      );
-    }
 
     if (!id) {
       return NextResponse.json(
@@ -210,16 +201,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { id } = await params;
-
-  if (!businessId) {
-    return NextResponse.json(
-      { error: "Business ID is required" },
-      { status: 400 }
-    );
-  }
 
   if (!id) {
     return NextResponse.json(

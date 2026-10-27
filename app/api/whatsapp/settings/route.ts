@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 
 import { getPlanForBusiness } from "@/lib/entitlements";
 
@@ -7,8 +8,10 @@ import { getPlanForBusiness } from "@/lib/entitlements";
 import { prisma } from "@/lib/db";
 // Get WhatsApp Business API settings for a business
 export async function GET(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
 
   if (!businessId) {
     return NextResponse.json(
@@ -50,10 +53,12 @@ export async function GET(request: NextRequest) {
 
 // Create or update WhatsApp Business API settings
 export async function POST(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
     const {
-      businessId,
       isEnabled,
       accessToken,
       phoneNumberId,
@@ -167,9 +172,12 @@ export async function POST(request: NextRequest) {
 
 // Test WhatsApp Business API connection
 export async function PUT(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
-    const { businessId, accessToken, phoneNumberId, businessAccountId } = body;
+    const { accessToken, phoneNumberId, businessAccountId } = body;
 
     if (!businessId || !accessToken || !phoneNumberId) {
       return NextResponse.json(
@@ -222,8 +230,10 @@ export async function PUT(request: NextRequest) {
 
 // Delete WhatsApp settings (disable integration)
 export async function DELETE(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
 
   if (!businessId) {
     return NextResponse.json(

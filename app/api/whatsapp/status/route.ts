@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 
 
 
@@ -6,8 +7,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 // Get message status and conversation history
 export async function GET(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
   const customerId = searchParams.get("customerId");
   const orderId = searchParams.get("orderId");
   const messageId = searchParams.get("messageId");
@@ -154,9 +157,12 @@ export async function GET(request: NextRequest) {
 
 // Update message status manually (for testing or manual updates)
 export async function PATCH(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
-    const { businessId, messageId, status, errorCode, errorMessage } = body;
+    const { messageId, status, errorCode, errorMessage } = body;
 
     if (!businessId || !messageId || !status) {
       return NextResponse.json(

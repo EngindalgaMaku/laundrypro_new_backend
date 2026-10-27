@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 
 
 
@@ -6,8 +7,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 // Get E-Fatura settings for a business
 export async function GET(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
 
   if (!businessId) {
     return NextResponse.json(
@@ -65,10 +68,12 @@ export async function GET(request: NextRequest) {
 
 // Create or update E-Fatura settings
 export async function POST(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
     const {
-      businessId,
       isEnabled,
       gibUsername,
       gibPassword,
@@ -256,10 +261,12 @@ export async function POST(request: NextRequest) {
 
 // Test GIB connection
 export async function PUT(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
-    const { businessId, gibUsername, gibPassword, gibTestMode, gibPortalUrl } =
-      body;
+    const { gibUsername, gibPassword, gibTestMode, gibPortalUrl } = body;
 
     if (!businessId || !gibUsername || !gibPassword) {
       return NextResponse.json(
@@ -294,8 +301,10 @@ export async function PUT(request: NextRequest) {
 
 // Delete E-Fatura settings (disable integration)
 export async function DELETE(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
 
   if (!businessId) {
     return NextResponse.json(

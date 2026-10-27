@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getAuthToken } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -87,21 +88,21 @@ export default function IntegrationDashboard({
   const loadDashboardData = async () => {
     try {
       // Load WhatsApp settings (path-based)
-      const settingsResponse = await fetch(
-        `/api/whatsapp/settings/${businessId}`
-      );
+      const settingsResponse = await fetch(`/api/whatsapp/settings/${businessId}`, {
+        headers: { Authorization: `Bearer ${getAuthToken() ?? ""}` },
+      });
       const settingsData = await settingsResponse.json();
 
       // Load message statistics
-      const statusResponse = await fetch(
-        `/api/whatsapp/status?businessId=${businessId}&limit=1000`
-      );
+      const statusResponse = await fetch(`/api/whatsapp/status?businessId=${businessId}&limit=1000`, {
+        headers: { Authorization: `Bearer ${getAuthToken() ?? ""}` },
+      });
       const statusData = await statusResponse.json();
 
       // Load templates
-      const templatesResponse = await fetch(
-        `/api/whatsapp/templates?businessId=${businessId}`
-      );
+      const templatesResponse = await fetch(`/api/whatsapp/templates?businessId=${businessId}`, {
+        headers: { Authorization: `Bearer ${getAuthToken() ?? ""}` },
+      });
       const templatesData = await templatesResponse.json();
 
       // Process data into dashboard format

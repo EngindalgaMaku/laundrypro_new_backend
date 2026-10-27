@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 
 import { getPlanForBusiness } from "@/lib/entitlements";
 import { GIBPortalService } from "@/lib/e-fatura/gib-portal-service";
@@ -8,9 +9,11 @@ import { GIBPortalService } from "@/lib/e-fatura/gib-portal-service";
 import { prisma } from "@/lib/db";
 // Get invoice status from GIB Portal
 export async function GET(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
   const invoiceId = searchParams.get("invoiceId");
-  const businessId = searchParams.get("businessId");
   const sync = searchParams.get("sync") === "true"; // Whether to sync from GIB Portal
 
   if (!invoiceId || !businessId) {
@@ -89,9 +92,12 @@ export async function GET(request: NextRequest) {
 
 // Update invoice status manually
 export async function PATCH(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
-    const { invoiceId, businessId, status, errorCode, errorMessage } = body;
+    const { invoiceId, status, errorCode, errorMessage } = body;
 
     if (!invoiceId || !businessId || !status) {
       return NextResponse.json(
@@ -256,9 +262,12 @@ async function decryptPassword(encryptedPassword: string): Promise<string> {
 
 // Bulk sync invoice statuses
 export async function PUT(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
-    const { businessId, invoiceIds } = body;
+    const { invoiceIds } = body;
 
     if (!businessId) {
       return NextResponse.json(

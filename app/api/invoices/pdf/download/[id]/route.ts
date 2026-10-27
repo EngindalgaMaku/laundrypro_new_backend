@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 import fs from "fs/promises";
 import path from "path";
 
@@ -11,8 +12,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
   const { id: invoiceId } = await params;
 
   // Validation
@@ -31,7 +34,7 @@ export async function GET(
   }
 
   // Basic ID format validation (should be cuid)
-  if (invoiceId.length < 20 || businessId.length < 20) {
+  if (invoiceId.length < 20) {
     return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
   }
 
@@ -149,11 +152,12 @@ export async function HEAD(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { id: invoiceId } = await params;
 
-  if (!businessId || !invoiceId) {
+  if (!invoiceId) {
     return new NextResponse(null, { status: 400 });
   }
 

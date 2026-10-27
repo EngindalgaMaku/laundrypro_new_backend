@@ -136,6 +136,66 @@ export function withAuth(handler: (request: NextRequest, authData: { user: any, 
 }
 
 /**
+ * Authenticates the request and resolves the caller's business from the token.
+ * Route handlers must use the returned businessId instead of one sent by the client.
+ * Returns a NextResponse on failure so handlers can return it directly.
+ */
+export async function requireBusinessAuth(
+  request: NextRequest
+): Promise<{ user: any; business: any; businessId: string } | NextResponse> {
+  const validation = await validateAuthRequest(request);
+
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: validation.error },
+      { status: validation.statusCode || 500 }
+    );
+  }
+
+  if (!validation.business?.id) {
+    return NextResponse.json(
+      { error: "User has no business associated" },
+      { status: 403 }
+    );
+  }
+
+  return {
+    user: validation.user,
+    business: validation.business,
+    businessId: validation.business.id,
+  };
+}
+
+/**
+ * Authenticates the request and requires a system admin (email listed in ADMIN_EMAILS),
+ * the same rule used by the other /api/admin routes.
+ * Returns a NextResponse on failure so handlers can return it directly.
+ */
+export async function requireSystemAdmin(
+  request: NextRequest
+): Promise<{ user: any } | NextResponse> {
+  const validation = await validateAuthRequest(request);
+
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: validation.error },
+      { status: validation.statusCode || 500 }
+    );
+  }
+
+  const adminEmails = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (!validation.user?.email || !adminEmails.includes(validation.user.email)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  return { user: validation.user };
+}
+
+/**
  * Check if a JWT token is expired or about to expire
  */
 export function isTokenExpiring(token: string, bufferMinutes: number = 30): boolean {

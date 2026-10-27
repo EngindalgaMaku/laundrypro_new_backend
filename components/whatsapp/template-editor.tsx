@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getAuthToken } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,9 +99,9 @@ export default function TemplateEditor({
 
   const loadTemplate = async () => {
     try {
-      const response = await fetch(
-        `/api/whatsapp/templates?businessId=${businessId}`
-      );
+      const response = await fetch(`/api/whatsapp/templates?businessId=${businessId}`, {
+        headers: { Authorization: `Bearer ${getAuthToken() ?? ""}` },
+      });
       const data = await response.json();
 
       if (data.success) {
@@ -330,6 +331,7 @@ export default function TemplateEditor({
         method,
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken() ?? ""}`,
         },
         body: JSON.stringify({
           businessId,

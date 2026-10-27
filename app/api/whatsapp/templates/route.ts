@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 
 import { createWhatsAppService } from "@/lib/whatsapp-service";
 
@@ -7,8 +8,10 @@ import { createWhatsAppService } from "@/lib/whatsapp-service";
 import { prisma } from "@/lib/db";
 // Get WhatsApp message templates for a business
 export async function GET(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
 
   if (!businessId) {
     return NextResponse.json(
@@ -49,10 +52,12 @@ export async function GET(request: NextRequest) {
 
 // Create or update a WhatsApp message template
 export async function POST(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
     const {
-      businessId,
       name,
       displayName,
       category = "UTILITY",
@@ -113,9 +118,12 @@ export async function POST(request: NextRequest) {
 
 // Update template status
 export async function PATCH(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
-    const { businessId, name, status, isActive } = body;
+    const { name, status, isActive } = body;
 
     if (!businessId || !name) {
       return NextResponse.json(
@@ -154,8 +162,10 @@ export async function PATCH(request: NextRequest) {
 
 // Delete a template
 export async function DELETE(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
   const name = searchParams.get("name");
 
   if (!businessId || !name) {

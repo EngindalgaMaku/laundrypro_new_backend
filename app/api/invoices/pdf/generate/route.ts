@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 import { PDFService } from "../../../../../lib/pdf-service";
 
 // POST /api/invoices/pdf/generate - Generate PDF for an invoice
 export async function POST(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
-    const { invoiceId, businessId } = body;
+    const { invoiceId } = body;
 
     // Validation
     if (!invoiceId || typeof invoiceId !== "string") {
@@ -23,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Basic ID format validation (should be cuid)
-    if (invoiceId.length < 20 || businessId.length < 20) {
+    if (invoiceId.length < 20) {
       return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
     }
 
@@ -79,9 +83,11 @@ export async function POST(request: NextRequest) {
 
 // GET /api/invoices/pdf/generate - Get generation status (optional endpoint)
 export async function GET(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
   const invoiceId = searchParams.get("invoiceId");
-  const businessId = searchParams.get("businessId");
 
   if (!invoiceId || !businessId) {
     return NextResponse.json(

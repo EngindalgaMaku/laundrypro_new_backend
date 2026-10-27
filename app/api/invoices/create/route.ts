@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 
 import { getPlanForBusiness } from "@/lib/entitlements";
 import {
@@ -12,11 +13,13 @@ import { prisma } from "@/lib/db";
 const anyPrisma: any = prisma;
 
 export async function POST(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
     const {
       orderId,
-      businessId,
       customerVknTckn,
       autoSend = false,
       createEInvoice = false, // New parameter to distinguish e-invoice creation
@@ -58,8 +61,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get order with all necessary relations
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, businessId },
       include: {
         customer: true,
         business: true,
@@ -297,8 +300,8 @@ async function createBasicInvoice(
   customerVknTckn?: string
 ) {
   // Get order with all necessary relations
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, businessId },
     include: {
       customer: true,
       business: true,
@@ -427,8 +430,10 @@ async function generateBasicInvoiceNumber(businessId: string): Promise<string> {
 }
 
 export async function GET(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
   const orderId = searchParams.get("orderId");
   const type = searchParams.get("type") || "basic"; // "basic" or "einvoice"
 

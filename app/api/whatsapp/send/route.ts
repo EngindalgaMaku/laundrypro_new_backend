@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 
 import { createWhatsAppService } from "@/lib/whatsapp-service";
 
@@ -6,10 +7,12 @@ import { createWhatsAppService } from "@/lib/whatsapp-service";
 
 import { prisma } from "@/lib/db";
 export async function POST(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
     const {
-      businessId,
       customerId,
       orderId,
       phoneNumber,
@@ -89,8 +92,10 @@ export async function POST(request: NextRequest) {
   }}
 
 export async function GET(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
 
   if (!businessId) {
     return NextResponse.json(

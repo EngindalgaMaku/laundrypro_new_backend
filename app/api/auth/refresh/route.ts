@@ -18,13 +18,27 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7);
     
-    // Try to decode token without verification to get user info
+    // Verify the signature; an expired token is accepted only within the grace period
     let tokenPayload;
     try {
-      tokenPayload = jwt.decode(token) as any;
+      tokenPayload = jwt.verify(token, process.env.NEXTAUTH_SECRET!, {
+        ignoreExpiration: true,
+      }) as any;
     } catch (error) {
       return NextResponse.json(
-        { error: "Invalid token format" },
+        { error: "Invalid token" },
+        { status: 401 }
+      );
+    }
+
+    const REFRESH_GRACE_SECONDS = 7 * 24 * 60 * 60;
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    if (
+      typeof tokenPayload?.exp !== "number" ||
+      nowSeconds - tokenPayload.exp > REFRESH_GRACE_SECONDS
+    ) {
+      return NextResponse.json(
+        { error: "Token expired, please log in again" },
         { status: 401 }
       );
     }
@@ -44,6 +58,13 @@ export async function POST(request: NextRequest) {
       userData = await UserDatabaseService.getUserById(tokenPayload.userId);
     } catch (error) {
       console.error("[REFRESH] User lookup failed:", error);
+      return NextResponse.json(
+        { error: "User account not found" },
+        { status: 404 }
+      );
+    }
+
+    if (!userData) {
       return NextResponse.json(
         { error: "User account not found" },
         { status: 404 }

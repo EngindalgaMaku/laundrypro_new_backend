@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/lib/auth-guard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,9 +97,9 @@ export default function WhatsAppSettingsPage() {
 
   const loadSettings = async () => {
     try {
-      const response = await fetch(
-        `/api/whatsapp/settings/${settings.businessId}`
-      );
+      const response = await fetch(`/api/whatsapp/settings/${settings.businessId}`, {
+        headers: { Authorization: `Bearer ${getAuthToken() ?? ""}` },
+      });
       const data = await response.json();
 
       if (data.success && data.settings) {
@@ -126,6 +127,7 @@ export default function WhatsAppSettingsPage() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken() ?? ""}`,
         },
         body: JSON.stringify({
           isEnabled: settings.isEnabled,
@@ -167,6 +169,7 @@ export default function WhatsAppSettingsPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken() ?? ""}`,
         },
         body: JSON.stringify({
           accessToken: credentials.accessToken,

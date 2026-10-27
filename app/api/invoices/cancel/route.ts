@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 
 import { getPlanForBusiness } from "@/lib/entitlements";
 import { GIBPortalService } from "@/lib/e-fatura/gib-portal-service";
@@ -7,9 +8,12 @@ import { GIBPortalService } from "@/lib/e-fatura/gib-portal-service";
 
 import { prisma } from "@/lib/db";
 export async function POST(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
-    const { invoiceId, businessId, reason } = body;
+    const { invoiceId, reason } = body;
 
     if (!invoiceId || !businessId || !reason) {
       return NextResponse.json(
@@ -151,9 +155,12 @@ export async function POST(request: NextRequest) {
 
 // Bulk cancel invoices
 export async function PUT(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
-    const { invoiceIds, businessId, reason } = body;
+    const { invoiceIds, reason } = body;
 
     if (!invoiceIds || !Array.isArray(invoiceIds) || invoiceIds.length === 0) {
       return NextResponse.json(
@@ -190,8 +197,9 @@ export async function PUT(request: NextRequest) {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              Authorization: request.headers.get("Authorization") ?? "",
             },
-            body: JSON.stringify({ invoiceId, businessId, reason }),
+            body: JSON.stringify({ invoiceId, reason }),
           }
         );
 

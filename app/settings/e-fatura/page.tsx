@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getAuthToken } from "@/lib/auth";
 import { useAuth } from "@/lib/auth-guard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -137,9 +138,9 @@ export default function EFaturaSettingsPage() {
 
   const loadSettings = async () => {
     try {
-      const response = await fetch(
-        `/api/e-invoice/config/${settings.businessId}`
-      );
+      const response = await fetch(`/api/e-invoice/config/${settings.businessId}`, {
+        headers: { Authorization: `Bearer ${getAuthToken() ?? ""}` },
+      });
       const data = await response.json();
 
       if (data.success && data.config) {
@@ -199,6 +200,7 @@ export default function EFaturaSettingsPage() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken() ?? ""}`,
         },
         body: JSON.stringify(requestData),
       });
@@ -234,6 +236,7 @@ export default function EFaturaSettingsPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken() ?? ""}`,
         },
         body: JSON.stringify({
           businessId: settings.businessId,

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PDFCleanupCron } from "../../../../lib/pdf-cleanup-cron";
+import { requireSystemAdmin } from "@/lib/auth-utils";
 
 // GET /api/admin/pdf-cleanup - Get cleanup status and statistics
 export async function GET(request: NextRequest) {
+  const admin = await requireSystemAdmin(request);
+  if (admin instanceof NextResponse) return admin;
+
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
@@ -55,6 +59,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/pdf-cleanup - Trigger cleanup or manage cron job
 export async function POST(request: NextRequest) {
+  const admin = await requireSystemAdmin(request);
+  if (admin instanceof NextResponse) return admin;
+
   try {
     const body = await request.json();
     const { action, olderThanHours } = body;
@@ -141,6 +148,9 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/admin/pdf-cleanup - Emergency cleanup (delete all PDFs)
 export async function DELETE(request: NextRequest) {
+  const admin = await requireSystemAdmin(request);
+  if (admin instanceof NextResponse) return admin;
+
   try {
     const { searchParams } = new URL(request.url);
     const confirm = searchParams.get("confirm");

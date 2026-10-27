@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { getAuthToken } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,7 +92,9 @@ export default function ConversationHistory({
       if (customerId) params.set("customerId", customerId);
       if (orderId) params.set("orderId", orderId);
 
-      const response = await fetch(`/api/whatsapp/status?${params}`);
+      const response = await fetch(`/api/whatsapp/status?${params}`, {
+        headers: { Authorization: `Bearer ${getAuthToken() ?? ""}` },
+      });
       const data = await response.json();
 
       if (data.success) {
@@ -122,6 +125,7 @@ export default function ConversationHistory({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken() ?? ""}`,
         },
         body: JSON.stringify({
           businessId,

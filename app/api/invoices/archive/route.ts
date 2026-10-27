@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 
 import { getPlanForBusiness } from "@/lib/entitlements";
 
@@ -7,9 +8,12 @@ import { getPlanForBusiness } from "@/lib/entitlements";
 import { prisma } from "@/lib/db";
 // Archive invoices
 export async function POST(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
-    const { businessId, invoiceIds, archiveAll = false, dateRange } = body;
+    const { invoiceIds, archiveAll = false, dateRange } = body;
 
     if (!businessId) {
       return NextResponse.json(
@@ -159,8 +163,10 @@ export async function POST(request: NextRequest) {
 
 // Get archive statistics
 export async function GET(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   const { searchParams } = new URL(request.url);
-  const businessId = searchParams.get("businessId");
 
   if (!businessId) {
     return NextResponse.json(
@@ -264,9 +270,12 @@ export async function GET(request: NextRequest) {
 
 // Restore archived invoices
 export async function PUT(request: NextRequest) {
+  const auth = await requireBusinessAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  const { businessId } = auth;
   try {
     const body = await request.json();
-    const { businessId, invoiceIds } = body;
+    const { invoiceIds } = body;
 
     if (!businessId || !invoiceIds || !Array.isArray(invoiceIds)) {
       return NextResponse.json(
