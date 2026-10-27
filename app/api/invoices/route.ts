@@ -29,14 +29,6 @@ async function getHandler(
     );
   }
 
-  // Basic ID format validation (should be cuid - at least 20 characters)
-  if (businessId.length < 20) {
-    return NextResponse.json(
-      { error: "Invalid Business ID format" },
-      { status: 400 }
-    );
-  }
-
   try {
     const where: any = { businessId };
     if (orderId) {
@@ -132,8 +124,9 @@ async function postHandler(
     }
 
     // Get order with all necessary relations
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+    // Only the caller's own orders can be invoiced
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, businessId },
       include: {
         customer: true,
         business: true,
