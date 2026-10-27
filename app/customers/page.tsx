@@ -40,6 +40,7 @@ interface Customer {
   address: string;
   totalOrders: number;
   totalSpent: string;
+  totalSpentValue?: number;
   lastOrder: string;
   status: "active" | "inactive";
   notes?: string;
@@ -111,7 +112,9 @@ export default function CustomersPage() {
         });
 
         if (ordersResponse.ok) {
-          const orders = await ordersResponse.json();
+          // /api/orders returns { orders, total, page, ... }
+          const ordersData = await ordersResponse.json();
+          const orders = Array.isArray(ordersData) ? ordersData : ordersData.orders ?? [];
           
           // Calculate stats for each customer
           orders.forEach((order: any) => {
@@ -148,8 +151,10 @@ export default function CustomersPage() {
             phone: dbCustomer.phone,
             email: dbCustomer.email || "",
             address: dbCustomer.address || "",
-            totalOrders: stats.totalOrders,
-            totalSpent: `₺${stats.totalSpent.toLocaleString('tr-TR')}`,
+            // _count is exact; the orders list above is paginated
+            totalOrders: (dbCustomer as any)._count?.orders ?? stats.totalOrders,
+            totalSpent: `₺${stats.totalSpent.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            totalSpentValue: stats.totalSpent,
             lastOrder: new Date(stats.lastOrderDate).toLocaleDateString("tr-TR"),
             status: dbCustomer.isActive ? "active" : "inactive",
             registrationDate: new Date(dbCustomer.createdAt).toLocaleDateString(
@@ -207,7 +212,8 @@ export default function CustomersPage() {
 
   const handleCustomerUpdate = (updatedCustomer: Customer) => {
     setCustomers((prev) =>
-      prev.map((c) => (c.id === updatedCustomer.id ? updatedCustomer : c))
+      // keep fields the edit modal does not carry (e.g. totalSpentValue)
+      prev.map((c) => (c.id === updatedCustomer.id ? { ...c, ...updatedCustomer } : c))
     );
     setSelectedCustomer(updatedCustomer);
   };
@@ -347,11 +353,9 @@ export default function CustomersPage() {
               <Card className="border-0 bg-muted/30">
                 <CardContent className="p-3 sm:p-4">
                   <div className="text-lg sm:text-2xl font-bold">
-                    ₺{customers.reduce((sum, c) => {
-                      // totalSpent string'ini sayıya çevir (₺ işaretini kaldır)
-                      const spent = parseFloat(c.totalSpent.replace(/[₺,]/g, '')) || 0;
-                      return sum + spent;
-                    }, 0).toLocaleString('tr-TR')}
+                    ₺{customers
+                      .reduce((sum, c) => sum + (c.totalSpentValue ?? 0), 0)
+                      .toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <p className="text-xs text-muted-foreground">Toplam Ciro</p>
                 </CardContent>

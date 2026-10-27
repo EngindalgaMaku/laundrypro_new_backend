@@ -106,82 +106,29 @@ export default function EInvoicesPage() {
         return;
       }
 
-      // Demo data for testing - in real app this would come from API
-      const demoInvoices: EInvoice[] = [
-        {
-          id: "1",
-          invoiceNumber: "EMU202400001",
-          invoiceDate: "2024-01-15",
-          buyerTitle: "Test Müşteri A.Ş.",
-          totalAmount: 1500.0,
-          gibStatus: "SENT",
-          createdAt: "2024-01-15T10:30:00",
-          ettn: "12345678-1234-1234-1234-123456789012",
-          order: {
-            orderNumber: "ORD-001",
-            customer: {
-              firstName: "Ahmet",
-              lastName: "Yılmaz",
-            },
-          },
-        },
-        {
-          id: "2",
-          invoiceNumber: "EMU202400002",
-          invoiceDate: "2024-01-16",
-          buyerTitle: "Demo İşletme Ltd.",
-          totalAmount: 2300.5,
-          gibStatus: "ACCEPTED",
-          createdAt: "2024-01-16T14:20:00",
-          ettn: "87654321-4321-4321-4321-210987654321",
-          order: {
-            orderNumber: "ORD-002",
-            customer: {
-              firstName: "Fatma",
-              lastName: "Kaya",
-            },
-          },
-        },
-        {
-          id: "3",
-          invoiceNumber: "EMU202400003",
-          invoiceDate: "2024-01-17",
-          buyerTitle: "Örnek Temizlik Hizmetleri",
-          totalAmount: 850.75,
-          gibStatus: "DRAFT",
-          createdAt: "2024-01-17T09:15:00",
-          order: {
-            orderNumber: "ORD-003",
-            customer: {
-              firstName: "Mehmet",
-              lastName: "Demir",
-            },
-          },
-        },
-        {
-          id: "4",
-          invoiceNumber: "EMU202400004",
-          invoiceDate: "2024-01-18",
-          buyerTitle: "ABC Tekstil San. Tic. Ltd. Şti.",
-          totalAmount: 4200.0,
-          gibStatus: "REJECTED",
-          createdAt: "2024-01-18T16:45:00",
-          ettn: "11111111-2222-3333-4444-555555555555",
-          order: {
-            orderNumber: "ORD-004",
-            customer: {
-              firstName: "Ayşe",
-              lastName: "Öztürk",
-            },
-          },
-        },
-      ];
+const response = await fetch("/api/invoices", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
 
-      setInvoices(demoInvoices);
-      setFilteredInvoices(demoInvoices);
+      // /api/invoices returns basic invoices; map them onto the list's fields
+      const rows: EInvoice[] = (data.invoices || []).map((inv: any) => ({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        invoiceDate: inv.invoiceDate,
+        buyerTitle: inv.customerName,
+        totalAmount: Number(inv.totalAmount || 0),
+        gibStatus: inv.status,
+        createdAt: inv.createdAt,
+        order: inv.order || undefined,
+      }));
+
+      setInvoices(rows);
+      setFilteredInvoices(rows);
     } catch (error) {
       console.error("Error loading invoices:", error);
-      toast.error("E-Faturalar yüklenirken hata oluştu");
+      toast.error("Faturalar yüklenirken hata oluştu");
     } finally {
       setLoading(false);
     }
@@ -237,6 +184,10 @@ export default function EInvoicesPage() {
         icon: AlertCircle,
         label: "Reddedildi",
       },
+      PAID: { variant: "default" as const, icon: CheckCircle, label: "Ödendi" },
+      OVERDUE: { variant: "destructive" as const, icon: AlertCircle, label: "Gecikmiş" },
+      CANCELLED: { variant: "secondary" as const, icon: AlertCircle, label: "İptal" },
+      REFUNDED: { variant: "secondary" as const, icon: Clock, label: "İade edildi" },
     };
 
     const config =
@@ -367,6 +318,10 @@ export default function EInvoicesPage() {
       SENT: "Gönderildi",
       ACCEPTED: "Kabul Edildi",
       REJECTED: "Reddedildi",
+      PAID: "Ödendi",
+      OVERDUE: "Gecikmiş",
+      CANCELLED: "İptal",
+      REFUNDED: "İade edildi",
     };
     return statusTexts[status as keyof typeof statusTexts] || status;
   };
@@ -401,10 +356,10 @@ export default function EInvoicesPage() {
               <div>
                 <h1 className="text-3xl font-bold flex items-center gap-2">
                   <FileText className="h-8 w-8 text-blue-600" />
-                  E-Faturalar
+                  Faturalar
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Elektronik fatura yönetimi ve GIB Portal entegrasyonu
+                  Siparişlerinizin faturaları; e-Fatura gönderimi PRO planda
                 </p>
               </div>
               <div className="flex gap-2">
@@ -453,6 +408,7 @@ export default function EInvoicesPage() {
                       invoices.filter(
                         (inv) =>
                           inv.gibStatus === "SENT" ||
+                          inv.gibStatus === "PAID" ||
                           inv.gibStatus === "ACCEPTED"
                       ).length
                     }
@@ -521,10 +477,10 @@ export default function EInvoicesPage() {
                     <SelectContent>
                       <SelectItem value="all">Tüm Durumlar</SelectItem>
                       <SelectItem value="DRAFT">Taslak</SelectItem>
-                      <SelectItem value="CREATED">Oluşturuldu</SelectItem>
                       <SelectItem value="SENT">Gönderildi</SelectItem>
-                      <SelectItem value="ACCEPTED">Kabul Edildi</SelectItem>
-                      <SelectItem value="REJECTED">Reddedildi</SelectItem>
+                      <SelectItem value="PAID">Ödendi</SelectItem>
+                      <SelectItem value="OVERDUE">Gecikmiş</SelectItem>
+                      <SelectItem value="CANCELLED">İptal</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button variant="outline" onClick={loadInvoices}>
@@ -538,7 +494,7 @@ export default function EInvoicesPage() {
             {/* Invoices Table */}
             <Card>
               <CardHeader>
-                <CardTitle>E-Fatura Listesi</CardTitle>
+                <CardTitle>Fatura Listesi</CardTitle>
                 <p className="text-sm text-muted-foreground">
                   {filteredInvoices.length} fatura bulundu
                 </p>
@@ -547,7 +503,7 @@ export default function EInvoicesPage() {
                 {loading ? (
                   <div className="text-center py-8">
                     <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
-                    <p>E-Faturalar yükleniyor...</p>
+                    <p>Faturalar yükleniyor...</p>
                   </div>
                 ) : (
                   <Table>
@@ -563,6 +519,15 @@ export default function EInvoicesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
+                      {filteredInvoices.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+                            {invoices.length === 0
+                              ? "Henüz fatura yok."
+                              : "Aramanıza uyan fatura bulunamadı."}
+                          </TableCell>
+                        </TableRow>
+                      )}
                       {filteredInvoices.map((invoice) => (
                         <TableRow key={invoice.id}>
                           <TableCell className="font-mono">

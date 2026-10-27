@@ -58,40 +58,6 @@ export default function Homepage() {
     },
   ];
 
-  const testimonials = [
-    {
-      name: "Ayşe Demir",
-      role: "Ev Hanımı",
-      content:
-        "LaundryPro sayesinde temizlik işlerim artık çok kolay. Profesyonel ekip ve kaliteli hizmet.",
-      rating: 5,
-      image: "👩‍💼",
-    },
-    {
-      name: "Mehmet Yılmaz",
-      role: "İşletme Sahibi",
-      content:
-        "Ofisinizin temizliği için güvenilir bir çözüm arıyorsanız, kesinlikle tavsiye ederim.",
-      rating: 5,
-      image: "👨‍💼",
-    },
-    {
-      name: "Fatma Özkan",
-      role: "Proje Yöneticisi",
-      content:
-        "Düzenli temizlik hizmeti alıyoruz. Her zaman zamanında ve titiz çalışıyorlar.",
-      rating: 5,
-      image: "👩‍💻",
-    },
-  ];
-
-  const stats = [
-    { number: "2.500+", label: "Mutlu Müşteri" },
-    { number: "15.000+", label: "Tamamlanan İş" },
-    { number: "99%", label: "Memnuniyet" },
-    { number: "5", label: "Yıllık Deneyim" },
-  ];
-
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -124,12 +90,6 @@ export default function Homepage() {
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 Hakkımızda
-              </a>
-              <a
-                href="#testimonials"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Referanslar
               </a>
               <a
                 href="#contact"
@@ -213,19 +173,6 @@ export default function Homepage() {
               </Button>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-3xl sm:text-4xl font-bold mb-2">
-                    {stat.number}
-                  </div>
-                  <div className="text-white/80 text-sm sm:text-base">
-                    {stat.label}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
@@ -370,66 +317,6 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section
-        id="testimonials"
-        className="py-20 sm:py-24 lg:py-32 bg-muted/30"
-      >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-warning/10 text-warning border-warning/20">
-              💬 Müşteri Yorumları
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
-              Müşterilerimiz
-              <span className="bg-gradient-to-r from-warning to-destructive bg-clip-text text-transparent">
-                {" "}
-                Ne Diyor?
-              </span>
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Binlerce mutlu müşteriyle birlikte büyümeye devam ediyoruz
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card
-                key={index}
-                className="card-hover gradient-card border-0 shadow-lg"
-              >
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center text-xl">
-                      {testimonial.image}
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">{testimonial.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {testimonial.role}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className="w-4 h-4 fill-warning text-warning"
-                      />
-                    ))}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground italic">
-                    "{testimonial.content}"
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-20 sm:py-24 lg:py-32 bg-gradient-hero relative overflow-hidden">
         <div className="absolute inset-0 bg-black/20"></div>
@@ -520,14 +407,6 @@ export default function Homepage() {
                     className="hover:text-foreground transition-colors"
                   >
                     Hakkımızda
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#testimonials"
-                    className="hover:text-foreground transition-colors"
-                  >
-                    Referanslar
                   </a>
                 </li>
                 <li>

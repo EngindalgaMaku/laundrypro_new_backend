@@ -307,7 +307,7 @@ export function LoginForm() {
                   </div>
 
                   {/* Remember Me & Forgot Password */}
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center text-sm">
                     <label className="flex items-center space-x-3 text-white/70 cursor-pointer hover:text-white/90 transition-colors">
                       <input
                         type="checkbox"
@@ -316,12 +316,6 @@ export function LoginForm() {
                       />
                       <span className="font-medium">Beni hatırla</span>
                     </label>
-                    <button
-                      type="button"
-                      className="text-blue-400 hover:text-blue-300 font-semibold transition-all duration-300 hover:scale-105"
-                    >
-                      Şifremi unuttum
-                    </button>
                   </div>
 
                   {/* Premium Login Button */}

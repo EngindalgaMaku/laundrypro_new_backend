@@ -1265,10 +1265,29 @@ export async function getDashboardStats(businessId: string, days: number = 30) {
   );
   console.log(`[DEBUG] Direct active orders count: ${activeOrdersCount}`);
 
+  // Calendar-day and calendar-month counts for the dashboard cards
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
+  const [todayOrders, monthlyOrders, monthlyRevenue] = await Promise.all([
+    prisma.order.count({ where: { businessId, createdAt: { gte: startOfToday } } }),
+    prisma.order.count({ where: { businessId, createdAt: { gte: startOfMonth } } }),
+    prisma.order.aggregate({
+      where: { businessId, createdAt: { gte: startOfMonth }, status: { not: "CANCELLED" } },
+      _sum: { totalAmount: true },
+    }),
+  ]);
+
   // Return combined stats with customer data matching frontend expectations
   // Use current status counts (no date filter) for byStatus to show actual current state
   return {
     ...orderStats,
+    // Fields read by the dashboard page
+    todayOrders,
+    pendingJobs: activeOrdersCount,
+    totalCustomers: customerStats.total,
+    monthlyOrders,
+    monthlyRevenue: Number(monthlyRevenue._sum.totalAmount || 0),
     byStatus: currentByStatus, // Use current status counts instead of date-filtered
     customers: {
       total: customerStats.total,

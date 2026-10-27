@@ -36,6 +36,7 @@ export async function GET(
         order: {
           select: {
             orderNumber: true,
+            createdAt: true,
             customer: {
               select: {
                 firstName: true,

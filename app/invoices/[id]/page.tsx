@@ -120,75 +120,61 @@ export default function EInvoiceDetailPage() {
       setLoading(true);
       const invoiceId = params.id as string;
 
-      // Demo data - gerçek uygulamada API'dan gelir
-      const demoInvoiceDetail: EInvoiceDetail = {
-        id: invoiceId,
-        invoiceNumber: "EMU202400001",
-        invoiceDate: "2024-01-15",
-        issueDate: "2024-01-15",
-        dueDate: "2024-01-30",
-        buyerTitle: "Test Müşteri A.Ş.",
-        buyerTaxNumber: "1234567890",
-        buyerTaxOffice: "İstanbul Vergi Dairesi",
-        buyerAddress: "Atatürk Mah. İnönü Cad. No:123 Beşiktaş/İSTANBUL",
-        buyerEmail: "muhasebe@testmusteri.com.tr",
-        buyerPhone: "+90 212 123 45 67",
-        sellerTitle: "LaundryPro Temizlik Hizmetleri Ltd. Şti.",
-        sellerTaxNumber: "9876543210",
-        sellerTaxOffice: "İstanbul Vergi Dairesi",
-        sellerAddress: "Merkez Mah. İş Cad. No:456 Şişli/İSTANBUL",
-        totalAmount: 1770.0,
-        taxAmount: 270.0,
-        netAmount: 1500.0,
-        currency: "TRY",
-        gibStatus: "SENT",
-        ettn: "12345678-1234-1234-1234-123456789012",
-        createdAt: "2024-01-15T10:30:00",
-        sentAt: "2024-01-15T11:00:00",
-        order: {
-          orderNumber: "ORD-001",
-          orderDate: "2024-01-14",
-          customer: {
-            firstName: "Ahmet",
-            lastName: "Yılmaz",
-            email: "ahmet.yilmaz@testmusteri.com.tr",
-            phone: "+90 532 123 45 67",
-          },
-        },
-        items: [
-          {
-            id: "1",
-            description: "Kuru Temizleme - Takım Elbise",
-            quantity: 2,
-            unitPrice: 350.0,
-            taxRate: 18,
-            taxAmount: 126.0,
-            totalAmount: 826.0,
-          },
-          {
-            id: "2",
-            description: "Ütü Hizmeti - Gömlek",
-            quantity: 5,
-            unitPrice: 20.0,
-            taxRate: 18,
-            taxAmount: 18.0,
-            totalAmount: 118.0,
-          },
-          {
-            id: "3",
-            description: "Halı Yıkama - 3x4 m",
-            quantity: 1,
-            unitPrice: 800.0,
-            taxRate: 18,
-            taxAmount: 144.0,
-            totalAmount: 944.0,
-          },
-        ],
-        notes:
-          "Teslimat adresi: Atatürk Mah. İnönü Cad. No:123 Beşiktaş/İSTANBUL\nTeslimat zamanı: 16:00-18:00 arası",
-      };
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/invoices/${invoiceId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        setInvoice(null);
+        return;
+      }
+      const { invoice: inv } = await response.json();
+      const num = (v: any) => Number(v || 0);
 
-      setInvoice(demoInvoiceDetail);
+      // Basic invoice record mapped onto the detail view's fields
+      setInvoice({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        invoiceDate: inv.invoiceDate,
+        issueDate: inv.invoiceDate,
+        dueDate: inv.dueDate || inv.invoiceDate,
+        buyerTitle: inv.customerName,
+        buyerTaxNumber: inv.customerVknTckn || "-",
+        buyerTaxOffice: "-",
+        buyerAddress: inv.customerAddress || "-",
+        buyerEmail: inv.customerEmail || undefined,
+        buyerPhone: inv.customerPhone || undefined,
+        sellerTitle: inv.business?.name || "",
+        sellerTaxNumber: inv.business?.taxNumber || "-",
+        sellerTaxOffice: "-",
+        sellerAddress:
+          [inv.business?.address, inv.business?.district, inv.business?.city]
+            .filter(Boolean)
+            .join(", ") || "-",
+        totalAmount: num(inv.totalAmount),
+        taxAmount: num(inv.taxAmount),
+        netAmount: num(inv.subtotalAmount),
+        currency: inv.currencyCode || "TRY",
+        gibStatus: inv.status,
+        createdAt: inv.createdAt,
+        order: inv.order
+          ? {
+              orderNumber: inv.order.orderNumber,
+              orderDate: inv.order.createdAt,
+              customer: inv.order.customer,
+            }
+          : undefined,
+        items: (inv.items || []).map((item: any) => ({
+          id: item.id,
+          description: item.description ? `${item.name} – ${item.description}` : item.name,
+          quantity: num(item.quantity),
+          unitPrice: num(item.unitPrice),
+          taxRate: num(item.taxRate),
+          taxAmount: num(item.taxAmount),
+          totalAmount: num(item.lineTotal),
+        })),
+        notes: inv.notes || undefined,
+      });
     } catch (error) {
       console.error("Error loading invoice detail:", error);
       toast.error("Fatura detayları yüklenirken hata oluştu");
@@ -211,6 +197,10 @@ export default function EInvoiceDetailPage() {
         icon: CheckCircle,
         label: "Kabul Edildi",
       },
+      PAID: { variant: "default" as const, icon: CheckCircle, label: "Ödendi" },
+      OVERDUE: { variant: "destructive" as const, icon: AlertCircle, label: "Gecikmiş" },
+      CANCELLED: { variant: "secondary" as const, icon: AlertCircle, label: "İptal" },
+      REFUNDED: { variant: "secondary" as const, icon: Clock, label: "İade edildi" },
       REJECTED: {
         variant: "destructive" as const,
         icon: AlertCircle,
@@ -494,7 +484,7 @@ export default function EInvoiceDetailPage() {
                 <div>
                   <h1 className="text-3xl font-bold flex items-center gap-2">
                     <FileText className="h-8 w-8 text-blue-600" />
-                    E-Fatura Detayı
+                    Fatura Detayı
                   </h1>
                   <p className="text-muted-foreground mt-1">
                     {invoice.invoiceNumber} - {invoice.buyerTitle}

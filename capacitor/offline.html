@@ -13,38 +13,44 @@
         align-items: center;
         justify-content: center;
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        background: #f8fafc;
-        color: #0f172a;
+        background: #F6F9FB;
+        color: #0E1A24;
         text-align: center;
         padding: 24px;
         box-sizing: border-box;
       }
       .logo {
+        display: block;
         width: 72px;
         height: 72px;
-        border-radius: 18px;
         margin: 0 auto 20px;
-        background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
       }
       h1 { font-size: 20px; margin: 0 0 8px; }
-      p { font-size: 15px; color: #475569; margin: 0 0 24px; line-height: 1.5; }
+      p { font-size: 15px; color: #5B6B78; margin: 0 0 24px; line-height: 1.5; }
       button {
         font: inherit;
         font-weight: 600;
         color: #fff;
-        background: #3b82f6;
+        background: #0A5C99;
         border: 0;
         border-radius: 12px;
         padding: 12px 28px;
+        min-height: 44px;
       }
     </style>
   </head>
   <body>
     <main>
-      <div class="logo" aria-hidden="true"></div>
-      <h1>Bağlantı kurulamadı</h1>
-      <p>İnternet bağlantınızı kontrol edip yeniden deneyin.</p>
-      <button type="button" id="retry">Yeniden dene</button>
+      <svg class="logo" viewBox="0 0 72 72" aria-hidden="true">
+        <rect width="72" height="72" rx="18" fill="#0A5C99"></rect>
+        <circle cx="36" cy="38" r="20" fill="none" stroke="#FFFFFF" stroke-width="5"></circle>
+        <path d="M24 42c4-4 8-4 12 0s8 4 12 0" fill="none" stroke="#7FD8CC" stroke-width="5" stroke-linecap="round"></path>
+        <circle cx="20" cy="15" r="3" fill="#FFFFFF"></circle>
+      </svg>
+      <!-- Capacitor shows this page for connection failures and for HTTP errors on a page load -->
+      <h1>Sayfa açılamadı</h1>
+      <p>İnternet bağlantınızı kontrol edin. Sorun sürerse ana sayfadan devam edebilirsiniz.</p>
+      <button type="button" id="retry">Ana sayfaya dön</button>
     </main>
     <script>
       // Filled in by scripts/cap-sync.mjs; only this page is served locally, so the URL is inlined

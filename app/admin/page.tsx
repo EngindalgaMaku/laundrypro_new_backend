@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 interface User {
   id: string;
@@ -69,6 +70,8 @@ export default function AdminPage() {
   const [fbNotes, setFbNotes] = useState<Array<{id:string;content:string|null;createdAt:string;sentBy:string|null}>>([]);
   const [newNote, setNewNote] = useState("");
   const [sendingNote, setSendingNote] = useState(false);
+  // The server decides who is an admin (ADMIN_EMAILS); ask before loading anything
+  const [access, setAccess] = useState<"checking" | "allowed" | "denied">("checking");
 
   useEffect(() => {
     const u = localStorage.getItem("user");
@@ -77,7 +80,12 @@ export default function AdminPage() {
       return;
     }
     setUser(JSON.parse(u));
-    try { localStorage.setItem('isAdmin','true'); } catch {}
+    const token = localStorage.getItem("token");
+    fetch(`/api/admin/feedbacks?limit=1`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    })
+      .then((res) => setAccess(res.ok ? "allowed" : "denied"))
+      .catch(() => setAccess("denied"));
   }, [router]);
 
   const fetchFeedbacks = async () => {
@@ -94,7 +102,7 @@ export default function AdminPage() {
       setFbTotal(data.total || 0);
     } catch (e) {
       console.error("feedbacks fetch error", e);
-      alert("Geri bildirimler yüklenemedi");
+      toast.error("Geri bildirimler yüklenemedi");
     } finally {
       setFbLoading(false);
     }
@@ -113,7 +121,7 @@ export default function AdminPage() {
       setFbDetailOpen(true);
     } catch (e) {
       console.error('feedback detail error', e);
-      alert('Detay yüklenemedi');
+      toast.error('Detay yüklenemedi');
     }
   };
 
@@ -133,7 +141,7 @@ export default function AdminPage() {
       setNewNote("");
     } catch (e) {
       console.error('add note error', e);
-      alert('Not eklenemedi');
+      toast.error('Not eklenemedi');
     } finally {
       setSendingNote(false);
     }
@@ -153,14 +161,14 @@ export default function AdminPage() {
       setBizTotal(data.total || 0);
     } catch (e) {
       console.error("businesses fetch error", e);
-      alert("İşletmeler yüklenemedi");
+      toast.error("İşletmeler yüklenemedi");
     } finally {
       setBizLoading(false);
     }
   };
 
-  useEffect(() => { fetchFeedbacks(); /* eslint-disable-next-line */ }, [fbPage, fbStatus]);
-  useEffect(() => { fetchBusinesses(); /* eslint-disable-next-line */ }, [bizPage]);
+  useEffect(() => { if (access === "allowed") fetchFeedbacks(); /* eslint-disable-next-line */ }, [access, fbPage, fbStatus]);
+  useEffect(() => { if (access === "allowed") fetchBusinesses(); /* eslint-disable-next-line */ }, [access, bizPage]);
 
   const markFeedback = async (id: string, status: "RESOLVED" | "RECEIVED") => {
     try {
@@ -175,11 +183,30 @@ export default function AdminPage() {
       fetchFeedbacks();
     } catch (e) {
       console.error("feedback update error", e);
-      alert("Geri bildirim güncellenemedi");
+      toast.error("Geri bildirim güncellenemedi");
     }
   };
 
-  if (!user) return <div>Loading...</div>;
+  if (!user || access === "checking") {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground">Yükleniyor…</p>
+      </div>
+    );
+  }
+
+  if (access === "denied") {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background p-6">
+        <div className="text-center space-y-4">
+          <p className="text-lg font-medium text-foreground">Bu sayfaya erişim yetkiniz yok.</p>
+          <Button variant="outline" onClick={() => router.push("/dashboard")}>
+            Ana Sayfaya dön
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

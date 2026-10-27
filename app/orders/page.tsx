@@ -84,6 +84,7 @@ interface User {
 
 interface Order {
   id: string;
+  orderNumber?: string;
   customer: string;
   service: string;
   status:
@@ -269,10 +270,12 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("PENDING");
+  const [activeTab, setActiveTab] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  // Counts across all orders (the list itself is filtered and paginated)
+  const [statusTotals, setStatusTotals] = useState<{ total: number; byStatus: Record<string, number> } | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isLegendOpen, setIsLegendOpen] = useState(false);
@@ -287,7 +290,7 @@ export default function OrdersPage() {
   const limit = 12;
 
   useEffect(() => {
-    // Load last used status filter (fallback to PENDING)
+    // Load last used status filter (fallback to ALL)
     try {
       const savedStatus = localStorage.getItem("ordersActiveStatus");
       if (savedStatus) {
@@ -348,6 +351,27 @@ export default function OrdersPage() {
       setOrders(data.orders || []);
       setTotal(data.total || 0);
       setTotalPages(data.totalPages || 1);
+
+      const statsResponse = await fetch("/api/orders/stats", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (statsResponse.ok) {
+        const s = await statsResponse.json();
+        setStatusTotals({
+          total: s.total || 0,
+          byStatus: {
+            PENDING: s.pending || 0,
+            CONFIRMED: s.confirmed || 0,
+            READY_FOR_PICKUP: s.readyForPickup || 0,
+            IN_PROGRESS: s.inProgress || 0,
+            READY_FOR_DELIVERY: s.readyForDelivery || 0,
+            OUT_FOR_DELIVERY: s.outForDelivery || 0,
+            DELIVERED: s.delivered || 0,
+            COMPLETED: s.completed || 0,
+            CANCELLED: s.cancelled || 0,
+          },
+        });
+      }
     } catch (error) {
       console.error("Error fetching orders:", error);
       toast.error("Siparişler yüklenirken hata oluştu");
@@ -390,7 +414,7 @@ export default function OrdersPage() {
   const whatsappCustomer = (order: Order) => {
     const message = communicationTemplates.orderUpdate.whatsapp(
       order.customer,
-      order.id,
+      order.orderNumber || order.id,
       statusLabels[order.status]?.label || order.status
     );
     sendWhatsAppMessage(order.whatsapp, message);
@@ -405,10 +429,10 @@ export default function OrdersPage() {
       return;
     }
 
-    const subject = `Sipariş Durumu - ${order.id}`;
+    const subject = `Sipariş Durumu - ${order.orderNumber || order.id}`;
     const body = communicationTemplates.orderUpdate.email.body(
       order.customer,
-      order.id,
+      order.orderNumber || order.id,
       statusLabels[order.status]?.label || order.status
     );
 
@@ -424,11 +448,14 @@ export default function OrdersPage() {
     );
   }
 
-  // Calculate status counts
-  const statusCounts = orders.reduce((acc, order) => {
-    acc[order.status] = (acc[order.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Status counts: server totals when available, else the loaded page
+  const statusCounts =
+    statusTotals?.byStatus ??
+    orders.reduce((acc, order) => {
+      acc[order.status] = (acc[order.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  const allOrdersTotal = statusTotals?.total ?? total;
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
@@ -470,10 +497,7 @@ export default function OrdersPage() {
                           Siparişler
                         </h1>
                         <p className="text-gray-600 font-medium">
-                          Toplam {total} sipariş •{" "}
-                          {activeTab === "ALL"
-                            ? total
-                            : statusCounts[activeTab] || 0}{" "}
+                          Toplam {allOrdersTotal} sipariş • {total}{" "}
                           görüntüleniyor
                         </p>
                       </div>
@@ -556,7 +580,7 @@ export default function OrdersPage() {
                               : "bg-blue-100 text-blue-700"
                           }`}
                         >
-                          {total}
+                          {allOrdersTotal}
                         </Badge>
                       </div>
                     </TabsTrigger>
@@ -829,8 +853,8 @@ export default function OrdersPage() {
                                     {getServiceIcon(order.serviceType)}
                                   </div>
                                   <div>
-                                    <p className="font-bold text-gray-900 text-lg">
-                                      #{order.id}
+                                    <p className="font-bold font-mono text-gray-900 text-lg">
+                                      {order.orderNumber || order.id}
                                     </p>
                                     <p className="text-sm text-gray-600 font-medium">
                                       {new Date(order.date).toLocaleDateString(

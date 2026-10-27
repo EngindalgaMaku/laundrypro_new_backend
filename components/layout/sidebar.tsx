@@ -38,7 +38,7 @@ const navigation = [
     href: "/settings/whatsapp",
     icon: MessageCircle,
   },
-  { name: "E-Faturalar", href: "/invoices", icon: FileText },
+  { name: "Faturalar", href: "/invoices", icon: FileText },
 ];
 
 interface SidebarProps {
@@ -78,21 +78,18 @@ export function Sidebar({
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  // Determine admin by email (client-side) using NEXT_PUBLIC_ADMIN_EMAILS
+  // Shows the admin link only; /api/admin/* enforces access on the server.
+  // The answer is cached per user for the session so pages don't re-ask (and log 403s).
   useEffect(() => {
     try {
       const raw = localStorage.getItem("user");
       if (!raw) return;
       const u = JSON.parse(raw);
       const email = (u?.email || "").toString().trim().toLowerCase();
-      const cached = localStorage.getItem("isAdmin");
-      if (cached === "true") {
-        setIsAdmin(true);
-        return;
-      }
-      // Hardcoded fallback for primary admin
-      if (email === "mackaengin@gmail.com") {
-        setIsAdmin(true);
+      const cacheKey = `isAdmin:${email}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached !== null) {
+        setIsAdmin(cached === "true");
         return;
       }
 
@@ -101,6 +98,7 @@ export function Sidebar({
         .map((s) => s.trim().toLowerCase())
         .filter(Boolean);
       if (email && list.includes(email)) {
+        sessionStorage.setItem(cacheKey, "true");
         setIsAdmin(true);
         return;
       }
@@ -111,6 +109,7 @@ export function Sidebar({
           headers: { Authorization: `Bearer ${token}` },
         })
           .then((res) => {
+            sessionStorage.setItem(cacheKey, String(res.ok));
             if (res.ok) setIsAdmin(true);
           })
           .catch(() => {});
