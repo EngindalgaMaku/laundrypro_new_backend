@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth";
+import { requireBusinessAuth } from "@/lib/auth-utils";
+import { isValidVatRate, vatSettingsOf } from "@/lib/vat";
 import {
   getBusinessById,
   updateBusiness,
@@ -11,12 +12,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireBusinessAuth(request);
+    if (auth instanceof NextResponse) return auth;
 
     const { id } = await params;
+    if (id !== auth.businessId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     const businessData = await getBusinessById(id);
 
     if (!businessData) {
@@ -71,7 +73,8 @@ export async function GET(
           sunday: { isOpen: false, breaks: [] },
         },
         defaultCurrency: "TRY",
-        taxRate: 18,
+        taxRate: vatSettingsOf(businessData).vatRate,
+        pricesIncludeVat: vatSettingsOf(businessData).pricesIncludeVat,
         eInvoiceEnabled: false,
         whatsappEnabled: false,
         timezone: "Europe/Istanbul",
@@ -95,10 +98,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireBusinessAuth(request);
+    if (auth instanceof NextResponse) return auth;
 
     const body = await request.json();
     const {
@@ -111,8 +112,24 @@ export async function PUT(
       city,
       district,
       description,
+      vatRate,
+      pricesIncludeVat,
     } = body;
     const { id } = await params;
+
+    if (id !== auth.businessId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (vatRate !== undefined && !isValidVatRate(vatRate)) {
+      return NextResponse.json(
+        { error: "Geçersiz KDV oranı. Kullanılabilecek oranlar: %0, %1, %10, %20." },
+        { status: 400 }
+      );
+    }
+    if (pricesIncludeVat !== undefined && typeof pricesIncludeVat !== "boolean") {
+      return NextResponse.json({ error: "pricesIncludeVat true/false olmalıdır." }, { status: 400 });
+    }
 
     console.log("🔍 [BusinessUpdate] Update request:", {
       businessId: id,
@@ -140,6 +157,8 @@ export async function PUT(
       city: city,
       district: district,
       description: description,
+      ...(vatRate !== undefined && { vatRate }),
+      ...(pricesIncludeVat !== undefined && { pricesIncludeVat }),
     });
 
     // Update business service types if provided

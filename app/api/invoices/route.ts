@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
+import { buildInvoiceLines, vatSettingsOf } from "@/lib/vat";
 const anyPrisma: any = prisma;
 
 // GET /api/invoices - List basic invoices
@@ -158,6 +159,9 @@ async function postHandler(
     // Generate basic invoice number
     const invoiceNumber = await generateBasicInvoiceNumber(businessId);
 
+    // VAT from the business setting (Settings > İşletme)
+    const invoiceLines = buildInvoiceLines(order, vatSettingsOf(order.business));
+
     // Create basic invoice
     const invoice = await anyPrisma.invoice.create({
       data: {
@@ -173,9 +177,9 @@ async function postHandler(
         customerAddress: order.customer.address,
         customerVknTckn: customerVknTckn || order.customerVknTckn,
         currencyCode: "TRY",
-        subtotalAmount: order.subtotal,
-        taxAmount: order.taxAmount,
-        totalAmount: order.totalAmount,
+        subtotalAmount: invoiceLines.subtotal,
+        taxAmount: invoiceLines.vatTotal,
+        totalAmount: invoiceLines.total,
         paymentStatus: order.paymentStatus,
         paymentMethod: order.paymentMethod,
       },
@@ -186,19 +190,17 @@ async function postHandler(
 
     // Create invoice items
     await anyPrisma.invoiceItem.createMany({
-      data: order.orderItems.map((item) => ({
+      data: invoiceLines.lines.map((line) => ({
         invoiceId: invoice.id,
-        orderItemId: item.id,
-        name: item.service?.name || "Unknown Service",
-        description: item.service?.description || "",
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        lineAmount: item.totalPrice,
-        taxRate: item.vatRate || 0,
-        taxAmount: item.vatAmount || 0,
-        lineTotal:
-          parseFloat(item.totalPrice.toString()) +
-          parseFloat((item.vatAmount || 0).toString()),
+        orderItemId: line.orderItemId,
+        name: line.name,
+        description: line.description,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+        lineAmount: line.lineAmount,
+        taxRate: line.vatRate,
+        taxAmount: line.vatAmount,
+        lineTotal: line.lineTotal,
       })),
     });
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateAuthRequest } from "@/lib/auth-utils";
 import { getBusinessById } from "@/lib/database/business";
+import { vatSettingsOf } from "@/lib/vat";
 
 export async function GET(request: NextRequest) {
   try {
@@ -93,7 +94,8 @@ export async function GET(request: NextRequest) {
           sunday: { isOpen: false, breaks: [] },
         },
         defaultCurrency: "TRY",
-        taxRate: 18,
+        taxRate: vatSettingsOf(business).vatRate,
+        pricesIncludeVat: vatSettingsOf(business).pricesIncludeVat,
         eInvoiceEnabled: false,
         whatsappEnabled: false,
         timezone: "Europe/Istanbul",

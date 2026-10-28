@@ -28,6 +28,8 @@ export interface UpdateBusinessData {
   longitude?: number;
   taxNumber?: string;
   isActive?: boolean;
+  vatRate?: number;
+  pricesIncludeVat?: boolean;
 }
 
 // Create a new business

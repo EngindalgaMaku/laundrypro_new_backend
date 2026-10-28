@@ -3,26 +3,10 @@
  * Handles Turkish tax calculations and validations for E-Fatura
  */
 
-// Turkish VAT rates (KDV oranları)
-export const TURKISH_VAT_RATES = {
-  VAT_0: 0, // İstisna/Muafiyetler
-  VAT_1: 1, // Temel gıda, ilaç, kitap vb.
-  VAT_8: 8, // Belirli ürün grupları (kitap, gazete, dergi vb.)
-  VAT_18: 18, // Standart oran
-  VAT_20: 20, // Lüks ürünler (2024 sonrası bazı kategoriler)
-} as const;
+import { DEFAULT_VAT_RATE, TR_VAT_RATES } from "@/lib/vat";
 
-// Service categories and their typical VAT rates in Turkey
-export const SERVICE_VAT_MAPPING = {
-  CARPET_CLEANING: TURKISH_VAT_RATES.VAT_18,
-  UPHOLSTERY_CLEANING: TURKISH_VAT_RATES.VAT_18,
-  CURTAIN_CLEANING: TURKISH_VAT_RATES.VAT_18,
-  LAUNDRY: TURKISH_VAT_RATES.VAT_18,
-  DRY_CLEANING: TURKISH_VAT_RATES.VAT_18,
-  IRONING: TURKISH_VAT_RATES.VAT_18,
-  STAIN_REMOVAL: TURKISH_VAT_RATES.VAT_18,
-  OTHER: TURKISH_VAT_RATES.VAT_18,
-} as const;
+// Turkish VAT rates (KDV oranları) and the default come from lib/vat.ts;
+// each business sets its own rate in Settings.
 
 // Turkish tax exemption codes
 export const TAX_EXEMPTION_CODES = {
@@ -168,15 +152,6 @@ export function calculateTurkishVAT(
     roundedVatAmount,
     roundedGrossAmount,
   };
-}
-
-/**
- * Get appropriate VAT rate for service category
- */
-export function getVATRateForService(serviceCategory: string): number {
-  const category =
-    serviceCategory.toUpperCase() as keyof typeof SERVICE_VAT_MAPPING;
-  return SERVICE_VAT_MAPPING[category] || TURKISH_VAT_RATES.VAT_18;
 }
 
 /**
@@ -372,7 +347,7 @@ export function calculateOrderTaxTotals(
 
   items.forEach((item) => {
     const vatRate =
-      item.vatRate || getVATRateForService(item.serviceCategory || "OTHER");
+      item.vatRate ?? DEFAULT_VAT_RATE;
     const lineAmount = item.quantity * item.unitPrice;
     const taxCalc = calculateTurkishVAT(lineAmount, vatRate);
 
@@ -458,8 +433,7 @@ export function generateInvoiceNumber(
  * Check if VAT rate is valid for Turkish tax system
  */
 export function isValidTurkishVATRate(rate: number): boolean {
-  const validRates = Object.values(TURKISH_VAT_RATES) as number[];
-  return validRates.includes(rate);
+  return (TR_VAT_RATES as readonly number[]).includes(rate);
 }
 
 /**

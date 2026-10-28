@@ -6,9 +6,9 @@ import {
   UBLXMLGenerator,
   EInvoiceData,
 } from "@/lib/e-fatura/ubl-xml-generator";
-import { getVATRateForService } from "@/lib/e-fatura/ubl-xml-generator";
 
 import { prisma } from "@/lib/db";
+import { buildInvoiceLines, vatSettingsOf } from "@/lib/vat";
 // Helper function to use any Prisma methods (bypassing TypeScript issues)
 const anyPrisma: any = prisma;
 
@@ -113,6 +113,9 @@ export async function POST(request: NextRequest) {
     // Generate invoice number
     const invoiceNumber = await generateInvoiceNumber(businessId);
 
+    // VAT from the business setting (Settings > İşletme)
+    const invoiceLineData = buildInvoiceLines(order, vatSettingsOf(order.business));
+
     // Prepare invoice data
     const invoiceData: EInvoiceData = {
       invoiceNumber,
@@ -146,42 +149,22 @@ export async function POST(request: NextRequest) {
         email: order.customer.email ?? undefined,
         phone: order.customer.phone,
       },
-      invoiceLines: order.orderItems.map((item: any, index: number) => {
-        // Handle both manual entries and database services
-        let serviceName, serviceDescription, serviceCategory;
-
-        if (item.isManualEntry) {
-          serviceName = item.serviceName || "Manual Service";
-          serviceDescription =
-            item.serviceDescription || "Custom service entry";
-          serviceCategory = "OTHER"; // Default category for manual entries
-        } else {
-          serviceName = item.service?.name || "Unknown Service";
-          serviceDescription = item.service?.description;
-          serviceCategory = item.service?.category || "OTHER";
-        }
-
-        const vatRate = getVATRateForService(serviceCategory);
-        const vatAmount =
-          (parseFloat(item.totalPrice.toString()) * vatRate) / 100;
-
-        return {
-          id: (index + 1).toString(),
-          name: serviceName,
-          description: serviceDescription ?? undefined,
-          quantity: parseFloat(item.quantity.toString()),
-          unitCode: "C62", // Piece
-          unitPrice: parseFloat(item.unitPrice.toString()),
-          lineAmount: parseFloat(item.totalPrice.toString()),
-          vatRate,
-          vatAmount,
-          lineTotal: parseFloat(item.totalPrice.toString()) + vatAmount,
-        };
-      }),
-      subtotalAmount: parseFloat(order.subtotal.toString()),
-      totalVatAmount: parseFloat(order.taxAmount.toString()),
-      totalAmount: parseFloat(order.totalAmount.toString()),
-      payableAmount: parseFloat(order.totalAmount.toString()),
+      invoiceLines: invoiceLineData.lines.map((line, index) => ({
+        id: (index + 1).toString(),
+        name: line.name,
+        description: line.description,
+        quantity: line.quantity,
+        unitCode: "C62", // Piece
+        unitPrice: line.unitPrice,
+        lineAmount: line.lineAmount,
+        vatRate: line.vatRate,
+        vatAmount: line.vatAmount,
+        lineTotal: line.lineTotal,
+      })),
+      subtotalAmount: invoiceLineData.subtotal,
+      totalVatAmount: invoiceLineData.vatTotal,
+      totalAmount: invoiceLineData.total,
+      payableAmount: invoiceLineData.total,
     };
 
     // Generate UBL XML
@@ -340,6 +323,9 @@ async function createBasicInvoice(
   // Generate basic invoice number
   const invoiceNumber = await generateBasicInvoiceNumber(businessId);
 
+  // VAT from the business setting (Settings > İşletme)
+  const invoiceLines = buildInvoiceLines(order, vatSettingsOf(order.business));
+
   // Create basic invoice
   const invoice = await anyPrisma.invoice.create({
     data: {
@@ -355,9 +341,9 @@ async function createBasicInvoice(
       customerAddress: order.customer.address,
       customerVknTckn: customerVknTckn || order.customerVknTckn,
       currencyCode: "TRY",
-      subtotalAmount: order.subtotal,
-      taxAmount: order.taxAmount,
-      totalAmount: order.totalAmount,
+      subtotalAmount: invoiceLines.subtotal,
+      taxAmount: invoiceLines.vatTotal,
+      totalAmount: invoiceLines.total,
       paymentStatus: order.paymentStatus,
       paymentMethod: order.paymentMethod,
     },
@@ -368,23 +354,17 @@ async function createBasicInvoice(
 
   // Create invoice items
   await anyPrisma.invoiceItem.createMany({
-    data: order.orderItems.map((item: any) => ({
+    data: invoiceLines.lines.map((line) => ({
       invoiceId: invoice.id,
-      orderItemId: item.id,
-      name: item.isManualEntry
-        ? item.serviceName || "Manual Service"
-        : item.service?.name || "Unknown Service",
-      description: item.isManualEntry
-        ? item.serviceDescription
-        : item.service?.description,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      lineAmount: item.totalPrice,
-      taxRate: item.vatRate || 0,
-      taxAmount: item.vatAmount || 0,
-      lineTotal:
-        parseFloat(item.totalPrice.toString()) +
-        parseFloat((item.vatAmount || 0).toString()),
+      orderItemId: line.orderItemId,
+      name: line.name,
+      description: line.description,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice,
+      lineAmount: line.lineAmount,
+      taxRate: line.vatRate,
+      taxAmount: line.vatAmount,
+      lineTotal: line.lineTotal,
     })),
   });
 

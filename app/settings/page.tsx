@@ -36,6 +36,14 @@ import {
 import { SaveConfirmationModal } from "@/components/ui/confirmation-modal";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { DEFAULT_VAT_RATE, TR_VAT_RATES } from "@/lib/vat";
+
+const VAT_RATE_LABELS: Record<number, string> = {
+  20: "%20 (genel oran)",
+  10: "%10 (indirimli oran)",
+  1: "%1 (indirimli oran)",
+  0: "%0 (istisna)",
+};
 
 interface User {
   id: string;
@@ -78,6 +86,8 @@ export default function SettingsPage() {
     city: "",
     district: "",
     description: "",
+    vatRate: DEFAULT_VAT_RATE,
+    pricesIncludeVat: true,
   });
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -126,6 +136,9 @@ export default function SettingsPage() {
       city: parsedUser.city || parsedUser.business?.city || "",
       district: parsedUser.district || parsedUser.business?.district || "",
       description: parsedUser.description || parsedUser.business?.description || "",
+      // Replaced by the saved values once /api/business/[id] responds
+      vatRate: DEFAULT_VAT_RATE,
+      pricesIncludeVat: true,
     });
 
     // Fetch plan/entitlements
@@ -262,7 +275,8 @@ export default function SettingsPage() {
           });
           
           if (businessResponse.ok) {
-            const businessData = await businessResponse.json();
+            const businessResult = await businessResponse.json();
+            const businessData = businessResult.business ?? businessResult;
             console.log("🔍 [SETTINGS] Business data from API:", businessData);
             
             setBusinessData((prev) => ({
@@ -275,6 +289,8 @@ export default function SettingsPage() {
               city: businessData.city || "",
               district: businessData.district || "",
               description: businessData.description || "",
+              vatRate: Number(businessData.vatRate ?? businessData.settings?.taxRate ?? DEFAULT_VAT_RATE),
+              pricesIncludeVat: businessData.pricesIncludeVat ?? true,
             }));
             
             console.log("✅ [SETTINGS] Updated business data with types:", {
@@ -729,6 +745,53 @@ export default function SettingsPage() {
                             }))
                           }
                         />
+                      </div>
+                      <div className="space-y-4 rounded-lg border border-border p-4">
+                        <div>
+                          <h3 className="font-semibold text-foreground">Vergi (KDV)</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Faturalarda kullanılır. Kuru temizleme, çamaşırhane, halı ve koltuk
+                            yıkama hizmetleri genel oran olan %20'ye tabidir. Emin değilseniz
+                            mali müşavirinize danışın.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="vat-rate">KDV oranı</Label>
+                          <Select
+                            value={String(businessData.vatRate)}
+                            onValueChange={(value) =>
+                              setBusinessData((prev) => ({ ...prev, vatRate: Number(value) }))
+                            }
+                          >
+                            <SelectTrigger id="vat-rate" className="w-full sm:w-64">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[...TR_VAT_RATES].reverse().map((rate) => (
+                                <SelectItem key={rate} value={String(rate)}>
+                                  {VAT_RATE_LABELS[rate] ?? `%${rate}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <Label htmlFor="prices-include-vat">Fiyatlar KDV dahil</Label>
+                            <p className="text-sm text-muted-foreground">
+                              {businessData.pricesIncludeVat
+                                ? "Siparişte girilen tutar KDV dahildir; fatura bu tutardan KDV'yi ayırır."
+                                : "Siparişte girilen tutar KDV hariçtir; fatura KDV'yi üzerine ekler."}
+                            </p>
+                          </div>
+                          <Switch
+                            id="prices-include-vat"
+                            checked={businessData.pricesIncludeVat}
+                            onCheckedChange={(checked) =>
+                              setBusinessData((prev) => ({ ...prev, pricesIncludeVat: checked }))
+                            }
+                          />
+                        </div>
                       </div>
                       <Button type="submit" disabled={isLoading}>
                         {isLoading ? "Güncelleniyor..." : "Bilgileri Güncelle"}

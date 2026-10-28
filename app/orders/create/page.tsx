@@ -57,6 +57,8 @@ export default function CreateOrderPage() {
   })
   const router = useRouter()
   const [usage, setUsage] = useState<{plan: "FREE"|"PRO"; count: number; limit: number|null}>({plan:"FREE", count:0, limit:50})
+  // From Settings > İşletme; tells staff whether the amount they type includes VAT
+  const [pricesIncludeVat, setPricesIncludeVat] = useState(true)
   const [loadingUsage, setLoadingUsage] = useState(true)
 
   useEffect(() => {
@@ -82,6 +84,16 @@ export default function CreateOrderPage() {
         setLoadingUsage(false)
       }
     })()
+    fetch('/api/business/me', {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token") ?? ""}` },
+    })
+      .then((resp) => (resp.ok ? resp.json() : null))
+      .then((data) => {
+        const business = data?.business ?? data
+        const value = business?.pricesIncludeVat ?? business?.settings?.pricesIncludeVat
+        if (typeof value === 'boolean') setPricesIncludeVat(value)
+      })
+      .catch(() => {})
   }, [router])
 
   const fetchCustomers = async () => {
@@ -351,7 +363,7 @@ export default function CreateOrderPage() {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="amount">Tutar (₺) *</Label>
+                          <Label htmlFor="amount">Tutar (₺, KDV {pricesIncludeVat ? 'dahil' : 'hariç'}) *</Label>
                           <Input
                             id="amount"
                             type="text"

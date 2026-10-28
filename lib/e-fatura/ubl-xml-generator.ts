@@ -7,14 +7,6 @@ import { create } from "xmlbuilder2";
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 
-// Turkish VAT rates
-export const TURKISH_VAT_RATES = {
-  VAT_0: 0,
-  VAT_1: 1,
-  VAT_8: 8,
-  VAT_18: 18,
-} as const;
-
 // UBL Unit Codes (UN/ECE Recommendation 20)
 export const UBL_UNIT_CODES = {
   C62: "C62", // Adet (Piece)
@@ -512,19 +504,3 @@ export function calculateTurkishVAT(
   };
 }
 
-/**
- * Get VAT rate for service category
- */
-export function getVATRateForService(serviceCategory: string): number {
-  // Carpet and upholstery cleaning services typically use 18% VAT in Turkey
-  switch (serviceCategory.toUpperCase()) {
-    case "CARPET_CLEANING":
-    case "UPHOLSTERY_CLEANING":
-    case "CURTAIN_CLEANING":
-    case "LAUNDRY":
-    case "DRY_CLEANING":
-      return TURKISH_VAT_RATES.VAT_18;
-    default:
-      return TURKISH_VAT_RATES.VAT_18;
-  }
-}
