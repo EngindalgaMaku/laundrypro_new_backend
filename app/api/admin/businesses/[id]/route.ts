@@ -11,12 +11,14 @@ async function assertIsAdmin(request: NextRequest) {
   const user = await prisma.user.findUnique({ where: { id: token.userId } });
   if (!user) throw new Error("UNAUTHORIZED");
   const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map((s) => s.trim()).filter(Boolean);
-  const isAdmin = user.role === "OWNER" || (user.email && adminEmails.includes(user.email));
+  // System admins only (ADMIN_EMAILS); role OWNER is every business owner, not an admin
+  const isAdmin = !!(user.email && adminEmails.includes(user.email));
   if (!isAdmin) throw new Error("FORBIDDEN");
   return user;
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   try {
     await assertIsAdmin(request);
     const businessId = params.id;

@@ -5,8 +5,9 @@ import { prisma } from "@/lib/db";
 // UPDATE Service
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params: paramsPromise }: { params: Promise<{ id: string }> }
 ) {
+  const params = await paramsPromise;
   try {
     const user = getUserFromRequest(request);
     if (!user) {
@@ -111,8 +112,9 @@ export async function PUT(
 // DELETE Service
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params: paramsPromise }: { params: Promise<{ id: string }> }
 ) {
+  const params = await paramsPromise;
   try {
     const user = getUserFromRequest(request);
     if (!user) {

@@ -6,8 +6,9 @@ import { OrderStatus } from "@prisma/client";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params: paramsPromise }: { params: Promise<{ id: string }> }
 ) {
+  const params = await paramsPromise;
   try {
     const user = getUserFromRequest(request);
 

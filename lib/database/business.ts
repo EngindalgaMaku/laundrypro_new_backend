@@ -65,7 +65,7 @@ export async function getBusinessById(id: string): Promise<any> {
   if (business.businessServiceTypes && business.businessServiceTypes.length > 0) {
     businessTypes = business.businessServiceTypes.map((bst: any) => bst.serviceType);
   } else if (business.services && business.services.length > 0) {
-    businessTypes = [...new Set(business.services.map((service: any) => service.category))];
+    businessTypes = [...new Set<string>(business.services.map((service: any) => service.category))];
   } else {
     businessTypes = [business.businessType];
   }

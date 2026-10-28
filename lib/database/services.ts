@@ -607,8 +607,11 @@ export class ServiceDatabaseService {
       return acc;
     }, {} as Record<string, number>);
 
-    // Get service details for popular services
-    const serviceIds = popularServicesData.map((item) => item.serviceId);
+    // Get service details for popular services (manual order items have no serviceId)
+    const catalogItems = popularServicesData.filter(
+      (item): item is typeof item & { serviceId: string } => item.serviceId !== null
+    );
+    const serviceIds = catalogItems.map((item) => item.serviceId);
     const services = await prisma.service.findMany({
       where: { id: { in: serviceIds } },
       select: { id: true, name: true, category: true },
@@ -619,7 +622,7 @@ export class ServiceDatabaseService {
       return acc;
     }, {} as Record<string, { name: string; category: ServiceCategory }>);
 
-    const popularServices = popularServicesData.map((item) => {
+    const popularServices = catalogItems.map((item) => {
       const service = serviceMap[item.serviceId];
       return {
         id: item.serviceId,
