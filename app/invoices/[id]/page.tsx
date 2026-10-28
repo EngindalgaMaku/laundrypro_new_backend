@@ -377,11 +377,6 @@ export default function EInvoiceDetailPage() {
     }
   };
 
-  const handleSendToGIB = () => {
-    toast.info("GIB'e gönderme işlemi başlatılıyor...");
-    // GIB Portal entegrasyonu burada olacak
-  };
-
   const handlePrint = () => {
     window.print();
   };
@@ -501,9 +496,9 @@ export default function EInvoiceDetailPage() {
                   PDF İndir
                 </Button>
                 {invoice.gibStatus === "DRAFT" && (
-                  <Button onClick={handleSendToGIB}>
+                  <Button disabled title="GİB'e gönderim henüz etkin değil: PRO plan ve E-Fatura ayarları gerekir">
                     <Send className="h-4 w-4 mr-2" />
-                    GIB'e Gönder
+                    GİB'e Gönder
                   </Button>
                 )}
               </div>

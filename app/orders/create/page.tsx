@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Check, ChevronsUpDown, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { toast } from "sonner"
 
 interface User {
   id: string
@@ -68,7 +69,9 @@ export default function CreateOrderPage() {
     fetchCustomers()
     ;(async() => {
       try {
-        const resp = await fetch('/api/orders/daily-usage')
+        const resp = await fetch('/api/orders/daily-usage', {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token") ?? ""}` },
+        })
         const data = await resp.json()
         if (data?.success) {
           setUsage({ plan: data.plan, count: data.count, limit: data.limit })
@@ -100,7 +103,7 @@ export default function CreateOrderPage() {
   }
 
   if (!user) {
-    return <div>Loading...</div>
+    return <div className="p-6 text-muted-foreground">Yükleniyor…</div>
   }
 
   // services disabled
@@ -120,15 +123,15 @@ export default function CreateOrderPage() {
     e.preventDefault()
 
     if (!selectedCustomer) {
-      alert("Lütfen bir müşteri seçin")
+      toast.error("Lütfen bir müşteri seçin")
       return
     }
     if (!orderData.description.trim()) {
-      alert("Lütfen sipariş bilgisi girin")
+      toast.error("Lütfen sipariş bilgisi girin")
       return
     }
     if (!orderData.amount.trim()) {
-      alert("Lütfen tutar girin")
+      toast.error("Lütfen tutar girin")
       return
     }
 
@@ -176,7 +179,7 @@ export default function CreateOrderPage() {
       // Başarılı -> sipariş listesine dön
       router.push('/orders')
     } catch (err: any) {
-      alert(err?.message || 'Beklenmeyen bir hata oluştu')
+      toast.error(err?.message || 'Beklenmeyen bir hata oluştu')
     } finally {
       setIsLoading(false)
     }

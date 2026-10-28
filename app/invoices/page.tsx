@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { toast } from "sonner";
+import { CreateInvoiceDialog } from "@/components/invoices/create-invoice-dialog";
 import {
   FileText,
   Plus,
@@ -50,6 +51,7 @@ interface EInvoice {
   gibStatus: string;
   createdAt: string;
   ettn?: string;
+  orderId?: string;
   order?: {
     orderNumber: string;
     customer: {
@@ -79,6 +81,11 @@ export default function EInvoicesPage() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
+  const [createOpen, setCreateOpen] = useState(false);
+  const invoicedOrderIds = useMemo(
+    () => new Set(invoices.map((inv) => inv.orderId).filter(Boolean) as string[]),
+    [invoices]
+  );
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -121,6 +128,7 @@ const response = await fetch("/api/invoices", {
         totalAmount: Number(inv.totalAmount || 0),
         gibStatus: inv.status,
         createdAt: inv.createdAt,
+        orderId: inv.orderId || undefined,
         order: inv.order || undefined,
       }));
 
@@ -203,7 +211,7 @@ const response = await fetch("/api/invoices", {
   };
 
   const handleCreateInvoice = () => {
-    toast.info("E-Fatura oluşturma özelliği yakında eklenecek");
+    setCreateOpen(true);
   };
 
   const handleViewInvoice = (invoice: EInvoice) => {
@@ -326,12 +334,8 @@ const response = await fetch("/api/invoices", {
     return statusTexts[status as keyof typeof statusTexts] || status;
   };
 
-  const handleSendToGIB = (invoice: EInvoice) => {
-    toast.info("GIB'e gönderme özelliği yakında eklenecek");
-  };
-
   if (!user) {
-    return <div>Loading...</div>;
+    return <div className="p-6 text-muted-foreground">Yükleniyor…</div>;
   }
 
   return (
@@ -519,15 +523,6 @@ const response = await fetch("/api/invoices", {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredInvoices.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
-                            {invoices.length === 0
-                              ? "Henüz fatura yok."
-                              : "Aramanıza uyan fatura bulunamadı."}
-                          </TableCell>
-                        </TableRow>
-                      )}
                       {filteredInvoices.map((invoice) => (
                         <TableRow key={invoice.id}>
                           <TableCell className="font-mono">
@@ -569,21 +564,23 @@ const response = await fetch("/api/invoices", {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleViewInvoice(invoice)}
-                              >
+                               aria-label="Görüntüle">
                                 <Eye className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleDownloadInvoice(invoice)}
-                              >
+                               aria-label="İndir">
                                 <Download className="h-4 w-4" />
                               </Button>
                               {invoice.gibStatus === "DRAFT" && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleSendToGIB(invoice)}
+                                  disabled
+                                  title="GİB'e gönderim henüz etkin değil: PRO plan ve E-Fatura ayarları gerekir"
+                                  aria-label="GİB'e gönderim henüz etkin değil: PRO plan ve E-Fatura ayarları gerekir"
                                 >
                                   <Send className="h-4 w-4" />
                                 </Button>
@@ -599,9 +596,9 @@ const response = await fetch("/api/invoices", {
                 {!loading && filteredInvoices.length === 0 && (
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                    <h3 className="text-lg font-medium">E-Fatura bulunamadı</h3>
+                    <h3 className="text-lg font-medium">Fatura bulunamadı</h3>
                     <p className="text-muted-foreground">
-                      Henüz hiç E-Fatura oluşturulmamış veya arama
+                      Henüz fatura oluşturulmamış veya arama
                       kriterlerinize uygun fatura bulunmuyor.
                     </p>
                   </div>
@@ -611,6 +608,12 @@ const response = await fetch("/api/invoices", {
           </div>
         </main>
       </div>
+      <CreateInvoiceDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        invoicedOrderIds={invoicedOrderIds}
+        onCreated={(invoiceId) => router.push(`/invoices/${invoiceId}`)}
+      />
     </div>
   );
 }

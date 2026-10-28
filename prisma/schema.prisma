@@ -815,7 +815,7 @@ model EInvoice {
   orderId            String?           @map("order_id")
   
   // GIB Required Fields
-  invoiceNumber      String            @unique @map("invoice_number")
+  invoiceNumber      String            @map("invoice_number")
   invoiceSeriesId    String            @map("invoice_series_id")
   invoiceDate        DateTime          @map("invoice_date")
   invoiceTime        DateTime          @map("invoice_time")
@@ -863,6 +863,8 @@ model EInvoice {
   items              EInvoiceItem[]
   logs               EInvoiceLog[]
   
+  // Numbering is per issuing business
+  @@unique([businessId, invoiceNumber])
   @@map("e_invoices")
 }
 
@@ -933,7 +935,7 @@ model Invoice {
   orderId            String?       @map("order_id")
   
   // Basic Invoice Information
-  invoiceNumber      String        @unique @map("invoice_number")
+  invoiceNumber      String        @map("invoice_number")
   invoiceDate        DateTime      @map("invoice_date")
   status             InvoiceStatus @default(DRAFT)
   
@@ -971,6 +973,8 @@ model Invoice {
   customer           Customer?     @relation(fields: [customerId], references: [id])
   items              InvoiceItem[]
   
+  // Numbering is per issuing business
+  @@unique([businessId, invoiceNumber])
   @@map("invoices")
 }
 

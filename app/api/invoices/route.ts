@@ -229,25 +229,22 @@ async function postHandler(
 
 export const POST = withAuth(postHandler);
 
-// Generate basic invoice number
+// Generate basic invoice number: INV + year + 6-digit sequence, per business,
+// restarting each year (INV2026000001)
 async function generateBasicInvoiceNumber(businessId: string): Promise<string> {
-  // Get the latest invoice number for this business
+  const prefix = `INV${new Date().getFullYear()}`;
+
+  // Fixed-width numbers sort correctly as strings
   const lastInvoice = await anyPrisma.invoice.findFirst({
-    where: { businessId },
-    orderBy: { createdAt: "desc" },
+    where: { businessId, invoiceNumber: { startsWith: prefix } },
+    orderBy: { invoiceNumber: "desc" },
   });
 
   let nextNumber = 1;
-  if (lastInvoice?.invoiceNumber) {
-    // Extract number from invoice number (assuming format like "INV2024001")
-    const match = lastInvoice.invoiceNumber.match(/(\d+)$/);
-    if (match) {
-      nextNumber = parseInt(match[1]) + 1;
-    }
+  const sequence = lastInvoice?.invoiceNumber.slice(prefix.length);
+  if (sequence && /^\d{6}$/.test(sequence)) {
+    nextNumber = parseInt(sequence, 10) + 1;
   }
 
-  const year = new Date().getFullYear();
-  const paddedNumber = nextNumber.toString().padStart(6, "0");
-
-  return `INV${year}${paddedNumber}`;
+  return `${prefix}${nextNumber.toString().padStart(6, "0")}`;
 }
