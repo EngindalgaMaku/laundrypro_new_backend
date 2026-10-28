@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { orderStatusLabel } from "@/lib/order-status";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
@@ -346,9 +347,9 @@ export default function CustomerDetailPage() {
                               </p>
                             </div>
                             <div className="text-right">
-                              <Badge variant="outline">{order.status}</Badge>
+                              <Badge variant="outline">{orderStatusLabel(order.status)}</Badge>
                               <p className="text-sm font-medium mt-1">
-                                ₺{Number(order.totalAmount).toFixed(2)}
+                                ₺{Number(order.totalAmount).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </p>
                             </div>
                           </div>

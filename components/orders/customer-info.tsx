@@ -74,10 +74,10 @@ export function CustomerInfo({ customer }: CustomerInfoProps) {
             <div className="flex items-center justify-between">
               <p className="text-base">{customer.phone}</p>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={handleCall}>
+                <Button size="sm" variant="outline" onClick={handleCall} aria-label="Ara">
                   <Phone className="h-4 w-4" />
                 </Button>
-                <Button size="sm" variant="outline" onClick={handleWhatsApp} className="text-green-600 bg-transparent">
+                <Button size="sm" variant="outline" onClick={handleWhatsApp} className="text-green-600 bg-transparent" aria-label="WhatsApp mesajı gönder">
                   <MessageCircle className="h-4 w-4" />
                 </Button>
               </div>
@@ -89,7 +89,7 @@ export function CustomerInfo({ customer }: CustomerInfoProps) {
               <label className="text-sm font-medium text-muted-foreground">E-posta</label>
               <div className="flex items-center justify-between">
                 <p className="text-base">{customer.email}</p>
-                <Button size="sm" variant="outline" onClick={handleEmail}>
+                <Button size="sm" variant="outline" onClick={handleEmail} aria-label="E-posta gönder">
                   <Mail className="h-4 w-4" />
                 </Button>
               </div>

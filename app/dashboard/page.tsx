@@ -9,7 +9,6 @@ import { Header } from "@/components/layout/header";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentOrders } from "@/components/dashboard/recent-orders";
-import { EnhancedNavigation } from "@/components/layout/enhanced-navigation";
 import { businessTypes } from "@/lib/business-types";
 import { Plus, ArrowRight } from "lucide-react";
 
@@ -117,10 +116,6 @@ export default function DashboardPage() {
           isMobileMenuOpen={isMobileMenuOpen}
         />
         <main className="flex-1 overflow-y-auto bg-muted/20 custom-scrollbar">
-          {/* Enhanced Navigation */}
-          <div className="px-3 sm:px-4 lg:px-6 pt-4">
-            <EnhancedNavigation />
-          </div>
           {/* Enhanced Hero Section */}
           <div className="gradient-hero mx-3 mt-3 mb-6 sm:mx-4 sm:mt-4 sm:mb-8 lg:mx-6 lg:mt-6 rounded-2xl lg:rounded-3xl p-5 sm:p-6 lg:p-8 text-white relative overflow-hidden shadow-2xl">
             <div className="absolute inset-0 bg-black/10 backdrop-blur-sm"></div>

@@ -270,7 +270,7 @@ export default function IntegrationDashboard({
           <span className="text-sm text-muted-foreground">
             Last updated: {lastUpdate.toLocaleTimeString()}
           </span>
-          <Button variant="outline" size="sm" onClick={loadDashboardData}>
+          <Button variant="outline" size="sm" onClick={loadDashboardData} aria-label="Yenile">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>

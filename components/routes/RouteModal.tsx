@@ -371,7 +371,7 @@ export default function RouteModal({
                       variant="ghost"
                       size="sm"
                       onClick={() => removeStop(index)}
-                    >
+                     aria-label="Kapat">
                       <X className="w-4 h-4" />
                     </Button>
                   )}

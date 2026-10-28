@@ -525,7 +525,7 @@ export default function TemplateEditor({
                       variant="ghost"
                       size="sm"
                       onClick={() => removeComponent(index)}
-                    >
+                     aria-label="Sil">
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -628,7 +628,7 @@ export default function TemplateEditor({
                               variant="ghost"
                               size="sm"
                               onClick={() => removeButton(index, buttonIndex)}
-                            >
+                             aria-label="Sil">
                               <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>

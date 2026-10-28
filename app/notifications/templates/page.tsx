@@ -100,7 +100,7 @@ export default function NotificationTemplatesPage() {
   }, [router])
 
   if (!user) {
-    return <div>Loading...</div>
+    return <div className="p-6 text-muted-foreground">Yükleniyor…</div>
   }
 
   const getTypeIcon = (type: string) => {
@@ -213,8 +213,8 @@ export default function NotificationTemplatesPage() {
                 {templates.map((template) => (
                   <Card key={template.id}>
                     <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className={`p-2 rounded-lg ${getTypeColor(template.type)}`}>
                             {getTypeIcon(template.type)}
                           </div>
@@ -226,17 +226,17 @@ export default function NotificationTemplatesPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Switch checked={template.isActive} onCheckedChange={() => handleToggleActive(template.id)} />
+                          <Switch checked={template.isActive} onCheckedChange={() => handleToggleActive(template.id)} aria-label="Şablonu etkinleştir" />
                           <Badge variant={template.isActive ? "default" : "secondary"}>
                             {template.isActive ? "Aktif" : "Pasif"}
                           </Badge>
-                          <Button variant="ghost" size="sm" onClick={() => setSelectedTemplate(template)}>
+                          <Button variant="ghost" size="sm" onClick={() => setSelectedTemplate(template)} aria-label="Önizle">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(template)}>
+                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(template)} aria-label="Düzenle">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteTemplate(template.id)}>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteTemplate(template.id)} aria-label="Sil">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -261,8 +261,8 @@ export default function NotificationTemplatesPage() {
                     .map((template) => (
                       <Card key={template.id}>
                         <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between">
-                            <div>
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
                               <CardTitle className="text-lg">{template.name}</CardTitle>
                               <CardDescription>
                                 {triggerEvents.find((e) => e.value === template.trigger)?.label}
@@ -272,14 +272,15 @@ export default function NotificationTemplatesPage() {
                               <Switch
                                 checked={template.isActive}
                                 onCheckedChange={() => handleToggleActive(template.id)}
+                                aria-label="Şablonu etkinleştir"
                               />
                               <Badge variant={template.isActive ? "default" : "secondary"}>
                                 {template.isActive ? "Aktif" : "Pasif"}
                               </Badge>
-                              <Button variant="ghost" size="sm" onClick={() => openEditDialog(template)}>
+                              <Button variant="ghost" size="sm" onClick={() => openEditDialog(template)} aria-label="Düzenle">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleDeleteTemplate(template.id)}>
+                              <Button variant="ghost" size="sm" onClick={() => handleDeleteTemplate(template.id)} aria-label="Sil">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>

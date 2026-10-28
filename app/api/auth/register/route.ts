@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/db";
 import { BusinessType, UserRole } from "@/lib/types";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/lib/password-reset";
 
 interface RegisterData {
   user: {
@@ -34,6 +35,14 @@ export async function POST(request: NextRequest) {
   try {
     const data: RegisterData = await request.json();
 
+    // Expected shape: { user, business, consents }
+    if (!data?.user || !data?.business || !data?.consents) {
+      return NextResponse.json(
+        { error: "Eksik kayıt bilgisi. Lütfen formu yeniden doldurun." },
+        { status: 400 }
+      );
+    }
+
     console.log("[REGISTER] Registration attempt:", {
       email: data.user.email,
       businessName: data.business.name,
@@ -59,6 +68,16 @@ export async function POST(request: NextRequest) {
           error:
             "Tüm zorunlu alanlar doldurulmalıdır (İşletme adı, e-posta, şifre, ad, soyad, il ve ilçe)",
         },
+        { status: 400 }
+      );
+    }
+
+    if (
+      data.user.password.length < MIN_PASSWORD_LENGTH ||
+      data.user.password.length > MAX_PASSWORD_LENGTH
+    ) {
+      return NextResponse.json(
+        { error: `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalıdır.` },
         { status: 400 }
       );
     }

@@ -119,7 +119,7 @@ export default function HomePage() {
 
         {/* Minimal footer */}
         <div className="text-center mt-2">
-          <p className="text-white/50 text-xs">© 2025 LaundryPro</p>
+          <p className="text-white/50 text-xs">© {new Date().getFullYear()} LaundryPro</p>
         </div>
       </div>
     </div>

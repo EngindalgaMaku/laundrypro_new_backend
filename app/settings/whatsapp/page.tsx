@@ -25,6 +25,7 @@ import {
   TestTube,
   Copy,
 } from "lucide-react";
+import { AppShell } from "@/components/layout/app-shell";
 
 interface WhatsAppSettings {
   id?: string;
@@ -38,7 +39,7 @@ interface WhatsAppSettings {
   lastSync?: string;
 }
 
-export default function WhatsAppSettingsPage() {
+function WhatsAppSettingsPageContent() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<WhatsAppSettings>({
     businessId: "",
@@ -116,7 +117,7 @@ export default function WhatsAppSettingsPage() {
       (!credentials.accessToken || !settings.phoneNumberId)
     ) {
       toast.error(
-        "Access token and phone number ID are required when enabling WhatsApp"
+        "WhatsApp'ı etkinleştirmek için erişim anahtarı ve telefon numarası kimliği gerekli"
       );
       return;
     }
@@ -142,16 +143,16 @@ export default function WhatsAppSettingsPage() {
 
       if (data.success) {
         setSettings(data.settings);
-        toast.success("WhatsApp settings saved successfully");
+        toast.success("WhatsApp ayarları kaydedildi");
 
         if (data.testResult) {
           setTestResult(data.testResult);
         }
       } else {
-        toast.error(data.error || "Failed to save settings");
+        toast.error(data.error || "Ayarlar kaydedilemedi");
       }
     } catch (error) {
-      toast.error("An error occurred while saving settings");
+      toast.error("Ayarlar kaydedilirken bir hata oluştu");
     } finally {
       setLoading(false);
     }
@@ -159,7 +160,7 @@ export default function WhatsAppSettingsPage() {
 
   const handleTestConnection = async () => {
     if (!credentials.accessToken || !settings.phoneNumberId) {
-      toast.error("Access token and phone number ID are required for testing");
+      toast.error("Bağlantıyı denemek için erişim anahtarı ve telefon numarası kimliği gerekli");
       return;
     }
 
@@ -182,14 +183,14 @@ export default function WhatsAppSettingsPage() {
       setTestResult(data.details);
 
       if (data.success) {
-        toast.success("Connection test successful!");
+        toast.success("Bağlantı denemesi başarılı.");
       } else {
         toast.error(
-          "Connection test failed: " + (data.details?.error || "Unknown error")
+          "Bağlantı denemesi başarısız: " + (data.details?.error || "Bilinmeyen hata")
         );
       }
     } catch (error) {
-      toast.error("An error occurred during testing");
+      toast.error("Deneme sırasında bir hata oluştu");
     } finally {
       setTesting(false);
     }
@@ -200,52 +201,51 @@ export default function WhatsAppSettingsPage() {
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(webhookUrl);
     }
-    toast.success("Webhook URL copied to clipboard");
+    toast.success("Webhook adresi panoya kopyalandı");
   };
 
   const getQualityRatingBadge = (rating?: string) => {
     if (!rating || rating === "UNKNOWN") {
-      return <Badge variant="secondary">Unknown</Badge>;
+      return <Badge variant="secondary">Bilinmiyor</Badge>;
     }
 
     switch (rating) {
       case "GREEN":
         return (
           <Badge variant="default" className="bg-green-500">
-            High Quality
+            Yüksek kalite
           </Badge>
         );
       case "YELLOW":
         return (
           <Badge variant="secondary" className="bg-yellow-500">
-            Medium Quality
+            Orta kalite
           </Badge>
         );
       case "RED":
-        return <Badge variant="destructive">Low Quality</Badge>;
+        return <Badge variant="destructive">Düşük kalite</Badge>;
       default:
         return <Badge variant="secondary">{rating}</Badge>;
     }
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
+    <div className="container mx-auto px-4 sm:px-6 py-8 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <MessageSquare className="h-8 w-8 text-green-600" />
           WhatsApp Business API
         </h1>
         <p className="text-muted-foreground mt-2">
-          Configure WhatsApp Business API integration for automated customer
-          communications
+          Müşterilere otomatik bildirim göndermek için WhatsApp Business API entegrasyonunu yapılandırın
         </p>
       </div>
 
       <Tabs defaultValue="settings" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="settings">Ayarlar</TabsTrigger>
           <TabsTrigger value="webhook">Webhook</TabsTrigger>
-          <TabsTrigger value="status">Status</TabsTrigger>
+          <TabsTrigger value="status">Durum</TabsTrigger>
         </TabsList>
 
         <TabsContent value="settings" className="space-y-6">
@@ -253,7 +253,7 @@ export default function WhatsAppSettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                API Configuration
+                API yapılandırması
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -270,7 +270,7 @@ export default function WhatsAppSettingsPage() {
                   htmlFor="whatsapp-enabled"
                   className="text-sm font-medium"
                 >
-                  Enable WhatsApp Business API Integration
+                  WhatsApp Business API entegrasyonunu etkinleştir
                 </Label>
               </div>
 
@@ -278,7 +278,7 @@ export default function WhatsAppSettingsPage() {
 
               {/* Access Token */}
               <div className="space-y-2">
-                <Label htmlFor="access-token">Access Token *</Label>
+                <Label htmlFor="access-token">Erişim anahtarı (Access Token) *</Label>
                 <div className="relative">
                   <Input
                     id="access-token"
@@ -290,7 +290,7 @@ export default function WhatsAppSettingsPage() {
                         accessToken: e.target.value,
                       })
                     }
-                    placeholder="Enter your WhatsApp Business API access token"
+                    placeholder="WhatsApp Business API erişim anahtarınız"
                     disabled={!settings.isEnabled}
                   />
                   <Button
@@ -316,14 +316,14 @@ export default function WhatsAppSettingsPage() {
 
               {/* Phone Number ID */}
               <div className="space-y-2">
-                <Label htmlFor="phone-number-id">Phone Number ID *</Label>
+                <Label htmlFor="phone-number-id">Telefon numarası kimliği (Phone Number ID) *</Label>
                 <Input
                   id="phone-number-id"
                   value={settings.phoneNumberId}
                   onChange={(e) =>
                     setSettings({ ...settings, phoneNumberId: e.target.value })
                   }
-                  placeholder="Enter your WhatsApp phone number ID"
+                  placeholder="WhatsApp telefon numarası kimliğiniz"
                   disabled={!settings.isEnabled}
                 />
               </div>
@@ -331,7 +331,7 @@ export default function WhatsAppSettingsPage() {
               {/* Business Account ID */}
               <div className="space-y-2">
                 <Label htmlFor="business-account-id">
-                  WhatsApp Business Account ID
+                  WhatsApp Business hesap kimliği
                 </Label>
                 <Input
                   id="business-account-id"
@@ -342,14 +342,14 @@ export default function WhatsAppSettingsPage() {
                       businessAccountId: e.target.value,
                     })
                   }
-                  placeholder="Enter your WhatsApp Business Account ID"
+                  placeholder="WhatsApp Business hesap kimliğiniz"
                   disabled={!settings.isEnabled}
                 />
               </div>
 
               {/* Webhook Token */}
               <div className="space-y-2">
-                <Label htmlFor="webhook-token">Webhook Verify Token</Label>
+                <Label htmlFor="webhook-token">Webhook doğrulama anahtarı</Label>
                 <div className="relative">
                   <Input
                     id="webhook-token"
@@ -361,7 +361,7 @@ export default function WhatsAppSettingsPage() {
                         webhookToken: e.target.value,
                       })
                     }
-                    placeholder="Enter webhook verify token"
+                    placeholder="Webhook doğrulama anahtarı"
                     disabled={!settings.isEnabled}
                   />
                   <Button
@@ -400,12 +400,12 @@ export default function WhatsAppSettingsPage() {
                   {testing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Testing...
+                      Deneniyor…
                     </>
                   ) : (
                     <>
                       <TestTube className="mr-2 h-4 w-4" />
-                      Test Connection
+                      Bağlantıyı dene
                     </>
                   )}
                 </Button>
@@ -414,10 +414,10 @@ export default function WhatsAppSettingsPage() {
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
+                      Kaydediliyor…
                     </>
                   ) : (
-                    "Save Settings"
+                    "Ayarları kaydet"
                   )}
                 </Button>
               </div>
@@ -434,7 +434,7 @@ export default function WhatsAppSettingsPage() {
                     {testResult.success ? (
                       <div className="space-y-2">
                         <p className="font-medium text-green-800">
-                          Connection test successful!
+                          Bağlantı denemesi başarılı.
                         </p>
                         {testResult.displayPhoneNumber && (
                           <p>Phone Number: {testResult.displayPhoneNumber}</p>
@@ -464,11 +464,11 @@ export default function WhatsAppSettingsPage() {
         <TabsContent value="webhook" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Webhook Configuration</CardTitle>
+              <CardTitle>Webhook yapılandırması</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Webhook URL</Label>
+                <Label>Webhook adresi</Label>
                 <div className="flex space-x-2">
                   <Input
                     value={`${origin}/api/whatsapp/webhook`}
@@ -480,26 +480,24 @@ export default function WhatsAppSettingsPage() {
                     variant="outline"
                     size="sm"
                     onClick={copyWebhookUrl}
-                  >
+                   aria-label="Kopyala">
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Use this URL in your WhatsApp Business API webhook
-                  configuration
+                  Bu adresi WhatsApp Business API webhook ayarlarına girin
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label>Webhook Verify Token</Label>
+                <Label>Webhook doğrulama anahtarı</Label>
                 <Input
                   value={credentials.webhookToken || "Not set"}
                   readOnly
                   className="font-mono text-sm"
                 />
                 <p className="text-sm text-muted-foreground">
-                  This token will be used to verify webhook requests from
-                  WhatsApp
+                  Bu anahtar, WhatsApp'tan gelen webhook isteklerini doğrulamak için kullanılır
                 </p>
               </div>
             </CardContent>
@@ -510,7 +508,7 @@ export default function WhatsAppSettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Status</CardTitle>
+                <CardTitle className="text-sm font-medium">Durum</CardTitle>
                 {settings.isEnabled ? (
                   <CheckCircle className="h-4 w-4 text-green-600" />
                 ) : (
@@ -519,7 +517,7 @@ export default function WhatsAppSettingsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {settings.isEnabled ? "Enabled" : "Disabled"}
+                  {settings.isEnabled ? "Etkin" : "Kapalı"}
                 </div>
               </CardContent>
             </Card>
@@ -527,7 +525,7 @@ export default function WhatsAppSettingsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Phone Number
+                  Telefon numarası
                 </CardTitle>
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -541,7 +539,7 @@ export default function WhatsAppSettingsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Quality Rating
+                  Kalite puanı
                 </CardTitle>
                 <AlertTriangle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -556,7 +554,7 @@ export default function WhatsAppSettingsPage() {
           {settings.lastSync && (
             <Card>
               <CardHeader>
-                <CardTitle>Last Sync</CardTitle>
+                <CardTitle>Son eşitleme</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
@@ -568,5 +566,13 @@ export default function WhatsAppSettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function WhatsAppSettingsPage() {
+  return (
+    <AppShell>
+      <WhatsAppSettingsPageContent />
+    </AppShell>
   );
 }

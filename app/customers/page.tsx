@@ -191,7 +191,7 @@ export default function CustomersPage() {
   }, [router]);
 
   if (!user) {
-    return <div>Loading...</div>;
+    return <div className="p-6 text-muted-foreground">Yükleniyor…</div>;
   }
 
   const filteredCustomers = customers.filter(

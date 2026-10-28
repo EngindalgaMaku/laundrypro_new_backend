@@ -250,8 +250,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </div>
           </div>
 
-          {/* Progress bar */}
-          <div className="flex items-center gap-2">
+          {/* Progress bar and skip (kept at the top so it is visible on phones) */}
+          <div className="flex items-center gap-4">
+          <div className="hidden sm:flex items-center gap-2" aria-hidden="true">
             {pages.map((_, index) => (
               <div
                 key={index}
@@ -264,6 +265,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 }`}
               />
             ))}
+          </div>
+          <Button
+            variant="ghost"
+            onClick={onComplete}
+            className="text-white/80 hover:text-white hover:bg-white/10 text-sm"
+          >
+            Tanıtımı Geç
+          </Button>
           </div>
         </div>
 
@@ -302,15 +311,16 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     )}
                   </Button>
 
-                  <Button
-                    variant="ghost"
-                    onClick={prevPage}
-                    disabled={currentPage === 0}
-                    className="text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-50 px-8 py-6 text-lg rounded-2xl"
-                  >
-                    <ChevronLeft className="w-5 h-5 mr-2" />
-                    Geri
-                  </Button>
+                  {currentPage > 0 && (
+                    <Button
+                      variant="ghost"
+                      onClick={prevPage}
+                      className="text-white/70 hover:text-white hover:bg-white/10 px-8 py-6 text-lg rounded-2xl"
+                    >
+                      <ChevronLeft className="w-5 h-5 mr-2" />
+                      Geri
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -325,15 +335,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-6 lg:p-8 flex items-center justify-between">
-          <p className="text-white/50 text-sm">© 2025 LaundryPro</p>
-          <Button
-            variant="ghost"
-            onClick={onComplete}
-            className="text-white/60 hover:text-white/80 text-sm"
-          >
-            Tanıtımı Geç
-          </Button>
+        <div className="p-6 lg:p-8">
+          <p className="text-white/50 text-sm">© {new Date().getFullYear()} LaundryPro</p>
         </div>
       </div>
 

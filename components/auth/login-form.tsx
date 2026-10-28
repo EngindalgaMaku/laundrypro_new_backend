@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,6 +62,13 @@ export function LoginForm() {
     lastName: "",
     description: "",
   });
+  // KVKK: the first three are required by /api/auth/register; marketing is optional
+  const [consents, setConsents] = useState({
+    kvkk: false,
+    privacy: false,
+    terms: false,
+    marketing: false,
+  });
 
   const router = useRouter();
 
@@ -110,18 +118,44 @@ export function LoginForm() {
       return;
     }
 
+    if (registerData.password.length < 8) {
+      toast.error("Şifre en az 8 karakter olmalıdır");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!consents.kvkk || !consents.privacy || !consents.terms) {
+      toast.error("Devam etmek için aydınlatma metni, gizlilik politikası ve kullanım şartlarını onaylayın");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // Shape expected by /api/auth/register: { user, business, consents }
         body: JSON.stringify({
-          ...registerData,
-          businessType: registerData.businessTypes[0] || "LAUNDRY",
-          firstName:
-            registerData.firstName ||
-            registerData.businessName.split(" ")[0] ||
-            "İşletme",
-          lastName: registerData.lastName || "Sahibi",
+          user: {
+            firstName:
+              registerData.firstName ||
+              registerData.businessName.split(" ")[0] ||
+              "İşletme",
+            lastName: registerData.lastName || "Sahibi",
+            email: registerData.email,
+            password: registerData.password,
+            phone: registerData.phone || undefined,
+          },
+          business: {
+            name: registerData.businessName,
+            type: registerData.businessTypes[0] || "LAUNDRY",
+            types: registerData.businessTypes,
+            phone: registerData.phone || undefined,
+            address: registerData.address || undefined,
+            city: registerData.city,
+            district: registerData.district,
+          },
+          consents: { ...consents, consentDate: new Date().toISOString() },
         }),
       });
 
@@ -307,7 +341,7 @@ export function LoginForm() {
                   </div>
 
                   {/* Remember Me & Forgot Password */}
-                  <div className="flex items-center text-sm">
+                  <div className="flex items-center justify-between text-sm">
                     <label className="flex items-center space-x-3 text-white/70 cursor-pointer hover:text-white/90 transition-colors">
                       <input
                         type="checkbox"
@@ -316,6 +350,12 @@ export function LoginForm() {
                       />
                       <span className="font-medium">Beni hatırla</span>
                     </label>
+                    <Link
+                      href="/sifre-sifirla"
+                      className="text-blue-300 hover:text-white font-semibold transition-colors"
+                    >
+                      Şifremi unuttum
+                    </Link>
                   </div>
 
                   {/* Premium Login Button */}
@@ -775,7 +815,8 @@ export function LoginForm() {
                         <Input
                           id="regPassword"
                           type={showPassword ? "text" : "password"}
-                          placeholder="••••••••••"
+                          placeholder="En az 8 karakter"
+                          minLength={8}
                           value={registerData.password}
                           onChange={(e) =>
                             setRegisterData((prev) => ({
@@ -805,6 +846,49 @@ export function LoginForm() {
                         </button>
                       </div>
                     </div>
+                  </div>
+
+                  {/* KVKK consents */}
+                  <div className="space-y-2 text-sm text-white/80">
+                    {(
+                      [
+                        ["kvkk", "/kvkk", "KVKK Aydınlatma Metni", "'ni okudum."],
+                        ["privacy", "/gizlilik-politikasi", "Gizlilik Politikası", "'nı kabul ediyorum."],
+                        ["terms", "/kullanim-sartlari", "Kullanım Şartları", "'nı kabul ediyorum."],
+                      ] as const
+                    ).map(([key, href, title, suffix]) => (
+                      <label key={key} className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={consents[key]}
+                          onChange={(e) => setConsents((prev) => ({ ...prev, [key]: e.target.checked }))}
+                          required
+                          aria-label={`${title}${suffix}`}
+                          className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30"
+                        />
+                        <span>
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-semibold text-white underline underline-offset-2"
+                          >
+                            {title}
+                          </a>
+                          {suffix} <span className="text-white/50">(zorunlu)</span>
+                        </span>
+                      </label>
+                    ))}
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={consents.marketing}
+                        onChange={(e) => setConsents((prev) => ({ ...prev, marketing: e.target.checked }))}
+                        aria-label="Ticari ileti almak istiyorum (isteğe bağlı)"
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30"
+                      />
+                      <span>Kampanya ve duyurular için ticari ileti almak istiyorum. (isteğe bağlı)</span>
+                    </label>
                   </div>
 
                   {/* Premium Register Button */}

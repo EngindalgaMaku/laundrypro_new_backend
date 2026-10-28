@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { LEGAL } from "@/lib/legal";
 
 export const metadata = {
   title: "KVKK Aydınlatma Metni | LaundryPro",
@@ -12,7 +13,7 @@ export default function Page() {
     <main className="container mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-3xl font-bold mb-6">KVKK Aydınlatma Metni</h1>
       <p className="text-sm text-gray-500 mb-8">
-        Son güncelleme: {new Date().toLocaleDateString("tr-TR")}
+        Son güncelleme: {LEGAL.lastUpdated}
       </p>
 
       <section className="space-y-4 text-gray-800 leading-7">
@@ -25,8 +26,9 @@ export default function Page() {
 
         <h2 className="text-xl font-semibold mt-6">Veri Sorumlusu</h2>
         <p>
-          LaundryPro, KVKK kapsamında veri sorumlusu sıfatını haizdir ve
-          kişisel verilerinizin güvenliği için gerekli tedbirleri alır.
+          LaundryPro hizmetini sunan {LEGAL.controllerName} ({LEGAL.controllerAddress}),
+          KVKK kapsamında veri sorumlusudur ve kişisel verilerinizin güvenliği için
+          gerekli tedbirleri alır.
         </p>
 
         <h2 className="text-xl font-semibold mt-6">İşleme Amaçları</h2>
@@ -39,8 +41,8 @@ export default function Page() {
         <h2 className="text-xl font-semibold mt-6">Haklarınız</h2>
         <p>
           KVKK'nın 11. maddesi kapsamında erişim, düzeltme, silme, işlemeye
-          itiraz gibi haklara sahipsiniz. Haklarınızı kullanmak için iletişim
-          kanallarımızı kullanabilirsiniz.
+          itiraz gibi haklara sahipsiniz. Başvurularınızı {LEGAL.contactEmail}
+          adresine iletebilirsiniz.
         </p>
 
         <div className="mt-8">

@@ -90,7 +90,7 @@ export default function AdminBusinessDetailPage() {
     return effectivePlan === "PRO" && !subscription;
   }, [effectivePlan, subscription]);
 
-  if (!user) return <div>Loading...</div>;
+  if (!user) return <div className="p-6 text-muted-foreground">Yükleniyor…</div>;
 
   return (
     <div className="flex h-screen bg-background">

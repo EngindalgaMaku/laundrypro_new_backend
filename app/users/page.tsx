@@ -683,7 +683,7 @@ export default function UsersPage() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleEditUser(member)}
-                                >
+                                 aria-label="Düzenle">
                                   <Edit className="h-3 w-3" />
                                 </Button>
                                 {member.role !== "OWNER" && (
@@ -693,7 +693,7 @@ export default function UsersPage() {
                                     onClick={() =>
                                       handleDeleteUser(member.id, `${member.firstName} ${member.lastName}`)
                                     }
-                                  >
+                                   aria-label="Sil">
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
                                 )}

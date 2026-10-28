@@ -54,8 +54,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The Android app (Capacitor) sets safe-area CSS variables on <html> before hydration
   return (
-    <html lang="tr">
+    <html lang="tr" suppressHydrationWarning>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <CapacitorProvider />
         <NetworkProvider>

@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
-import { EnhancedNavigation } from "@/components/layout/enhanced-navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -105,7 +104,7 @@ export default function CreateCustomerPage() {
   }, [router]);
 
   if (!user) {
-    return <div>Loading...</div>;
+    return <div className="p-6 text-muted-foreground">Yükleniyor…</div>;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -215,10 +214,6 @@ export default function CreateCustomerPage() {
           isMobileMenuOpen={isMobileMenuOpen}
         />
         <main className="flex-1 overflow-y-auto bg-muted/20 custom-scrollbar">
-          {/* Enhanced Navigation */}
-          <div className="px-3 sm:px-4 lg:px-6 pt-4">
-            <EnhancedNavigation />
-          </div>
 
           <div className="p-4 sm:p-6">
             <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
@@ -257,7 +252,7 @@ export default function CreateCustomerPage() {
                           <Label htmlFor="name">Ad Soyad *</Label>
                           <Input
                             id="name"
-                            placeholder="Ahmet Yılmaz"
+                            placeholder="Örn: Ahmet Yılmaz"
                             value={customerData.name}
                             onChange={(e) =>
                               setCustomerData((prev) => ({
@@ -273,7 +268,7 @@ export default function CreateCustomerPage() {
                             <Label htmlFor="phone">Telefon *</Label>
                             <Input
                               id="phone"
-                              placeholder="0555 123 45 67"
+                              placeholder="Örn: 0555 123 45 67"
                               value={customerData.phone}
                               onChange={(e) => {
                                 // Format phone number as user types
@@ -314,7 +309,7 @@ export default function CreateCustomerPage() {
                             <Input
                               id="email"
                               type="email"
-                              placeholder="ahmet@example.com"
+                              placeholder="Örn: ahmet@example.com"
                               value={customerData.email}
                               onChange={(e) =>
                                 setCustomerData((prev) => ({

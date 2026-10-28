@@ -109,7 +109,7 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
             }}
           >
             <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle menu</span>
+            <span className="sr-only">Menüyü aç</span>
           </Button>
 
           {/* Enhanced Mobile Logo */}
@@ -146,7 +146,7 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
             onClick={() => setIsSearchOpen(!isSearchOpen)}
           >
             <Search className="h-4 w-4" />
-            <span className="sr-only">Search</span>
+            <span className="sr-only">Ara</span>
           </Button>
 
           {/* Notification Button - Enhanced */}
@@ -159,7 +159,7 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full flex items-center justify-center">
               <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
             </span>
-            <span className="sr-only">Notifications</span>
+            <span className="sr-only">Bildirimler</span>
           </Button>
 
           {/* Compact Beta Controls (non-blocking) */}

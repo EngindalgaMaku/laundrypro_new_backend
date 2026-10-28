@@ -25,7 +25,7 @@ import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/brand/logo";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: Home },
+  { name: "Ana Sayfa", href: "/dashboard", icon: Home },
   { name: "Siparişler", href: "/orders", icon: ClipboardList },
   { name: "Müşteriler", href: "/customers", icon: Users },
   { name: "Rota Planlama", href: "/routes", icon: Route },
@@ -152,7 +152,7 @@ export function Sidebar({
             className="touch-target h-10 w-10 p-0 rounded-xl hover:bg-muted/80 focus-ring"
           >
             <X className="h-5 w-5" />
-            <span className="sr-only">Close menu</span>
+            <span className="sr-only">Menüyü kapat</span>
           </Button>
         </div>
       )}

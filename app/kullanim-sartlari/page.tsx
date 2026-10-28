@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { LEGAL } from "@/lib/legal";
 
 export const metadata = {
   title: "Kullanım Şartları | LaundryPro",
@@ -12,7 +13,7 @@ export default function Page() {
     <main className="container mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-3xl font-bold mb-6">Kullanım Şartları</h1>
       <p className="text-sm text-gray-500 mb-8">
-        Son güncelleme: {new Date().toLocaleDateString("tr-TR")}
+        Son güncelleme: {LEGAL.lastUpdated}
       </p>
 
       <section className="space-y-4 text-gray-800 leading-7">

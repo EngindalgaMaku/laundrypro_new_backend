@@ -42,6 +42,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { AppShell } from "@/components/layout/app-shell";
 
 interface ServicePricing {
   id?: string;
@@ -91,7 +92,7 @@ const authHeaders = (): Record<string, string> => ({
   Authorization: `Bearer ${localStorage.getItem("token") ?? ""}`,
 });
 
-export default function ServicesManagement() {
+function ServicesManagementContent() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -470,7 +471,7 @@ export default function ServicesManagement() {
                       onClick={() => removePricingOption(index)}
                       variant="outline"
                       size="sm"
-                    >
+                     aria-label="Sil">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
@@ -622,9 +623,9 @@ export default function ServicesManagement() {
   );
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto px-4 sm:px-6 py-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Hizmet Yönetimi</h1>
           <p className="text-muted-foreground">
@@ -812,7 +813,7 @@ export default function ServicesManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => openEditModal(service)}
-                              >
+                               aria-label="Düzenle">
                                 <Edit2 className="h-4 w-4" />
                               </Button>
                             </DialogTrigger>
@@ -823,7 +824,7 @@ export default function ServicesManagement() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleDeleteService(service.id)}
-                          >
+                           aria-label="Sil">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -837,5 +838,13 @@ export default function ServicesManagement() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function ServicesManagement() {
+  return (
+    <AppShell>
+      <ServicesManagementContent />
+    </AppShell>
   );
 }

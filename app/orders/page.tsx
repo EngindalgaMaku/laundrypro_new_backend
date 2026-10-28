@@ -596,8 +596,7 @@ export default function OrdersPage() {
                     >
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4" />
-                        <span className="hidden sm:inline">Beklemede</span>
-                        <span className="sm:hidden">B</span>
+                        <span>Beklemede</span>
                         <Badge
                           className={`text-xs font-bold ${
                             activeTab === "PENDING"
@@ -621,8 +620,7 @@ export default function OrdersPage() {
                     >
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4" />
-                        <span className="hidden sm:inline">Onaylandı</span>
-                        <span className="sm:hidden">O</span>
+                        <span>Onaylandı</span>
                         <Badge
                           className={`text-xs font-bold ${
                             activeTab === "CONFIRMED"
@@ -646,11 +644,7 @@ export default function OrdersPage() {
                     >
                       <div className="flex items-center gap-2">
                         <Package className="h-4 w-4" />
-                        <span className="hidden lg:inline">Alınmaya Hazır</span>
-                        <span className="lg:hidden hidden sm:inline">
-                          Hazır
-                        </span>
-                        <span className="sm:hidden">A</span>
+                        <span>Alınmaya Hazır</span>
                         <Badge
                           className={`text-xs font-bold ${
                             activeTab === "READY_FOR_PICKUP"
@@ -674,8 +668,7 @@ export default function OrdersPage() {
                     >
                       <div className="flex items-center gap-2">
                         <Sparkles className="h-4 w-4" />
-                        <span className="hidden sm:inline">İşlemde</span>
-                        <span className="sm:hidden">İ</span>
+                        <span>İşlemde</span>
                         <Badge
                           className={`text-xs font-bold ${
                             activeTab === "IN_PROGRESS"
@@ -699,11 +692,7 @@ export default function OrdersPage() {
                     >
                       <div className="flex items-center gap-2">
                         <Truck className="h-4 w-4" />
-                        <span className="hidden lg:inline">Dağıtıma Hazır</span>
-                        <span className="lg:hidden hidden sm:inline">
-                          Dağıt.
-                        </span>
-                        <span className="sm:hidden">D</span>
+                        <span>Dağıtıma Hazır</span>
                         <Badge
                           className={`text-xs font-bold ${
                             activeTab === "READY_FOR_DELIVERY"
@@ -727,8 +716,7 @@ export default function OrdersPage() {
                     >
                       <div className="flex items-center gap-2">
                         <Truck className="h-4 w-4" />
-                        <span className="hidden sm:inline">Dağıtımda</span>
-                        <span className="sm:hidden">Y</span>
+                        <span>Dağıtımda</span>
                         <Badge
                           className={`text-xs font-bold ${
                             activeTab === "OUT_FOR_DELIVERY"
@@ -752,8 +740,7 @@ export default function OrdersPage() {
                     >
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4" />
-                        <span className="hidden sm:inline">Teslim Edildi</span>
-                        <span className="sm:hidden">T</span>
+                        <span>Teslim Edildi</span>
                         <Badge
                           className={`text-xs font-bold ${
                             activeTab === "DELIVERED"
@@ -777,8 +764,7 @@ export default function OrdersPage() {
                     >
                       <div className="flex items-center gap-2">
                         <X className="h-4 w-4" />
-                        <span className="hidden sm:inline">İptal</span>
-                        <span className="sm:hidden">İ</span>
+                        <span>İptal</span>
                         <Badge
                           className={`text-xs font-bold ${
                             activeTab === "CANCELLED"
@@ -845,15 +831,15 @@ export default function OrdersPage() {
                             {/* Content */}
                             <div className="relative z-10">
                               {/* Header */}
-                              <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
+                              <div className="flex items-start justify-between gap-3 mb-4">
+                                <div className="flex items-center gap-3 min-w-0">
                                   <div
                                     className={`p-3 bg-gradient-to-br ${serviceColor} rounded-xl shadow-lg`}
                                   >
                                     {getServiceIcon(order.serviceType)}
                                   </div>
-                                  <div>
-                                    <p className="font-bold font-mono text-gray-900 text-lg">
+                                  <div className="min-w-0">
+                                    <p className="font-bold font-mono text-gray-900 text-lg truncate">
                                       {order.orderNumber || order.id}
                                     </p>
                                     <p className="text-sm text-gray-600 font-medium">
@@ -864,7 +850,7 @@ export default function OrdersPage() {
                                   </div>
                                 </div>
 
-                                <div className="flex flex-col items-end gap-2">
+                                <div className="flex flex-col items-end gap-2 shrink-0">
                                   <Badge
                                     className={`${priorityConfig.bgColor} ${priorityConfig.color} border font-semibold px-3 py-1 text-xs`}
                                   >
@@ -970,7 +956,7 @@ export default function OrdersPage() {
                                       variant="ghost"
                                       className="h-10 w-10 p-0 rounded-xl hover:bg-gray-100"
                                       onClick={(e) => e.stopPropagation()}
-                                    >
+                                     aria-label="Diğer işlemler">
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>

@@ -299,7 +299,7 @@ export default function SettingsPage() {
   };
 
   if (!user) {
-    return <div>Loading...</div>;
+    return <div className="p-6 text-muted-foreground">Yükleniyor…</div>;
   }
 
   const handleBusinessUpdate = async (e: React.FormEvent) => {
@@ -470,6 +470,16 @@ export default function SettingsPage() {
         />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-4xl mx-auto space-y-6">
+            {/* Header */}
+            <div>
+              <h1 className="text-3xl font-semibold text-foreground">
+                Ayarlar
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                İşletme ve hesap ayarlarınızı yönetin
+              </p>
+            </div>
+
             {/* Plan badge & Upgrade CTA */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -495,7 +505,7 @@ export default function SettingsPage() {
                 </div>
                 {plan !== "PRO" && (
                   <Button
-                    onClick={() => toast.info("Yükseltme akışı yakında etkin olacak. (Sprint 2)")}
+                    onClick={() => toast.info("PRO'ya yükseltme henüz etkin değil.")}
                     className="w-full sm:w-auto"
                   >
                     PRO'ya Yükselt
@@ -503,16 +513,6 @@ export default function SettingsPage() {
                 )}
               </CardContent>
             </Card>
-            {/* Header */}
-            <div>
-              <h1 className="text-3xl font-semibold text-foreground">
-                Ayarlar
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                İşletme ve hesap ayarlarınızı yönetin
-              </p>
-            </div>
-
             <Tabs defaultValue="business" className="space-y-6">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="business">İşletme</TabsTrigger>

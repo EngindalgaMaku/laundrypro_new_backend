@@ -11,7 +11,12 @@ const nextConfig = {
   },
   // Sign-in lives at "/"; auth helpers and stale-token handlers send users to /login
   async redirects() {
-    return [{ source: "/login", destination: "/", permanent: false }];
+    return [
+      { source: "/login", destination: "/", permanent: false },
+      // Older English-path legal pages, replaced by the Turkish ones
+      { source: "/privacy-policy", destination: "/gizlilik-politikasi", permanent: true },
+      { source: "/data-processing-notice", destination: "/kvkk", permanent: true },
+    ];
   },
 }
 

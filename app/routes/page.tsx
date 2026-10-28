@@ -540,8 +540,8 @@ export default function RoutesPage() {
 
             {/* Main Content */}
             <Tabs defaultValue="routes" className="w-full">
-              <div className="flex items-center justify-between mb-4">
-                <TabsList className="grid grid-cols-3 w-fit">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                <TabsList className="grid grid-cols-3 w-full sm:w-fit">
                   <TabsTrigger value="routes">
                     Rotalar ({routes.length})
                   </TabsTrigger>
@@ -553,7 +553,7 @@ export default function RoutesPage() {
                   </TabsTrigger>
                 </TabsList>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     variant="outline"
@@ -671,7 +671,7 @@ export default function RoutesPage() {
                               </Button>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
+                                  <Button variant="ghost" size="sm" aria-label="Diğer işlemler">
                                     <MoreHorizontal className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>

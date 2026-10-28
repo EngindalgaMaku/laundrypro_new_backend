@@ -35,6 +35,7 @@ import {
   Calendar,
   Building,
 } from "lucide-react";
+import { AppShell } from "@/components/layout/app-shell";
 
 interface EFaturaSettings {
   id?: string;
@@ -66,7 +67,7 @@ interface EFaturaSettings {
   updatedAt?: string;
 }
 
-export default function EFaturaSettingsPage() {
+function EFaturaSettingsPageContent() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<EFaturaSettings>({
     businessId: "",
@@ -153,18 +154,18 @@ export default function EFaturaSettingsPage() {
 
   const handleSaveSettings = async () => {
     if (settings.isEnabled && !settings.companyVkn) {
-      toast.error("Company VKN is required when enabling E-Fatura");
+      toast.error("E-Fatura'yı etkinleştirmek için firma VKN'si gerekli");
       return;
     }
 
     if (settings.isEnabled && !settings.companyTitle) {
-      toast.error("Company title is required when enabling E-Fatura");
+      toast.error("E-Fatura'yı etkinleştirmek için firma unvanı gerekli");
       return;
     }
 
     // Validate VKN format
     if (settings.companyVkn && !/^\d{10}$/.test(settings.companyVkn)) {
-      toast.error("VKN must be exactly 10 digits");
+      toast.error("VKN 10 haneli olmalıdır");
       return;
     }
 
@@ -209,16 +210,16 @@ export default function EFaturaSettingsPage() {
 
       if (data.success) {
         setSettings(data.config);
-        toast.success("E-Fatura settings saved successfully");
+        toast.success("E-Fatura ayarları kaydedildi");
 
         if (data.testResult) {
           setTestResult(data.testResult);
         }
       } else {
-        toast.error(data.error || "Failed to save settings");
+        toast.error(data.error || "Ayarlar kaydedilemedi");
       }
     } catch (error) {
-      toast.error("An error occurred while saving settings");
+      toast.error("Ayarlar kaydedilirken bir hata oluştu");
     } finally {
       setLoading(false);
     }
@@ -226,7 +227,7 @@ export default function EFaturaSettingsPage() {
 
   const handleTestConnection = async () => {
     if (!credentials.gibUsername || !credentials.gibPassword) {
-      toast.error("GIB username and password are required for testing");
+      toast.error("Bağlantıyı denemek için GİB kullanıcı adı ve şifresi gerekli");
       return;
     }
 
@@ -251,14 +252,14 @@ export default function EFaturaSettingsPage() {
       setTestResult(data.details);
 
       if (data.success) {
-        toast.success("GIB Portal connection test successful!");
+        toast.success("GİB Portal bağlantı denemesi başarılı");
       } else {
         toast.error(
-          "Connection test failed: " + (data.details?.error || "Unknown error")
+          "Bağlantı denemesi başarısız: " + (data.details?.error || "Bilinmeyen hata")
         );
       }
     } catch (error) {
-      toast.error("An error occurred during testing");
+      toast.error("Deneme sırasında bir hata oluştu");
     } finally {
       setTesting(false);
     }
@@ -273,11 +274,11 @@ export default function EFaturaSettingsPage() {
         !file.name.toLowerCase().endsWith(".p12") &&
         !file.name.toLowerCase().endsWith(".pfx")
       ) {
-        toast.error("Please select a P12 or PFX certificate file");
+        toast.error("Lütfen P12 ya da PFX sertifika dosyası seçin");
         return;
       }
       setCertificateFile(file);
-      toast.success("Certificate file selected");
+      toast.success("Sertifika dosyası seçildi");
     }
   };
 
@@ -298,23 +299,23 @@ export default function EFaturaSettingsPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
+    <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <FileText className="h-8 w-8 text-blue-600" />
-          E-Fatura Settings
+          E-Fatura Ayarları
         </h1>
         <p className="text-muted-foreground mt-2">
-          Configure Turkish E-Invoice (E-Fatura) integration with GIB Portal
+          GİB Portal ile e-Fatura entegrasyonunu yapılandırın
         </p>
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="company">Company Info</TabsTrigger>
-          <TabsTrigger value="automation">Automation</TabsTrigger>
-          <TabsTrigger value="status">Status</TabsTrigger>
+          <TabsTrigger value="general">Genel</TabsTrigger>
+          <TabsTrigger value="company">Firma Bilgileri</TabsTrigger>
+          <TabsTrigger value="automation">Otomasyon</TabsTrigger>
+          <TabsTrigger value="status">Durum</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-6">
@@ -322,7 +323,7 @@ export default function EFaturaSettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                E-Fatura Configuration
+                E-Fatura yapılandırması
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -339,7 +340,7 @@ export default function EFaturaSettingsPage() {
                   htmlFor="efatura-enabled"
                   className="text-sm font-medium"
                 >
-                  Enable E-Fatura Integration
+                  E-Fatura entegrasyonunu etkinleştir
                 </Label>
               </div>
 
@@ -348,7 +349,7 @@ export default function EFaturaSettingsPage() {
               {/* GIB Portal Settings */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="gib-username">GIB Portal Username *</Label>
+                  <Label htmlFor="gib-username">GİB Portal kullanıcı adı *</Label>
                   <Input
                     id="gib-username"
                     value={credentials.gibUsername}
@@ -358,13 +359,13 @@ export default function EFaturaSettingsPage() {
                         gibUsername: e.target.value,
                       })
                     }
-                    placeholder="Enter GIB Portal username"
+                    placeholder="GİB Portal kullanıcı adınız"
                     disabled={!settings.isEnabled}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="gib-password">GIB Portal Password *</Label>
+                  <Label htmlFor="gib-password">GİB Portal şifresi *</Label>
                   <div className="relative">
                     <Input
                       id="gib-password"
@@ -376,7 +377,7 @@ export default function EFaturaSettingsPage() {
                           gibPassword: e.target.value,
                         })
                       }
-                      placeholder="Enter GIB Portal password"
+                      placeholder="GİB Portal şifreniz"
                       disabled={!settings.isEnabled}
                     />
                     <Button
@@ -403,7 +404,7 @@ export default function EFaturaSettingsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Environment</Label>
+                  <Label>Ortam</Label>
                   <Select
                     value={settings.gibTestMode ? "test" : "production"}
                     onValueChange={(value) =>
@@ -418,14 +419,14 @@ export default function EFaturaSettingsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="test">Test Environment</SelectItem>
-                      <SelectItem value="production">Production</SelectItem>
+                      <SelectItem value="test">Test ortamı</SelectItem>
+                      <SelectItem value="production">Canlı ortam</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="portal-url">GIB Portal URL</Label>
+                  <Label htmlFor="portal-url">GİB Portal adresi</Label>
                   <Input
                     id="portal-url"
                     value={settings.gibPortalUrl}
@@ -440,11 +441,11 @@ export default function EFaturaSettingsPage() {
               {/* Certificate Settings */}
               <Separator />
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Digital Certificate</h3>
+                <h3 className="text-lg font-medium">Mali mühür sertifikası</h3>
 
                 <div className="space-y-2">
                   <Label htmlFor="certificate-file">
-                    Certificate File (P12/PFX)
+                    Sertifika dosyası (P12/PFX)
                   </Label>
                   <div className="flex items-center gap-2">
                     <Input
@@ -461,7 +462,7 @@ export default function EFaturaSettingsPage() {
                       disabled={!certificateFile}
                     >
                       <Upload className="h-4 w-4 mr-1" />
-                      Upload
+                      Yükle
                     </Button>
                   </div>
                   {certificateFile && (
@@ -473,7 +474,7 @@ export default function EFaturaSettingsPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="certificate-password">
-                    Certificate Password
+                    Sertifika şifresi
                   </Label>
                   <div className="relative">
                     <Input
@@ -488,7 +489,7 @@ export default function EFaturaSettingsPage() {
                           certificatePassword: e.target.value,
                         })
                       }
-                      placeholder="Enter certificate password"
+                      placeholder="Sertifika şifresi"
                       disabled={!settings.isEnabled}
                     />
                     <Button
@@ -531,11 +532,11 @@ export default function EFaturaSettingsPage() {
               {/* Invoice Series Settings */}
               <Separator />
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Invoice Series</h3>
+                <h3 className="text-lg font-medium">Fatura serisi</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="series-prefix">Series Prefix</Label>
+                    <Label htmlFor="series-prefix">Seri öneki</Label>
                     <Input
                       id="series-prefix"
                       value={settings.invoiceSeriesPrefix}
@@ -552,7 +553,7 @@ export default function EFaturaSettingsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="current-number">Current Number</Label>
+                    <Label htmlFor="current-number">Mevcut numara</Label>
                     <Input
                       id="current-number"
                       type="number"
@@ -569,7 +570,7 @@ export default function EFaturaSettingsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="number-length">Number Length</Label>
+                    <Label htmlFor="number-length">Numara uzunluğu</Label>
                     <Select
                       value={settings.invoiceNumberLength.toString()}
                       onValueChange={(value) =>
@@ -584,9 +585,9 @@ export default function EFaturaSettingsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="6">6 digits</SelectItem>
-                        <SelectItem value="8">8 digits</SelectItem>
-                        <SelectItem value="10">10 digits</SelectItem>
+                        <SelectItem value="6">6 hane</SelectItem>
+                        <SelectItem value="8">8 hane</SelectItem>
+                        <SelectItem value="10">10 hane</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -594,7 +595,7 @@ export default function EFaturaSettingsPage() {
 
                 <div className="p-3 bg-gray-50 rounded-md">
                   <div className="text-sm">
-                    <span className="font-medium">Next invoice number: </span>
+                    <span className="font-medium">Sıradaki fatura numarası: </span>
                     <code className="bg-white px-2 py-1 rounded text-blue-600">
                       {formatInvoiceNumber()}
                     </code>
@@ -617,12 +618,12 @@ export default function EFaturaSettingsPage() {
                   {testing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Testing...
+                      Deneniyor…
                     </>
                   ) : (
                     <>
                       <TestTube className="mr-2 h-4 w-4" />
-                      Test Connection
+                      Bağlantıyı dene
                     </>
                   )}
                 </Button>
@@ -631,10 +632,10 @@ export default function EFaturaSettingsPage() {
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
+                      Kaydediliyor…
                     </>
                   ) : (
-                    "Save Settings"
+                    "Ayarları kaydet"
                   )}
                 </Button>
               </div>
@@ -651,7 +652,7 @@ export default function EFaturaSettingsPage() {
                     {testResult.success ? (
                       <div className="space-y-2">
                         <p className="font-medium text-green-800">
-                          GIB Portal connection successful!
+                          GİB Portal bağlantısı başarılı.
                         </p>
                         <p>Status: {testResult.connectionStatus}</p>
                       </div>
@@ -672,13 +673,13 @@ export default function EFaturaSettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building className="h-5 w-5" />
-                Company Information
+                Firma bilgileri
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="company-vkn">Company VKN *</Label>
+                  <Label htmlFor="company-vkn">Firma VKN *</Label>
                   <div className="relative">
                     <Input
                       id="company-vkn"
@@ -704,12 +705,12 @@ export default function EFaturaSettingsPage() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    10-digit Tax ID number
+                    10 haneli vergi kimlik numarası
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="company-title">Company Title *</Label>
+                  <Label htmlFor="company-title">Firma unvanı *</Label>
                   <Input
                     id="company-title"
                     value={settings.companyTitle}
@@ -723,14 +724,14 @@ export default function EFaturaSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company-address">Address</Label>
+                <Label htmlFor="company-address">Adres</Label>
                 <Textarea
                   id="company-address"
                   value={settings.companyAddress}
                   onChange={(e) =>
                     setSettings({ ...settings, companyAddress: e.target.value })
                   }
-                  placeholder="Company address"
+                  placeholder="Firma adresi"
                   rows={3}
                   disabled={!settings.isEnabled}
                 />
@@ -738,7 +739,7 @@ export default function EFaturaSettingsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="company-district">District</Label>
+                  <Label htmlFor="company-district">İlçe</Label>
                   <Input
                     id="company-district"
                     value={settings.companyDistrict}
@@ -754,7 +755,7 @@ export default function EFaturaSettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="company-city">City</Label>
+                  <Label htmlFor="company-city">İl</Label>
                   <Input
                     id="company-city"
                     value={settings.companyCity}
@@ -767,7 +768,7 @@ export default function EFaturaSettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="company-postal">Postal Code</Label>
+                  <Label htmlFor="company-postal">Posta kodu</Label>
                   <Input
                     id="company-postal"
                     value={settings.companyPostalCode || ""}
@@ -785,7 +786,7 @@ export default function EFaturaSettingsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="company-email">Email</Label>
+                  <Label htmlFor="company-email">E-posta</Label>
                   <Input
                     id="company-email"
                     type="email"
@@ -793,13 +794,13 @@ export default function EFaturaSettingsPage() {
                     onChange={(e) =>
                       setSettings({ ...settings, companyEmail: e.target.value })
                     }
-                    placeholder="info@company.com"
+                    placeholder="info@isletme.com"
                     disabled={!settings.isEnabled}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="company-phone">Phone</Label>
+                  <Label htmlFor="company-phone">Telefon</Label>
                   <Input
                     id="company-phone"
                     value={settings.companyPhone || ""}
@@ -813,14 +814,14 @@ export default function EFaturaSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company-website">Website</Label>
+                <Label htmlFor="company-website">Web sitesi</Label>
                 <Input
                   id="company-website"
                   value={settings.companyWebsite || ""}
                   onChange={(e) =>
                     setSettings({ ...settings, companyWebsite: e.target.value })
                   }
-                  placeholder="https://company.com"
+                  placeholder="https://isletme.com"
                   disabled={!settings.isEnabled}
                 />
               </div>
@@ -831,15 +832,15 @@ export default function EFaturaSettingsPage() {
         <TabsContent value="automation" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Automation Settings</CardTitle>
+              <CardTitle>Otomasyon ayarları</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="auto-create">Auto-create invoices</Label>
+                    <Label htmlFor="auto-create">Faturaları otomatik oluştur</Label>
                     <p className="text-sm text-muted-foreground">
-                      Automatically create invoices when orders are completed
+                      Sipariş tamamlandığında faturayı otomatik oluştur
                     </p>
                   </div>
                   <Switch
@@ -854,9 +855,9 @@ export default function EFaturaSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="auto-send">Auto-send to GIB Portal</Label>
+                    <Label htmlFor="auto-send">GİB Portal'a otomatik gönder</Label>
                     <p className="text-sm text-muted-foreground">
-                      Automatically send created invoices to GIB Portal
+                      Oluşturulan faturaları GİB Portal'a otomatik gönder
                     </p>
                   </div>
                   <Switch
@@ -872,10 +873,10 @@ export default function EFaturaSettingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="invoice-on-payment">
-                      Invoice on payment
+                      Ödemede fatura
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Create invoice when payment is received
+                      Ödeme alındığında fatura oluştur
                     </p>
                   </div>
                   <Switch
@@ -891,10 +892,10 @@ export default function EFaturaSettingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="invoice-on-complete">
-                      Invoice on order complete
+                      Sipariş tamamlanınca fatura
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Create invoice when order is marked as complete
+                      Sipariş tamamlandı olarak işaretlenince fatura oluştur
                     </p>
                   </div>
                   <Switch
@@ -914,7 +915,7 @@ export default function EFaturaSettingsPage() {
               <Separator />
 
               <div className="space-y-2">
-                <Label>Archive Retention</Label>
+                <Label>Arşiv saklama süresi</Label>
                 <Select
                   value={settings.archiveRetentionYears.toString()}
                   onValueChange={(value) =>
@@ -929,15 +930,14 @@ export default function EFaturaSettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="5">5 years</SelectItem>
-                    <SelectItem value="7">7 years</SelectItem>
-                    <SelectItem value="10">10 years</SelectItem>
-                    <SelectItem value="15">15 years</SelectItem>
+                    <SelectItem value="5">5 yıl</SelectItem>
+                    <SelectItem value="7">7 yıl</SelectItem>
+                    <SelectItem value="10">10 yıl</SelectItem>
+                    <SelectItem value="15">15 yıl</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
-                  How long to keep archived invoices (required by Turkish tax
-                  law: minimum 5 years)
+                  Arşivlenen faturaların saklanma süresi (vergi mevzuatı en az 5 yıl ister)
                 </p>
               </div>
             </CardContent>
@@ -948,7 +948,7 @@ export default function EFaturaSettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Status</CardTitle>
+                <CardTitle className="text-sm font-medium">Durum</CardTitle>
                 {settings.isEnabled ? (
                   <CheckCircle className="h-4 w-4 text-green-600" />
                 ) : (
@@ -957,10 +957,10 @@ export default function EFaturaSettingsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {settings.isEnabled ? "Enabled" : "Disabled"}
+                  {settings.isEnabled ? "Etkin" : "Kapalı"}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  E-Fatura integration
+                  E-Fatura entegrasyonu
                 </p>
               </CardContent>
             </Card>
@@ -968,18 +968,18 @@ export default function EFaturaSettingsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Environment
+                  Ortam
                 </CardTitle>
                 <Badge variant={settings.gibTestMode ? "secondary" : "default"}>
-                  {settings.gibTestMode ? "Test" : "Production"}
+                  {settings.gibTestMode ? "Test" : "Canlı ortam"}
                 </Badge>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {settings.gibTestMode ? "Test Mode" : "Live Mode"}
+                  {settings.gibTestMode ? "Test modu" : "Canlı mod"}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  GIB Portal environment
+                  GİB Portal ortamı
                 </p>
               </CardContent>
             </Card>
@@ -987,7 +987,7 @@ export default function EFaturaSettingsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Next Invoice
+                  Sıradaki fatura
                 </CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -996,7 +996,7 @@ export default function EFaturaSettingsPage() {
                   {formatInvoiceNumber()}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Next invoice number
+                  Sıradaki fatura numarası
                 </p>
               </CardContent>
             </Card>
@@ -1005,7 +1005,7 @@ export default function EFaturaSettingsPage() {
           {settings.lastArchiveDate && (
             <Card>
               <CardHeader>
-                <CardTitle>Last Archive</CardTitle>
+                <CardTitle>Son arşivleme</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
@@ -1017,5 +1017,13 @@ export default function EFaturaSettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function EFaturaSettingsPage() {
+  return (
+    <AppShell>
+      <EFaturaSettingsPageContent />
+    </AppShell>
   );
 }

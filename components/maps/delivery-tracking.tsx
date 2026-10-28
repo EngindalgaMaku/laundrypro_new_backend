@@ -113,10 +113,10 @@ export function DeliveryTracking({ driverName, routeName, stops }: DeliveryTrack
                   <p className="text-xs text-blue-600">{stops[currentStopIndex].address}</p>
                 </div>
                 <div className="flex gap-1">
-                  <Button size="sm" variant="outline" onClick={() => handleCallCustomer(stops[currentStopIndex].phone)}>
+                  <Button size="sm" variant="outline" onClick={() => handleCallCustomer(stops[currentStopIndex].phone)} aria-label="Ara">
                     <Phone className="h-3 w-3" />
                   </Button>
-                  <Button size="sm" onClick={() => handleNavigateToStop(stops[currentStopIndex].address)}>
+                  <Button size="sm" onClick={() => handleNavigateToStop(stops[currentStopIndex].address)} aria-label="Yol tarifi">
                     <Navigation className="h-3 w-3" />
                   </Button>
                 </div>

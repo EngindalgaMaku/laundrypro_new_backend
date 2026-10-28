@@ -1,8 +1,9 @@
 import React from "react";
 import Link from "next/link";
+import { AppShell } from "@/components/layout/app-shell";
 
 export const metadata = {
-  title: "Yardım ve Dökümantasyon | LaundryPro",
+  title: "Yardım ve Dokümantasyon | LaundryPro",
   description:
     "LaundryPro için kapsamlı yardım, dökümantasyon, SSS, sorun giderme ve destek kanalları.",
 };
@@ -25,7 +26,7 @@ const Pill: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </span>
 );
 
-export default function HelpPage() {
+function HelpPageContent() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       {/* Header */}
@@ -37,7 +38,7 @@ export default function HelpPage() {
             <Pill>SSS</Pill>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-            LaundryPro Yardım ve Dökümantasyon
+            LaundryPro Yardım ve Dokümantasyon
           </h1>
           <p className="text-gray-600 mt-2">
             Kurulumdan gelişmiş özelliklere kadar tüm bilgiler burada.
@@ -87,7 +88,7 @@ export default function HelpPage() {
             <li>
               <strong>• Sipariş nasıl oluşturulur?</strong>
               <div>
-                Dashboard veya Siparişler sayfasından "Yeni Sipariş" ile
+                Ana Sayfa veya Siparişler sayfasından "Yeni Sipariş" ile
                 başlayın, müşteri ve hizmetleri seçin.
               </div>
             </li>
@@ -224,5 +225,13 @@ export default function HelpPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function HelpPage() {
+  return (
+    <AppShell requireAuth={false}>
+      <HelpPageContent />
+    </AppShell>
   );
 }
