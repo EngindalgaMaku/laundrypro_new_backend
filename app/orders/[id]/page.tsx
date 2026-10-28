@@ -551,7 +551,6 @@ export default function OrderDetailPage() {
                     </CardContent>
                   </Card>
                 </div>
-                <OrderPhotosCard orderId={order.id} />
               </TabsContent>
 
               <TabsContent value="photos">

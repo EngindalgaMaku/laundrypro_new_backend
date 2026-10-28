@@ -283,8 +283,11 @@ export class OrderDatabaseService {
       }
     }
 
+    // With line items the total is their sum, so the order and its invoice lines agree;
+    // only a manual order (no items) takes the entered amount
+    const hasLineItems = !!(data.services && data.services.length > 0);
     const totalAmount =
-      data.totalAmount && Number(data.totalAmount) > 0
+      !hasLineItems && data.totalAmount && Number(data.totalAmount) > 0
         ? Number(data.totalAmount)
         : subtotal;
     const rawPaid = Number(data.paidAmount || 0);

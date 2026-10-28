@@ -589,14 +589,23 @@ export default function CreateOrderPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="amount">Toplam Tutar (₺, KDV {pricesIncludeVat ? 'dahil' : 'hariç'}) *</Label>
+                          {/* With catalog lines the total is their sum; editing it would make the
+                              order total differ from the invoice lines built from those items */}
                           <Input
                             id="amount"
                             type="text"
                             placeholder="150"
                             value={orderData.amount}
                             onChange={(e) => handleAmountChange(e.target.value)}
+                            readOnly={selectedItems.length > 0}
+                            className={selectedItems.length > 0 ? "bg-muted" : undefined}
                             required
                           />
+                          {selectedItems.length > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              Kalemlerden hesaplanır; değiştirmek için kalemlerin miktar veya fiyatını düzenleyin.
+                            </p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="deliveryDate">Teslim Tarihi</Label>

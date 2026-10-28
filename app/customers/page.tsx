@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { CustomerDetailModal } from "@/components/customers/customer-detail-modal";
 import { toast } from "sonner";
+import { buildCsv } from "@/lib/csv";
+import { saveFile } from "@/lib/save-file";
 import { customerDeleteMessage } from "@/lib/customer-delete-message";
 import { DeleteConfirmationModal } from "@/components/ui/confirmation-modal";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -118,8 +120,8 @@ export default function CustomersPage() {
         const custOrders = Array.isArray((dbCustomer as any).orders)
           ? (dbCustomer as any).orders
           : [];
-        const totalOrders =
-          (dbCustomer as any)._count?.orders ?? custOrders.length;
+        // same set as the revenue below: cancelled orders count toward neither
+        const totalOrders = custOrders.length;
         const totalSpent = custOrders.reduce(
           (sum: number, o: any) => sum + Number(o.totalAmount || 0),
           0
@@ -200,45 +202,34 @@ export default function CustomersPage() {
       return 0;
     });
 
-  const handleExportCustomers = () => {
+  const handleExportCustomers = async () => {
     if (filteredCustomers.length === 0) {
       toast.error("Dışa aktarılacak müşteri bulunamadı");
       return;
     }
-    const escapeCsv = (val: string | number) =>
-      `"${String(val ?? "").replace(/"/g, '""')}"`;
-    const headers = [
-      "Ad Soyad",
-      "Telefon",
-      "E-posta",
-      "Adres",
-      "Toplam Sipariş",
-      "Toplam Ciro (TL)",
-      "Son İşlem",
-      "Durum",
-    ];
-    const rows = filteredCustomers.map((c) => [
-      escapeCsv(c.name),
-      escapeCsv(c.phone),
-      escapeCsv(c.email),
-      escapeCsv(c.address),
-      escapeCsv(c.totalOrders),
-      escapeCsv((c.totalSpentValue || 0).toFixed(2)),
-      escapeCsv(c.lastOrder),
-      escapeCsv(c.status === "active" ? "Aktif" : "Pasif"),
-    ]);
-    const csvContent =
-      "\uFEFF" + [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\r\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Musteriler-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success(`${filteredCustomers.length} müşteri dışa aktarıldı`);
+    const csv = buildCsv(
+      ["Ad Soyad", "Telefon", "E-posta", "Adres", "Toplam Sipariş", "Toplam Ciro (TL)", "Son İşlem", "Durum"],
+      filteredCustomers.map((c) => [
+        c.name,
+        c.phone,
+        c.email,
+        c.address,
+        c.totalOrders,
+        (c.totalSpentValue || 0).toFixed(2),
+        c.lastOrder,
+        c.status === "active" ? "Aktif" : "Pasif",
+      ])
+    );
+    try {
+      const result = await saveFile({
+        fileName: `Musteriler-${new Date().toISOString().slice(0, 10)}.csv`,
+        content: csv,
+        mimeType: "text/csv;charset=utf-8",
+      });
+      if (result !== "cancelled") toast.success(`${filteredCustomers.length} müşteri dışa aktarıldı`);
+    } catch {
+      toast.error("Dışa aktarma sırasında hata oluştu");
+    }
   };
 
   const handleCallCustomer = (phone: string) => {

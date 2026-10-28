@@ -130,14 +130,6 @@ export default function SettingsPage() {
     // Check if user has business, if not create one automatically
     checkAndCreateBusiness(parsedUser);
 
-    try {
-      const savedNotifs = localStorage.getItem("notificationSettings");
-      if (savedNotifs) {
-        setNotifications((prev) => ({ ...prev, ...JSON.parse(savedNotifs) }));
-      }
-    } catch {
-      // ignore
-    }
     fetchUserProfile(parsedUser.id);
 
     setBusinessData({
@@ -566,7 +558,6 @@ export default function SettingsPage() {
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="business">İşletme</TabsTrigger>
                 <TabsTrigger value="account">Hesap</TabsTrigger>
-                <TabsTrigger value="notifications">Bildirimler</TabsTrigger>
                 <TabsTrigger value="security">Güvenlik</TabsTrigger>
               </TabsList>
 
@@ -920,151 +911,7 @@ export default function SettingsPage() {
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Şifre Değiştir</CardTitle>
-                      <CardDescription>
-                        Hesap güvenliğiniz için düzenli olarak şifrenizi
-                        değiştirin
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ChangePasswordForm />
-                    </CardContent>
-                  </Card>
                 </div>
-              </TabsContent>
-
-              {/* Notifications */}
-              <TabsContent value="notifications">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Bildirim Ayarları</CardTitle>
-                    <CardDescription>
-                      Hangi bildirimleri almak istediğinizi seçin
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>E-posta Bildirimleri</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Önemli güncellemeler için e-posta alın
-                        </p>
-                      </div>
-                      <Switch
-                        checked={notifications.emailNotifications}
-                        onCheckedChange={(checked) =>
-                          setNotifications((prev) => ({
-                            ...prev,
-                            emailNotifications: checked,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>SMS Bildirimleri</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Acil durumlar için SMS alın
-                        </p>
-                      </div>
-                      <Switch
-                        checked={notifications.smsNotifications}
-                        onCheckedChange={(checked) =>
-                          setNotifications((prev) => ({
-                            ...prev,
-                            smsNotifications: checked,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>WhatsApp Bildirimleri</Label>
-                        <p className="text-sm text-muted-foreground">
-                          WhatsApp üzerinden bildirim alın
-                        </p>
-                      </div>
-                      <Switch
-                        checked={notifications.whatsappNotifications}
-                        onCheckedChange={(checked) =>
-                          setNotifications((prev) => ({
-                            ...prev,
-                            whatsappNotifications: checked,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Sipariş Güncellemeleri</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Sipariş durumu değişikliklerinde bildirim alın
-                        </p>
-                      </div>
-                      <Switch
-                        checked={notifications.orderUpdates}
-                        onCheckedChange={(checked) =>
-                          setNotifications((prev) => ({
-                            ...prev,
-                            orderUpdates: checked,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Teslimat Hatırlatıcıları</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Teslimat zamanı yaklaştığında hatırlatıcı alın
-                        </p>
-                      </div>
-                      <Switch
-                        checked={notifications.deliveryReminders}
-                        onCheckedChange={(checked) =>
-                          setNotifications((prev) => ({
-                            ...prev,
-                            deliveryReminders: checked,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Pazarlama E-postaları</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Yeni özellikler ve promosyonlar hakkında bilgi alın
-                        </p>
-                      </div>
-                      <Switch
-                        checked={notifications.marketingEmails}
-                        onCheckedChange={(checked) =>
-                          setNotifications((prev) => ({
-                            ...prev,
-                            marketingEmails: checked,
-                          }))
-                        }
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        try {
-                          localStorage.setItem(
-                            "notificationSettings",
-                            JSON.stringify(notifications)
-                          );
-                          toast.success("Bildirim ayarlarınız kaydedildi!");
-                        } catch {
-                          toast.error("Bildirim ayarları kaydedilemedi");
-                        }
-                      }}
-                    >
-                      Bildirim Ayarlarını Kaydet
-                    </Button>
-                  </CardContent>
-                </Card>
               </TabsContent>
 
               {/* Security */}

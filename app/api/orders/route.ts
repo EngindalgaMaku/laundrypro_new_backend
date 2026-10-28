@@ -89,6 +89,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (paymentStatus && paymentStatus !== "ALL") {
+      // UNPAID = PENDING or PARTIAL (the "veresiye" filter); anything else must be an enum value,
+      // otherwise Prisma rejects the query with a 500
+      const allowed = ["UNPAID", "PENDING", "PARTIAL", "PAID", "REFUNDED", "CANCELLED"];
+      if (!allowed.includes(paymentStatus)) {
+        return NextResponse.json({ error: "Geçersiz ödeme durumu filtresi" }, { status: 400 });
+      }
       filters.paymentStatus = paymentStatus;
     }
 

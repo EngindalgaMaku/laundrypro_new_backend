@@ -46,6 +46,8 @@ import {
   communicationTemplates,
 } from "@/lib/communication";
 import { toast } from "sonner";
+import { buildCsv } from "@/lib/csv";
+import { saveFile } from "@/lib/save-file";
 
 interface User {
   id: string;
@@ -264,45 +266,25 @@ export default function OrdersPage() {
         return;
       }
 
-      const escapeCsv = (val: string | number) =>
-        `"${String(val ?? "").replace(/"/g, '""')}"`;
-      const headers = [
-        "Sipariş No",
-        "Müşteri",
-        "Telefon",
-        "Tarih",
-        "Durum",
-        "Ödeme Durumu",
-        "Tutar",
-        "Açıklama",
-      ];
-      const rows = exportList.map((o) => [
-        escapeCsv(o.orderNumber || o.id),
-        escapeCsv(o.customer),
-        escapeCsv(o.phone),
-        escapeCsv(o.date),
-        escapeCsv(orderStatusLabel(o.status)),
-        escapeCsv(
-          o.paymentStatus === "PAID"
-            ? "Ödendi"
-            : o.paymentStatus === "PARTIAL"
-            ? "Kısmi Ödeme"
-            : "Ödeme Bekliyor"
-        ),
-        escapeCsv(o.amount),
-        escapeCsv(o.description),
-      ]);
-      const csvContent =
-        "\uFEFF" + [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\r\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `Siparisler-${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const csv = buildCsv(
+        ["Sipariş No", "Müşteri", "Telefon", "Tarih", "Durum", "Ödeme Durumu", "Tutar", "Açıklama"],
+        exportList.map((o) => [
+          o.orderNumber || o.id,
+          o.customer,
+          o.phone,
+          o.date,
+          orderStatusLabel(o.status),
+          o.paymentStatus === "PAID" ? "Ödendi" : o.paymentStatus === "PARTIAL" ? "Kısmi Ödeme" : "Ödeme Bekliyor",
+          o.amount,
+          o.description,
+        ])
+      );
+      const result = await saveFile({
+        fileName: `Siparisler-${new Date().toISOString().slice(0, 10)}.csv`,
+        content: csv,
+        mimeType: "text/csv;charset=utf-8",
+      });
+      if (result === "cancelled") return;
       toast.success(`${exportList.length} sipariş dışa aktarıldı`);
     } catch {
       toast.error("Dışa aktarma sırasında hata oluştu");

@@ -86,7 +86,10 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
     const q = searchValue.trim();
     if (!q) return;
     setIsSearchOpen(false);
-    router.push(`/orders?search=${encodeURIComponent(q)}`);
+    const target = `/orders?search=${encodeURIComponent(q)}`;
+    // The orders page reads ?search= only when it mounts; on that page, reload it instead
+    if (window.location.pathname === "/orders") window.location.href = target;
+    else router.push(target);
   };
 
   const handleLogout = () => {
@@ -202,7 +205,7 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="hidden sm:flex touch-target p-0 h-10 w-10 rounded-xl hover:bg-muted/80 focus-ring relative"
+                className="flex touch-target p-0 h-10 w-10 rounded-xl hover:bg-muted/80 focus-ring relative"
               >
                 <Bell className="w-4 h-4" />
                 {(orderNotifs.pending + orderNotifs.readyForDelivery) > 0 && (
@@ -256,10 +259,10 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => router.push("/settings")}
+                onClick={() => router.push("/orders")}
                 className="cursor-pointer rounded-lg p-2 text-xs text-muted-foreground justify-center"
               >
-                Bildirim Ayarları
+                Tüm siparişler
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

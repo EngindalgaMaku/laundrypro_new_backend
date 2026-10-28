@@ -41,6 +41,11 @@ import {
   ExternalLink,
 } from "lucide-react";
 import jsPDF from "jspdf";
+import { saveFile } from "@/lib/save-file";
+
+/** Text from the database goes into the generated HTML file; keep it from becoming markup */
+const esc = (value: unknown) =>
+  String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
 
 interface EInvoice {
   id: string;
@@ -228,14 +233,20 @@ const response = await fetch("/api/invoices", {
       });
       const detailJson = detailResp.ok ? await detailResp.json() : null;
       const inv = detailJson?.invoice;
+      if (!inv) {
+        toast.error("Fatura bilgileri alınamadı");
+        return;
+      }
 
-      const sellerTitle =
-        inv?.business?.name || user?.business?.name || "Dizaynschool Ltd.";
-      const sellerTaxNumber = inv?.business?.taxNumber || "-";
-      const sellerAddress =
-        [inv?.business?.address, inv?.business?.district, inv?.business?.city]
-          .filter(Boolean)
-          .join(", ") || "Antalya";
+      // Seller is always the invoicing business; never fall back to anyone else's details
+      const sellerTitle = esc(inv.business?.name || "—");
+      const sellerTaxNumber = esc(inv.business?.taxNumber || "—");
+      const sellerAddress = esc(
+        [inv.business?.address, inv.business?.district, inv.business?.city].filter(Boolean).join(", ") || "—"
+      );
+      if (!inv.business?.taxNumber || !inv.business?.address) {
+        toast.warning("İşletmenin vergi numarası veya adresi eksik; Ayarlar > İşletme'den tamamlayın");
+      }
       const items: any[] = Array.isArray(inv?.items) ? inv.items : [];
 
       const itemsTableHtml =
@@ -254,7 +265,7 @@ const response = await fetch("/api/invoices", {
                 ${items
                   .map(
                     (it) => `<tr>
-                      <td style="border:1px solid #ddd;padding:8px;">${it.name || it.description || "Hizmet"}</td>
+                      <td style="border:1px solid #ddd;padding:8px;">${esc(it.name || it.description || "Hizmet")}</td>
                       <td style="border:1px solid #ddd;padding:8px;text-align:right;">${Number(it.quantity || 1)}</td>
                       <td style="border:1px solid #ddd;padding:8px;text-align:right;">₺${Number(it.unitPrice || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</td>
                       <td style="border:1px solid #ddd;padding:8px;text-align:right;">%${Number(it.taxRate || 0)}</td>
@@ -271,7 +282,7 @@ const response = await fetch("/api/invoices", {
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Fatura - ${invoice.invoiceNumber}</title>
+    <title>Fatura - ${esc(invoice.invoiceNumber)}</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 24px; line-height: 1.6; color: #111; }
         .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
@@ -285,8 +296,8 @@ const response = await fetch("/api/invoices", {
 <body>
     <div class="header">
         <h1>FATURA BELGESİ</h1>
-        <p>Fatura No: ${invoice.invoiceNumber}</p>
-        ${invoice.ettn ? `<p>ETTN: ${invoice.ettn}</p>` : ""}
+        <p>Fatura No: ${esc(invoice.invoiceNumber)}</p>
+        ${invoice.ettn ? `<p>ETTN: ${esc(invoice.ettn)}</p>` : ""}
     </div>
 
     <div class="company-info">
@@ -298,18 +309,18 @@ const response = await fetch("/api/invoices", {
         </div>
         <div>
             <h3>ALICI BİLGİLERİ</h3>
-            <p><strong>${invoice.buyerTitle}</strong></p>
+            <p><strong>${esc(invoice.buyerTitle)}</strong></p>
             <p>Fatura Tarihi: ${new Date(
               invoice.invoiceDate
             ).toLocaleDateString("tr-TR")}</p>
             ${
               invoice.order
-                ? `<p>Sipariş No: ${invoice.order.orderNumber}</p>`
+                ? `<p>Sipariş No: ${esc(invoice.order.orderNumber)}</p>`
                 : ""
             }
             ${
               invoice.order
-                ? `<p>Müşteri: ${invoice.order.customer.firstName} ${invoice.order.customer.lastName}</p>`
+                ? `<p>Müşteri: ${esc(invoice.order.customer.firstName)} ${esc(invoice.order.customer.lastName)}</p>`
                 : ""
             }
         </div>
@@ -317,7 +328,7 @@ const response = await fetch("/api/invoices", {
 
     <div class="invoice-details">
         <h3>FATURA BİLGİLERİ</h3>
-        <p><strong>Fatura No:</strong> ${invoice.invoiceNumber}</p>
+        <p><strong>Fatura No:</strong> ${esc(invoice.invoiceNumber)}</p>
         <p><strong>Fatura Tarihi:</strong> ${new Date(
           invoice.invoiceDate
         ).toLocaleDateString("tr-TR")}</p>
@@ -355,17 +366,12 @@ const response = await fetch("/api/invoices", {
 </html>
       `;
 
-      const blob = new Blob([pdfContent], { type: "text/html;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `Fatura-${invoice.invoiceNumber}.html`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast.success("Fatura belgesi başarıyla indirildi");
+      const result = await saveFile({
+        fileName: `Fatura-${invoice.invoiceNumber}.html`,
+        content: pdfContent,
+        mimeType: "text/html;charset=utf-8",
+      });
+      if (result !== "cancelled") toast.success("Fatura belgesi hazırlandı");
     } catch (error) {
       console.error("PDF generation error:", error);
       toast.error("Fatura belgesi oluşturulurken hata oluştu");
