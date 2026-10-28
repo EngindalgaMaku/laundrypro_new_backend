@@ -14,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ArrowLeft, Check, ChevronsUpDown, Plus } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ArrowLeft, Check, ChevronsUpDown, Plus, Trash2, Sparkles, Wallet } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
@@ -37,7 +38,21 @@ interface Customer {
   district?: string
 }
 
-// services removed for now
+interface CatalogService {
+  id: string
+  name: string
+  category: string
+  price: number
+  description?: string
+}
+
+interface OrderLineItem {
+  key: string
+  serviceId?: string
+  name: string
+  quantity: number
+  unitPrice: number
+}
 
 export default function CreateOrderPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -50,11 +65,15 @@ export default function CreateOrderPage() {
   const [orderData, setOrderData] = useState({
     description: "",
     amount: "",
+    paidAmount: "",
+    paymentMethod: "CASH",
     deliveryDate: "",
     notes: "",
     deliveryNotes: "",
     referenceCode: "",
   })
+  const [catalogServices, setCatalogServices] = useState<CatalogService[]>([])
+  const [selectedItems, setSelectedItems] = useState<OrderLineItem[]>([])
   const router = useRouter()
   const [usage, setUsage] = useState<{plan: "FREE"|"PRO"; count: number; limit: number|null}>({plan:"FREE", count:0, limit:50})
   // From Settings > İşletme; tells staff whether the amount they type includes VAT
@@ -69,6 +88,7 @@ export default function CreateOrderPage() {
     }
     setUser(JSON.parse(userData))
     fetchCustomers()
+    fetchServices()
     ;(async() => {
       try {
         const resp = await fetch('/api/orders/daily-usage', {
@@ -101,17 +121,111 @@ export default function CreateOrderPage() {
       const token = localStorage.getItem("token")
       if (!token) return
 
-      const response = await fetch("/api/customers", {
+      const response = await fetch("/api/customers?limit=500", {
         headers: { Authorization: `Bearer ${token}` },
       })
 
       if (response.ok) {
-        const customersData = await response.json()
+        const customersData: Customer[] = await response.json()
         setCustomers(customersData)
+
+        // Pre-select customer if ?customerId= is present in the URL
+        try {
+          const params = new URLSearchParams(window.location.search)
+          const preselectedId = params.get("customerId")
+          if (preselectedId) {
+            const match = customersData.find((c) => c.id === preselectedId)
+            if (match) {
+              setSelectedCustomer(match)
+            }
+          }
+        } catch {
+          // ignore
+        }
       }
     } catch (error) {
       console.error("Failed to fetch customers:", error)
     }
+  }
+
+  const fetchServices = async () => {
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) return
+      const response = await fetch("/api/services", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        const list = Array.isArray(data) ? data : data.services ?? []
+        setCatalogServices(
+          list.map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            category: s.category,
+            price: Number(s.price || 0),
+            description: s.description,
+          }))
+        )
+      }
+    } catch (error) {
+      console.error("Failed to fetch services:", error)
+    }
+  }
+
+  const syncItemsToOrderData = (items: OrderLineItem[]) => {
+    setSelectedItems(items)
+    if (items.length === 0) return
+    const total = items.reduce(
+      (sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0),
+      0
+    )
+    const summaryText = items
+      .map((it) => `${it.name} (${it.quantity} x ₺${it.unitPrice})`)
+      .join(", ")
+    setOrderData((prev) => ({
+      ...prev,
+      amount: String(Number(total.toFixed(2))),
+      description: summaryText,
+    }))
+  }
+
+  const handleAddCatalogService = (serviceId: string) => {
+    const svc = catalogServices.find((s) => s.id === serviceId)
+    if (!svc) return
+    const next: OrderLineItem[] = [
+      ...selectedItems,
+      {
+        key: `${svc.id}-${Date.now()}`,
+        serviceId: svc.id,
+        name: svc.name,
+        quantity: 1,
+        unitPrice: svc.price,
+      },
+    ]
+    syncItemsToOrderData(next)
+  }
+
+  const handleUpdateLineItem = (
+    key: string,
+    field: "quantity" | "unitPrice" | "name",
+    value: string
+  ) => {
+    const next = selectedItems.map((it) => {
+      if (it.key !== key) return it
+      if (field === "name") return { ...it, name: value }
+      const num = parseFloat(value.replace(",", "."))
+      return {
+        ...it,
+        [field]: Number.isFinite(num) && num >= 0 ? num : 0,
+      }
+    })
+    syncItemsToOrderData(next)
+  }
+
+  const handleRemoveLineItem = (key: string) => {
+    const next = selectedItems.filter((it) => it.key !== key)
+    syncItemsToOrderData(next)
   }
 
   if (!user) {
@@ -155,6 +269,7 @@ export default function CreateOrderPage() {
       }
 
       const parsedAmount = parseFloat(orderData.amount.replace(',', '.')) || 0
+      const parsedPaidAmount = parseFloat((orderData.paidAmount || "").replace(',', '.')) || 0
       const combinedNotesParts: string[] = []
       if (orderData.description) combinedNotesParts.push(orderData.description)
       if (orderData.notes) combinedNotesParts.push(orderData.notes)
@@ -164,13 +279,25 @@ export default function CreateOrderPage() {
 
       const payload = {
         customerId: selectedCustomer.id,
-        // manual amount flow: no services, send totalAmount
         totalAmount: parsedAmount,
+        paidAmount: parsedPaidAmount > 0 ? parsedPaidAmount : undefined,
+        paymentMethod: parsedPaidAmount > 0 ? orderData.paymentMethod : undefined,
+        orderInfo: orderData.description.trim(),
+        deliveryNotes: orderData.deliveryNotes.trim() || undefined,
+        referenceCode: orderData.referenceCode.trim() || undefined,
         deliveryDate: orderData.deliveryDate ? new Date(orderData.deliveryDate) : undefined,
         notes: combinedNotes,
-        paymentMethod: undefined,
         priority: undefined,
-        services: [],
+        items:
+          selectedItems.length > 0
+            ? selectedItems.map((it) => ({
+                serviceId: it.serviceId,
+                serviceName: it.name,
+                isManualEntry: !it.serviceId,
+                quantity: it.quantity || 1,
+                unitPrice: it.unitPrice || 0,
+              }))
+            : undefined,
       }
 
       const resp = await fetch('/api/orders', {
@@ -353,11 +480,107 @@ export default function CreateOrderPage() {
                       <CardDescription>Sipariş bilgisi, tutar ve teslim tarihini girin</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      {/* Optional Service Catalog Selector */}
+                      {catalogServices.length > 0 && (
+                        <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-3.5">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div>
+                              <Label className="flex items-center gap-1.5 text-sm font-semibold">
+                                <Sparkles className="h-4 w-4 text-primary" />
+                                Hizmet Kataloğundan Kalem Ekle (İsteğe Bağlı)
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                Halı (m²), kuru temizleme (adet) veya çamaşır (kg) seçerek tutarı otomatik hesaplatabilirsiniz
+                              </p>
+                            </div>
+                            <Select onValueChange={handleAddCatalogService}>
+                              <SelectTrigger className="w-full sm:w-64 bg-card">
+                                <SelectValue placeholder="+ Katalogdan hizmet seçin..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {catalogServices.map((svc) => (
+                                  <SelectItem key={svc.id} value={svc.id}>
+                                    {svc.name} — ₺{svc.price}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {selectedItems.length > 0 && (
+                            <div className="space-y-2 pt-2 border-t border-border">
+                              {selectedItems.map((item, idx) => (
+                                <div
+                                  key={item.key}
+                                  className="grid grid-cols-12 gap-2 items-center bg-card p-2 rounded-lg border border-border text-sm"
+                                >
+                                  <div className="col-span-12 sm:col-span-5">
+                                    <span className="text-xs text-muted-foreground mr-1">
+                                      #{idx + 1}
+                                    </span>
+                                    <span className="font-medium">{item.name}</span>
+                                  </div>
+                                  <div className="col-span-5 sm:col-span-3">
+                                    <Label className="text-[10px] text-muted-foreground">
+                                      Miktar / m² / Kg
+                                    </Label>
+                                    <Input
+                                      type="number"
+                                      step="0.1"
+                                      min="0.1"
+                                      className="h-8 text-xs"
+                                      value={item.quantity}
+                                      onChange={(e) =>
+                                        handleUpdateLineItem(
+                                          item.key,
+                                          "quantity",
+                                          e.target.value
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                  <div className="col-span-5 sm:col-span-3">
+                                    <Label className="text-[10px] text-muted-foreground">
+                                      Birim Fiyat (₺)
+                                    </Label>
+                                    <Input
+                                      type="number"
+                                      step="0.5"
+                                      min="0"
+                                      className="h-8 text-xs"
+                                      value={item.unitPrice}
+                                      onChange={(e) =>
+                                        handleUpdateLineItem(
+                                          item.key,
+                                          "unitPrice",
+                                          e.target.value
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                  <div className="col-span-2 sm:col-span-1 flex justify-end pt-3">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                      onClick={() => handleRemoveLineItem(item.key)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <div className="space-y-2">
                         <Label htmlFor="description">Sipariş Bilgisi *</Label>
                         <Textarea
                           id="description"
-                          placeholder="Örn: Ütü + Kuru temizleme vb."
+                          placeholder="Örn: 2 adet 6m² Yün Halı + 1 Yorgan vb."
                           value={orderData.description}
                           onChange={(e) => setOrderData((prev) => ({ ...prev, description: e.target.value }))}
                           required
@@ -365,7 +588,7 @@ export default function CreateOrderPage() {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="amount">Tutar (₺, KDV {pricesIncludeVat ? 'dahil' : 'hariç'}) *</Label>
+                          <Label htmlFor="amount">Toplam Tutar (₺, KDV {pricesIncludeVat ? 'dahil' : 'hariç'}) *</Label>
                           <Input
                             id="amount"
                             type="text"
@@ -383,6 +606,51 @@ export default function CreateOrderPage() {
                             value={orderData.deliveryDate}
                             onChange={(e) => setOrderData((prev) => ({ ...prev, deliveryDate: e.target.value }))}
                           />
+                        </div>
+                      </div>
+
+                      {/* Initial Deposit / Payment Section */}
+                      <div className="rounded-xl border border-border bg-muted/20 p-3.5 space-y-3">
+                        <Label className="flex items-center gap-1.5 text-sm font-semibold">
+                          <Wallet className="h-4 w-4 text-emerald-600" />
+                          Alınan Peşinat / Ödeme (İsteğe Bağlı)
+                        </Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="paidAmount" className="text-xs text-muted-foreground">
+                              Şu An Alınan Tutar (₺)
+                            </Label>
+                            <Input
+                              id="paidAmount"
+                              type="text"
+                              placeholder="0 (Teslimatta alınacaksa boş bırakın)"
+                              value={orderData.paidAmount}
+                              onChange={(e) =>
+                                setOrderData((prev) => ({
+                                  ...prev,
+                                  paidAmount: e.target.value.replace(/[^0-9.,]/g, ""),
+                                }))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-muted-foreground">Ödeme Yöntemi</Label>
+                            <Select
+                              value={orderData.paymentMethod}
+                              onValueChange={(val) =>
+                                setOrderData((prev) => ({ ...prev, paymentMethod: val }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="CASH">Nakit</SelectItem>
+                                <SelectItem value="CREDIT_CARD">Kredi Kartı / POS</SelectItem>
+                                <SelectItem value="BANK_TRANSFER">Havale / EFT / IBAN</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
                       <div className="space-y-2">

@@ -6,7 +6,7 @@ import { ClipboardList, FileText, Route, Settings, UserPlus, Users } from "lucid
 const SHORTCUTS = [
   { title: "Müşteri Ekle", icon: UserPlus, href: "/customers/create" },
   { title: "Siparişler", icon: ClipboardList, href: "/orders" },
-  { title: "Teslimat Rotası", icon: Route, href: "/delivery/route-planner" },
+  { title: "Teslimat Rotası", icon: Route, href: "/routes" },
   { title: "Müşteriler", icon: Users, href: "/customers" },
   { title: "Faturalar", icon: FileText, href: "/invoices" },
   { title: "Ayarlar", icon: Settings, href: "/settings" },

@@ -28,6 +28,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { makePhoneCall, sendWhatsAppMessage } from "@/lib/communication";
@@ -88,6 +90,8 @@ export default function CustomersPage() {
   } | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [, setLoading] = useState(true);
+  const [customerFilter, setCustomerFilter] = useState<"ALL" | "ACTIVE" | "WITH_ORDERS">("ALL");
+  const [customerSort, setCustomerSort] = useState<"RECENT" | "SPENT_DESC" | "ORDERS_DESC" | "NAME_ASC">("RECENT");
 
   const fetchCustomers = async () => {
     try {
@@ -98,7 +102,7 @@ export default function CustomersPage() {
         return;
       }
 
-      const customersResponse = await fetch("/api/customers", {
+      const customersResponse = await fetch("/api/customers?limit=500", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -110,74 +114,32 @@ export default function CustomersPage() {
 
       const dbCustomers: DatabaseCustomer[] = await customersResponse.json();
 
-      const customerOrderStats: {
-        [customerId: string]: {
-          totalOrders: number;
-          totalSpent: number;
-          lastOrderDate: string;
-        };
-      } = {};
-
-      try {
-        const ordersResponse = await fetch("/api/orders", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (ordersResponse.ok) {
-          const ordersData = await ordersResponse.json();
-          const orders = Array.isArray(ordersData)
-            ? ordersData
-            : ordersData.orders ?? [];
-
-          orders.forEach((order: any) => {
-            const customerId = order.customerId;
-            if (!customerOrderStats[customerId]) {
-              customerOrderStats[customerId] = {
-                totalOrders: 0,
-                totalSpent: 0,
-                lastOrderDate: order.createdAt,
-              };
-            }
-
-            customerOrderStats[customerId].totalOrders += 1;
-            customerOrderStats[customerId].totalSpent += parseFloat(
-              order.totalAmount || 0
-            );
-
-            if (
-              new Date(order.createdAt) >
-              new Date(customerOrderStats[customerId].lastOrderDate)
-            ) {
-              customerOrderStats[customerId].lastOrderDate = order.createdAt;
-            }
-          });
-        }
-      } catch (ordersError) {
-        console.warn("Could not fetch orders for customer stats:", ordersError);
-      }
-
       const transformedCustomers: Customer[] = dbCustomers.map((dbCustomer) => {
-        const stats = customerOrderStats[dbCustomer.id] || {
-          totalOrders: 0,
-          totalSpent: 0,
-          lastOrderDate: dbCustomer.createdAt,
-        };
+        const custOrders = Array.isArray((dbCustomer as any).orders)
+          ? (dbCustomer as any).orders
+          : [];
+        const totalOrders =
+          (dbCustomer as any)._count?.orders ?? custOrders.length;
+        const totalSpent = custOrders.reduce(
+          (sum: number, o: any) => sum + Number(o.totalAmount || 0),
+          0
+        );
+        const lastOrderDate =
+          custOrders[0]?.createdAt || dbCustomer.createdAt;
 
         return {
           id: dbCustomer.id,
-          name: `${dbCustomer.firstName} ${dbCustomer.lastName}`,
+          name: `${dbCustomer.firstName} ${dbCustomer.lastName}`.trim(),
           phone: dbCustomer.phone,
           email: dbCustomer.email || "",
           address: dbCustomer.address || "",
-          totalOrders: (dbCustomer as any)._count?.orders ?? stats.totalOrders,
-          totalSpent: `₺${stats.totalSpent.toLocaleString("tr-TR", {
+          totalOrders,
+          totalSpent: `₺${totalSpent.toLocaleString("tr-TR", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}`,
-          totalSpentValue: stats.totalSpent,
-          lastOrder: new Date(stats.lastOrderDate).toLocaleDateString("tr-TR"),
+          totalSpentValue: totalSpent,
+          lastOrder: new Date(lastOrderDate).toLocaleDateString("tr-TR"),
           status: dbCustomer.isActive ? "active" : "inactive",
           registrationDate: new Date(dbCustomer.createdAt).toLocaleDateString(
             "tr-TR"
@@ -214,12 +176,70 @@ export default function CustomersPage() {
     return <div className="p-6 text-muted-foreground">Yükleniyor…</div>;
   }
 
-  const filteredCustomers = customers.filter(
-    (customer) =>
-      customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.phone.includes(searchQuery) ||
-      customer.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCustomers = customers
+    .filter((customer) => {
+      const matchesSearch =
+        customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        customer.phone.includes(searchQuery) ||
+        customer.email.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchesSearch) return false;
+      if (customerFilter === "ACTIVE") return customer.status === "active";
+      if (customerFilter === "WITH_ORDERS") return customer.totalOrders > 0;
+      return true;
+    })
+    .sort((a, b) => {
+      if (customerSort === "SPENT_DESC") {
+        return (b.totalSpentValue || 0) - (a.totalSpentValue || 0);
+      }
+      if (customerSort === "ORDERS_DESC") {
+        return b.totalOrders - a.totalOrders;
+      }
+      if (customerSort === "NAME_ASC") {
+        return a.name.localeCompare(b.name, "tr");
+      }
+      return 0;
+    });
+
+  const handleExportCustomers = () => {
+    if (filteredCustomers.length === 0) {
+      toast.error("Dışa aktarılacak müşteri bulunamadı");
+      return;
+    }
+    const escapeCsv = (val: string | number) =>
+      `"${String(val ?? "").replace(/"/g, '""')}"`;
+    const headers = [
+      "Ad Soyad",
+      "Telefon",
+      "E-posta",
+      "Adres",
+      "Toplam Sipariş",
+      "Toplam Ciro (TL)",
+      "Son İşlem",
+      "Durum",
+    ];
+    const rows = filteredCustomers.map((c) => [
+      escapeCsv(c.name),
+      escapeCsv(c.phone),
+      escapeCsv(c.email),
+      escapeCsv(c.address),
+      escapeCsv(c.totalOrders),
+      escapeCsv((c.totalSpentValue || 0).toFixed(2)),
+      escapeCsv(c.lastOrder),
+      escapeCsv(c.status === "active" ? "Aktif" : "Pasif"),
+    ]);
+    const csvContent =
+      "\uFEFF" + [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Musteriler-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`${filteredCustomers.length} müşteri dışa aktarıldı`);
+  };
 
   const handleCallCustomer = (phone: string) => {
     makePhoneCall(phone);
@@ -324,11 +344,46 @@ export default function CustomersPage() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-2 sm:flex">
-                <Button variant="outline">
-                  <Filter className="h-4 w-4" />
-                  Filtrele
-                </Button>
-                <Button variant="outline">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      <Filter className="h-4 w-4" />
+                      Filtrele
+                      {(customerFilter !== "ALL" || customerSort !== "RECENT") && (
+                        <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-[10px]">
+                          Aktif
+                        </Badge>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Müşteri Filtresi</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => setCustomerFilter("ALL")}>
+                      {customerFilter === "ALL" ? "✓ " : ""}Tüm Müşteriler
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCustomerFilter("ACTIVE")}>
+                      {customerFilter === "ACTIVE" ? "✓ " : ""}Sadece Aktif Olanlar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCustomerFilter("WITH_ORDERS")}>
+                      {customerFilter === "WITH_ORDERS" ? "✓ " : ""}Siparişi Olanlar
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Sıralama</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => setCustomerSort("RECENT")}>
+                      {customerSort === "RECENT" ? "✓ " : ""}Kayıt Tarihine Göre
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCustomerSort("SPENT_DESC")}>
+                      {customerSort === "SPENT_DESC" ? "✓ " : ""}En Çok Harcayan (Ciro)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCustomerSort("ORDERS_DESC")}>
+                      {customerSort === "ORDERS_DESC" ? "✓ " : ""}En Çok Sipariş Veren
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setCustomerSort("NAME_ASC")}>
+                      {customerSort === "NAME_ASC" ? "✓ " : ""}İsme Göre (A-Z)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button variant="outline" onClick={handleExportCustomers}>
                   <Download className="h-4 w-4" />
                   Dışa Aktar
                 </Button>

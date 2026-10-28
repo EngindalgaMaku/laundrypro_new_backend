@@ -19,6 +19,7 @@ export interface OrderFilters {
   };
   assignedUserId?: string;
   priority?: Priority;
+  paymentStatus?: string;
   search?: string; // Search in order number, customer name, notes
   sortBy?: "createdAt" | "pickupDate" | "deliveryDate" | "totalAmount";
   sortOrder?: "asc" | "desc";
@@ -60,6 +61,7 @@ export interface CreateOrderData {
   discountReason?: string;
   paymentMethod?: PaymentMethod;
   totalAmount?: number; // when no services provided
+  paidAmount?: number; // initial deposit / payment at order creation
 }
 
 export interface UpdateOrderData {
@@ -264,9 +266,38 @@ export class OrderDatabaseService {
     } else {
       // Services not provided -> use provided totalAmount (manual)
       subtotal = Number(data.totalAmount || 0);
+      if (subtotal > 0) {
+        const manualTitle =
+          data.orderInfo?.trim() ||
+          data.notes?.split("\n")[0]?.trim() ||
+          "Genel Hizmet";
+        serviceItems.push({
+          serviceId: null,
+          serviceName: manualTitle,
+          serviceDescription: data.notes || undefined,
+          isManualEntry: true,
+          quantity: 1,
+          unitPrice: subtotal,
+          totalPrice: subtotal,
+        });
+      }
     }
 
-    const totalAmount = subtotal;
+    const totalAmount =
+      data.totalAmount && Number(data.totalAmount) > 0
+        ? Number(data.totalAmount)
+        : subtotal;
+    const rawPaid = Number(data.paidAmount || 0);
+    const initialPaid =
+      Number.isFinite(rawPaid) && rawPaid > 0
+        ? Math.min(rawPaid, totalAmount > 0 ? totalAmount : rawPaid)
+        : 0;
+    const initialPaymentStatus =
+      initialPaid >= totalAmount && totalAmount > 0
+        ? "PAID"
+        : initialPaid > 0
+        ? "PARTIAL"
+        : "PENDING";
 
     // Create order in transaction
     const order = await prisma.$transaction(async (tx) => {
@@ -278,6 +309,7 @@ export class OrderDatabaseService {
           orderNumber,
           trackingToken: newTrackingToken(),
           status: "PENDING",
+          paymentStatus: initialPaymentStatus as any,
           pickupAddress: data.pickupAddress,
           deliveryAddress: data.deliveryAddress,
           pickupDate: data.pickupDate,
@@ -294,6 +326,22 @@ export class OrderDatabaseService {
           paymentMethod: data.paymentMethod,
         },
       });
+
+      if (initialPaid > 0) {
+        await tx.payment.create({
+          data: {
+            orderId: newOrder.id,
+            amount: initialPaid,
+            paymentMethod: data.paymentMethod || "CASH",
+            status: "PAID",
+            paidAt: new Date(),
+            notes:
+              initialPaid >= totalAmount
+                ? "Sipariş açılışında peşin tahsilat"
+                : "Sipariş açılışında alınan peşinat / kapora",
+          },
+        });
+      }
 
       // Create order items if provided
       if (serviceItems.length > 0) {
@@ -417,6 +465,14 @@ export class OrderDatabaseService {
 
       if (filters.priority) {
         where.priority = filters.priority;
+      }
+
+      if (filters.paymentStatus) {
+        if (filters.paymentStatus === "UNPAID") {
+          where.paymentStatus = { in: ["PENDING", "PARTIAL"] };
+        } else {
+          where.paymentStatus = filters.paymentStatus;
+        }
       }
 
       if (filters.dateRange) {

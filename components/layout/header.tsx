@@ -24,8 +24,11 @@ import {
   Settings,
   UserCog,
   QrCode,
+  Package,
+  Truck,
+  Clock,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LogoMark } from "@/components/brand/logo";
 import { QRBarcodeScannerDialog } from "@/components/orders/qr-barcode-scanner-dialog";
 
@@ -48,21 +51,48 @@ interface HeaderProps {
 export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
   const router = useRouter();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [showBetaDetails, setShowBetaDetails] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [sendingFeedback, setSendingFeedback] = useState(false);
-
-  // DEBUG: Log header props
-  console.log("Header Props:", {
-    hasOnMenuClick: !!onMenuClick,
-    isMobileMenuOpen,
-    userEmail: user?.email,
+  const [orderNotifs, setOrderNotifs] = useState({
+    pending: 0,
+    readyForDelivery: 0,
+    outForDelivery: 0,
   });
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    fetch("/api/orders/stats", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((s) => {
+        if (!s) return;
+        setOrderNotifs({
+          pending: Number(s.pending || 0),
+          readyForDelivery: Number(s.readyForDelivery || 0),
+          outForDelivery: Number(s.outForDelivery || 0),
+        });
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchValue.trim();
+    if (!q) return;
+    setIsSearchOpen(false);
+    router.push(`/orders?search=${encodeURIComponent(q)}`);
+  };
+
   const handleLogout = () => {
+    localStorage.removeItem("token");
     localStorage.removeItem("user");
+    fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     router.push("/");
   };
 
@@ -130,13 +160,15 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
 
         {/* Enhanced Desktop Search */}
         <div className="hidden md:flex items-center flex-1 max-w-md mx-6 lg:mx-8">
-          <div className="relative w-full">
+          <form onSubmit={handleSearchSubmit} className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 z-10" />
             <Input
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
               className="pl-10 pr-4 w-full bg-muted/30 hover:bg-muted/50 border border-input-border focus:bg-background focus:border-ring transition-all duration-200 rounded-xl h-10 text-mobile-base focus-ring"
               placeholder="Sipariş, müşteri ara..."
             />
-          </div>
+          </form>
         </div>
 
         {/* Enhanced Right Section */}
@@ -165,17 +197,72 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
           </Button>
 
           {/* Notification Button - Enhanced */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hidden sm:flex touch-target p-0 h-10 w-10 rounded-xl hover:bg-muted/80 focus-ring relative"
-          >
-            <Bell className="w-4 h-4" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full flex items-center justify-center">
-              <span className="w-1.5 h-1.5 bg-card rounded-full"></span>
-            </span>
-            <span className="sr-only">Bildirimler</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:flex touch-target p-0 h-10 w-10 rounded-xl hover:bg-muted/80 focus-ring relative"
+              >
+                <Bell className="w-4 h-4" />
+                {(orderNotifs.pending + orderNotifs.readyForDelivery) > 0 && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full flex items-center justify-center">
+                    <span className="w-1.5 h-1.5 bg-card rounded-full"></span>
+                  </span>
+                )}
+                <span className="sr-only">Bildirimler</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72 p-2 rounded-xl">
+              <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
+                Operasyon Özeti & Bildirimler
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => router.push("/orders?status=PENDING")}
+                className="cursor-pointer rounded-lg p-2.5 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Package className="h-4 w-4 text-amber-600" />
+                  <span className="text-sm">Bekleyen Siparişler</span>
+                </div>
+                <Badge variant="secondary" className="tabular-nums">
+                  {orderNotifs.pending}
+                </Badge>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => router.push("/orders?status=READY_FOR_DELIVERY")}
+                className="cursor-pointer rounded-lg p-2.5 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Clock className="h-4 w-4 text-emerald-600" />
+                  <span className="text-sm">Teslimata Hazır</span>
+                </div>
+                <Badge variant="secondary" className="tabular-nums">
+                  {orderNotifs.readyForDelivery}
+                </Badge>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => router.push("/orders?status=OUT_FOR_DELIVERY")}
+                className="cursor-pointer rounded-lg p-2.5 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Truck className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm">Dağıtımda</span>
+                </div>
+                <Badge variant="secondary" className="tabular-nums">
+                  {orderNotifs.outForDelivery}
+                </Badge>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => router.push("/settings")}
+                className="cursor-pointer rounded-lg p-2 text-xs text-muted-foreground justify-center"
+              >
+                Bildirim Ayarları
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Compact Beta Controls (non-blocking) */}
           <div className="hidden md:flex items-center gap-2 mr-1">
@@ -248,14 +335,16 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
       {/* Enhanced Mobile Search Bar */}
       {isSearchOpen && (
         <div className="md:hidden border-t border-border bg-background/95 p-3 slide-in-up">
-          <div className="relative">
+          <form onSubmit={handleSearchSubmit} className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 z-10" />
             <Input
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
               className="pl-10 pr-4 w-full bg-muted/30 border border-input-border rounded-xl h-11 text-mobile-base focus:bg-background focus:border-ring transition-all duration-200 focus-ring"
               placeholder="Sipariş, müşteri ara..."
               autoFocus
             />
-          </div>
+          </form>
         </div>
       )}
       {/* Removed full-width beta banner to avoid blocking page title */}

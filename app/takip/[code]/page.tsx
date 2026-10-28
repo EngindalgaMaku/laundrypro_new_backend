@@ -32,6 +32,8 @@ interface TrackedOrder {
   pickupDate?: string | null;
   deliveryDate?: string | null;
   totalAmount: number;
+  paidAmount?: number;
+  remainingAmount?: number;
   business: {
     name: string;
     phone?: string | null;
@@ -350,11 +352,29 @@ export default function PublicOrderTrackingPage() {
                     </span>
                   </div>
                 ))}
-                <div className="flex items-center justify-between pt-3 border-t font-bold text-base">
-                  <span>Toplam Tutar</span>
-                  <span className="text-blue-600">
-                    {formatMoney(data.totalAmount)}
-                  </span>
+                <div className="pt-3 border-t space-y-1.5">
+                  <div className="flex items-center justify-between font-bold text-base">
+                    <span>Toplam Tutar</span>
+                    <span className="text-blue-600">
+                      {formatMoney(data.totalAmount)}
+                    </span>
+                  </div>
+                  {(data.paidAmount ?? 0) > 0 && (
+                    <div className="flex items-center justify-between text-xs text-emerald-700 font-medium">
+                      <span>Ödenen Tutar</span>
+                      <span>{formatMoney(data.paidAmount || 0)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-sm font-semibold pt-1">
+                    <span>Kalan Ödeme</span>
+                    {(data.remainingAmount ?? data.totalAmount) <= 0 ? (
+                      <Badge className="bg-emerald-600 text-white">Ödendi</Badge>
+                    ) : (
+                      <span className="text-amber-700">
+                        {formatMoney(data.remainingAmount ?? data.totalAmount)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

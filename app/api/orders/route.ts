@@ -84,8 +84,12 @@ export async function GET(request: NextRequest) {
       filters.search = searchQuery;
     }
 
-    if (priority) {
+    if (priority && priority !== "ALL") {
       filters.priority = priority as any;
+    }
+
+    if (paymentStatus && paymentStatus !== "ALL") {
+      filters.paymentStatus = paymentStatus;
     }
 
     if (startDate && endDate) {
@@ -130,6 +134,7 @@ export async function GET(request: NextRequest) {
         service: order.orderItems?.[0]?.service?.name,
         serviceType: order.orderItems?.[0]?.service?.category || "OTHER",
         status: order.status,
+        paymentStatus: order.paymentStatus || "PENDING",
         amount: `₺${Number(order.totalAmount || 0).toLocaleString("tr-TR")}`,
         totalAmount: Number(order.totalAmount || 0),
         date: order.createdAt.toISOString().split("T")[0],

@@ -74,6 +74,12 @@ export async function GET(
             createdAt: true,
           },
         },
+        payments: {
+          where: { status: "PAID" },
+          select: {
+            amount: true,
+          },
+        },
       },
     });
 
@@ -84,6 +90,19 @@ export async function GET(
       );
     }
 
+    const totalAmount = Number(order.totalAmount || 0);
+    const recordedPaid = (order.payments || []).reduce(
+      (sum, p) => sum + Number(p.amount || 0),
+      0
+    );
+    const paidAmount =
+      (order.payments || []).length === 0 && order.paymentStatus === "PAID"
+        ? totalAmount
+        : Number(recordedPaid.toFixed(2));
+    const remainingAmount = Number(
+      Math.max(0, totalAmount - paidAmount).toFixed(2)
+    );
+
     const publicData = {
       orderNumber: order.orderNumber,
       status: order.status,
@@ -91,7 +110,9 @@ export async function GET(
       createdAt: order.createdAt,
       pickupDate: order.pickupDate,
       deliveryDate: order.deliveryDate,
-      totalAmount: Number(order.totalAmount || 0),
+      totalAmount,
+      paidAmount,
+      remainingAmount,
       business: {
         name: order.business?.name || "İşletme",
         phone: order.business?.phone || null,

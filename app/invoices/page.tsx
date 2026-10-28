@@ -220,28 +220,71 @@ const response = await fetch("/api/invoices", {
 
   const handleDownloadInvoice = async (invoice: EInvoice) => {
     try {
-      toast.info("PDF oluşturuluyor...");
+      toast.info("Fatura belgesi hazırlanıyor...");
 
-      // Basit PDF içeriği oluştur
+      const token = localStorage.getItem("token");
+      const detailResp = await fetch(`/api/invoices/${invoice.id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const detailJson = detailResp.ok ? await detailResp.json() : null;
+      const inv = detailJson?.invoice;
+
+      const sellerTitle =
+        inv?.business?.name || user?.business?.name || "Dizaynschool Ltd.";
+      const sellerTaxNumber = inv?.business?.taxNumber || "-";
+      const sellerAddress =
+        [inv?.business?.address, inv?.business?.district, inv?.business?.city]
+          .filter(Boolean)
+          .join(", ") || "Antalya";
+      const items: any[] = Array.isArray(inv?.items) ? inv.items : [];
+
+      const itemsTableHtml =
+        items.length > 0
+          ? `<table style="width:100%;border-collapse:collapse;margin:20px 0;">
+              <thead>
+                <tr style="background:#f2f2f2;">
+                  <th style="border:1px solid #ddd;padding:8px;text-align:left;">Açıklama</th>
+                  <th style="border:1px solid #ddd;padding:8px;text-align:right;">Miktar</th>
+                  <th style="border:1px solid #ddd;padding:8px;text-align:right;">Birim Fiyat</th>
+                  <th style="border:1px solid #ddd;padding:8px;text-align:right;">KDV %</th>
+                  <th style="border:1px solid #ddd;padding:8px;text-align:right;">Toplam</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items
+                  .map(
+                    (it) => `<tr>
+                      <td style="border:1px solid #ddd;padding:8px;">${it.name || it.description || "Hizmet"}</td>
+                      <td style="border:1px solid #ddd;padding:8px;text-align:right;">${Number(it.quantity || 1)}</td>
+                      <td style="border:1px solid #ddd;padding:8px;text-align:right;">₺${Number(it.unitPrice || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</td>
+                      <td style="border:1px solid #ddd;padding:8px;text-align:right;">%${Number(it.taxRate || 0)}</td>
+                      <td style="border:1px solid #ddd;padding:8px;text-align:right;">₺${Number(it.lineTotal || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</td>
+                    </tr>`
+                  )
+                  .join("")}
+              </tbody>
+            </table>`
+          : "";
+
       const pdfContent = `
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>E-Fatura - ${invoice.invoiceNumber}</title>
+    <title>Fatura - ${invoice.invoiceNumber}</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        body { font-family: Arial, sans-serif; margin: 24px; line-height: 1.6; color: #111; }
         .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
-        .company-info { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .company-info { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
         .invoice-details { margin-bottom: 20px; }
-        .totals { text-align: right; margin-top: 20px; font-size: 18px; }
-        .signature { margin-top: 50px; text-align: center; color: #666; }
+        .totals { text-align: right; margin-top: 20px; font-size: 16px; }
+        .signature { margin-top: 40px; text-align: center; color: #666; font-size: 12px; }
         @media print { body { margin: 0; } }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>ELEKTRONİK FATURA</h1>
+        <h1>FATURA BELGESİ</h1>
         <p>Fatura No: ${invoice.invoiceNumber}</p>
         ${invoice.ettn ? `<p>ETTN: ${invoice.ettn}</p>` : ""}
     </div>
@@ -249,10 +292,9 @@ const response = await fetch("/api/invoices", {
     <div class="company-info">
         <div>
             <h3>SATICI BİLGİLERİ</h3>
-            <p><strong>LaundryPro Temizlik Hizmetleri Ltd. Şti.</strong></p>
-            <p>VKN: 9876543210</p>
-            <p>Vergi Dairesi: İstanbul Vergi Dairesi</p>
-            <p>Merkez Mah. İş Cad. No:456 Şişli/İSTANBUL</p>
+            <p><strong>${sellerTitle}</strong></p>
+            <p>VKN / TCKN: ${sellerTaxNumber}</p>
+            <p>${sellerAddress}</p>
         </div>
         <div>
             <h3>ALICI BİLGİLERİ</h3>
@@ -283,8 +325,20 @@ const response = await fetch("/api/invoices", {
         <p><strong>Para Birimi:</strong> TRY</p>
     </div>
 
+    ${itemsTableHtml}
+
     <div class="totals">
-        <p><strong>TOPLAM TUTAR: ₺${invoice.totalAmount.toLocaleString(
+        ${
+          inv?.subtotalAmount !== undefined
+            ? `<p>Ara Toplam: ₺${Number(inv.subtotalAmount).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</p>`
+            : ""
+        }
+        ${
+          inv?.taxAmount !== undefined
+            ? `<p>KDV: ₺${Number(inv.taxAmount).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</p>`
+            : ""
+        }
+        <p><strong>GENEL TOPLAM: ₺${invoice.totalAmount.toLocaleString(
           "tr-TR",
           { minimumFractionDigits: 2 }
         )}</strong></p>
@@ -295,27 +349,26 @@ const response = await fetch("/api/invoices", {
         <p>Oluşturma Tarihi: ${new Date(invoice.createdAt).toLocaleString(
           "tr-TR"
         )}</p>
-        <p>LaundryPro - Profesyonel Temizlik Çözümleri</p>
+        <p>${sellerTitle}</p>
     </div>
 </body>
 </html>
       `;
 
-      // PDF indirmek için blob oluştur ve indir
-      const blob = new Blob([pdfContent], { type: "text/html" });
+      const blob = new Blob([pdfContent], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `E-Fatura-${invoice.invoiceNumber}.html`;
+      link.download = `Fatura-${invoice.invoiceNumber}.html`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success("Fatura PDF'i başarıyla indirildi");
+      toast.success("Fatura belgesi başarıyla indirildi");
     } catch (error) {
       console.error("PDF generation error:", error);
-      toast.error("PDF oluşturulurken hata oluştu");
+      toast.error("Fatura belgesi oluşturulurken hata oluştu");
     }
   };
 

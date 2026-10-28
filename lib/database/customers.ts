@@ -209,6 +209,14 @@ export class CustomerDatabaseService {
       prisma.customer.findMany({
         where,
         include: {
+          orders: {
+            where: { status: { not: "CANCELLED" } },
+            select: {
+              totalAmount: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: "desc" },
+          },
           _count: {
             select: {
               orders: true,

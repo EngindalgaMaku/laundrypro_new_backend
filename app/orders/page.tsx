@@ -27,9 +27,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -70,6 +72,8 @@ interface Order {
     | "COMPLETED"
     | "CANCELLED";
   amount: string;
+  totalAmount?: number;
+  paymentStatus?: string;
   date: string;
   phone: string;
   whatsapp: string;
@@ -104,6 +108,8 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("ALL");
+  const [paymentFilter, setPaymentFilter] = useState<"ALL" | "UNPAID" | "PAID">("ALL");
+  const [priorityFilter, setPriorityFilter] = useState<"ALL" | "URGENT" | "HIGH">("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -123,11 +129,21 @@ export default function OrdersPage() {
   const limit = 12;
 
   useEffect(() => {
-    // Load last used status filter (fallback to ALL)
+    // Load last used status filter or URL search params
     try {
-      const savedStatus = localStorage.getItem("ordersActiveStatus");
-      if (savedStatus) {
-        setActiveTab(savedStatus);
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlSearch = urlParams.get("search");
+      const urlStatus = urlParams.get("status");
+      if (urlSearch) {
+        setSearchQuery(urlSearch);
+      }
+      if (urlStatus) {
+        setActiveTab(urlStatus);
+      } else {
+        const savedStatus = localStorage.getItem("ordersActiveStatus");
+        if (savedStatus) {
+          setActiveTab(savedStatus);
+        }
       }
     } catch (e) {
       console.warn("OrdersPage: unable to read saved status filter");
@@ -168,6 +184,14 @@ export default function OrdersPage() {
 
       if (searchQuery.trim()) {
         params.append("search", searchQuery.trim());
+      }
+
+      if (paymentFilter !== "ALL") {
+        params.append("paymentStatus", paymentFilter);
+      }
+
+      if (priorityFilter !== "ALL") {
+        params.append("priority", priorityFilter);
       }
 
       const response = await fetch(`/api/orders?${params}`, {
@@ -217,7 +241,73 @@ export default function OrdersPage() {
     if (user) {
       fetchOrders();
     }
-  }, [user, currentPage, activeTab, searchQuery]);
+  }, [user, currentPage, activeTab, searchQuery, paymentFilter, priorityFilter]);
+
+  const handleExportOrders = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const params = new URLSearchParams({ page: "1", limit: "500" });
+      if (activeTab !== "ALL") params.append("status", activeTab);
+      if (searchQuery.trim()) params.append("search", searchQuery.trim());
+      if (paymentFilter !== "ALL") params.append("paymentStatus", paymentFilter);
+      if (priorityFilter !== "ALL") params.append("priority", priorityFilter);
+
+      const res = await fetch(`/api/orders?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      const exportList: Order[] = data.orders || orders;
+
+      if (exportList.length === 0) {
+        toast.error("Dışa aktarılacak sipariş bulunamadı");
+        return;
+      }
+
+      const escapeCsv = (val: string | number) =>
+        `"${String(val ?? "").replace(/"/g, '""')}"`;
+      const headers = [
+        "Sipariş No",
+        "Müşteri",
+        "Telefon",
+        "Tarih",
+        "Durum",
+        "Ödeme Durumu",
+        "Tutar",
+        "Açıklama",
+      ];
+      const rows = exportList.map((o) => [
+        escapeCsv(o.orderNumber || o.id),
+        escapeCsv(o.customer),
+        escapeCsv(o.phone),
+        escapeCsv(o.date),
+        escapeCsv(orderStatusLabel(o.status)),
+        escapeCsv(
+          o.paymentStatus === "PAID"
+            ? "Ödendi"
+            : o.paymentStatus === "PARTIAL"
+            ? "Kısmi Ödeme"
+            : "Ödeme Bekliyor"
+        ),
+        escapeCsv(o.amount),
+        escapeCsv(o.description),
+      ]);
+      const csvContent =
+        "\uFEFF" + [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Siparisler-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success(`${exportList.length} sipariş dışa aktarıldı`);
+    } catch {
+      toast.error("Dışa aktarma sırasında hata oluştu");
+    }
+  };
 
   // Persist selected status filter
   useEffect(() => {
@@ -338,11 +428,73 @@ export default function OrdersPage() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-2 sm:flex">
-                <Button variant="outline">
-                  <Filter className="h-4 w-4" />
-                  Filtrele
-                </Button>
-                <Button variant="outline">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      <Filter className="h-4 w-4" />
+                      Filtrele
+                      {(paymentFilter !== "ALL" || priorityFilter !== "ALL") && (
+                        <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-[10px]">
+                          Aktif
+                        </Badge>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-60">
+                    <DropdownMenuLabel>Tahsilat / Cari Durumu</DropdownMenuLabel>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setPaymentFilter("ALL");
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {paymentFilter === "ALL" ? "✓ " : ""}Tüm Siparişler
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setPaymentFilter("UNPAID");
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {paymentFilter === "UNPAID" ? "✓ " : ""}Ödemesi Kalanlar (Veresiye)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setPaymentFilter("PAID");
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {paymentFilter === "PAID" ? "✓ " : ""}Ödemesi Tamamlananlar
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Öncelik</DropdownMenuLabel>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setPriorityFilter("ALL");
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {priorityFilter === "ALL" ? "✓ " : ""}Tüm Öncelikler
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setPriorityFilter("URGENT");
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {priorityFilter === "URGENT" ? "✓ " : ""}Sadece Acil Siparişler
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setPriorityFilter("HIGH");
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {priorityFilter === "HIGH" ? "✓ " : ""}Yüksek Öncelikli
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button variant="outline" onClick={handleExportOrders}>
                   <Download className="h-4 w-4" />
                   Dışa Aktar
                 </Button>

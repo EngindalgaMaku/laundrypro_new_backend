@@ -130,6 +130,14 @@ export default function SettingsPage() {
     // Check if user has business, if not create one automatically
     checkAndCreateBusiness(parsedUser);
 
+    try {
+      const savedNotifs = localStorage.getItem("notificationSettings");
+      if (savedNotifs) {
+        setNotifications((prev) => ({ ...prev, ...JSON.parse(savedNotifs) }));
+      }
+    } catch {
+      // ignore
+    }
     fetchUserProfile(parsedUser.id);
 
     setBusinessData({
@@ -281,6 +289,17 @@ export default function SettingsPage() {
         const userResult = await userResponse.json();
         const userData = userResult.user ?? userResult;
 
+        if (userData?.createdAt || userData?.role) {
+          setUser((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  role: userData.role || prev.role,
+                  createdAt: userData.createdAt || (prev as any).createdAt,
+                }
+              : prev
+          );
+        }
         // If user has a business, fetch business data
         if (userData.businessId) {
           const businessResponse = await fetch(`/api/business/${userData.businessId}`, {
@@ -477,7 +496,9 @@ export default function SettingsPage() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
     localStorage.removeItem("user");
+    fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     router.push("/");
   };
 
@@ -868,11 +889,33 @@ export default function SettingsPage() {
                       </div>
                       <div className="space-y-2">
                         <Label>Hesap Türü</Label>
-                        <Input value="İşletme Sahibi" disabled />
+                        <Input
+                          value={
+                            user.role === "MANAGER"
+                              ? "Yönetici"
+                              : user.role === "DRIVER"
+                              ? "Saha / Kurye Personeli"
+                              : user.role === "EMPLOYEE"
+                              ? "Personel"
+                              : "İşletme Sahibi"
+                          }
+                          disabled
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Üyelik Tarihi</Label>
-                        <Input value="15 Ocak 2024" disabled />
+                        <Input
+                          value={
+                            (user as any).createdAt
+                              ? new Date((user as any).createdAt).toLocaleDateString("tr-TR", {
+                                  day: "numeric",
+                                  month: "long",
+                                  year: "numeric",
+                                })
+                              : "Aktif Üyelik"
+                          }
+                          disabled
+                        />
                       </div>
                     </CardContent>
                   </Card>
@@ -885,22 +928,8 @@ export default function SettingsPage() {
                         değiştirin
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="currentPassword">Mevcut Şifre</Label>
-                        <Input id="currentPassword" type="password" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="newPassword">Yeni Şifre</Label>
-                        <Input id="newPassword" type="password" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">
-                          Yeni Şifre (Tekrar)
-                        </Label>
-                        <Input id="confirmPassword" type="password" />
-                      </div>
-                      <Button>Şifreyi Güncelle</Button>
+                    <CardContent>
+                      <ChangePasswordForm />
                     </CardContent>
                   </Card>
                 </div>
@@ -1018,7 +1047,22 @@ export default function SettingsPage() {
                         }
                       />
                     </div>
-                    <Button>Bildirim Ayarlarını Kaydet</Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          localStorage.setItem(
+                            "notificationSettings",
+                            JSON.stringify(notifications)
+                          );
+                          toast.success("Bildirim ayarlarınız kaydedildi!");
+                        } catch {
+                          toast.error("Bildirim ayarları kaydedilemedi");
+                        }
+                      }}
+                    >
+                      Bildirim Ayarlarını Kaydet
+                    </Button>
                   </CardContent>
                 </Card>
               </TabsContent>

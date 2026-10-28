@@ -22,6 +22,7 @@ import { OrderStatusUpdater } from "@/components/orders/order-status-updater"
 import { CustomerInfo } from "@/components/orders/customer-info"
 import { CustomerMap } from "@/components/maps/customer-map"
 import { OrderReceiptDialog } from "@/components/orders/order-receipt-dialog"
+import { OrderPhotosCard } from "@/components/orders/order-photos-card"
 import { sendWhatsAppMessage, sendSMS } from "@/lib/communication"
 import {
   ArrowLeft,
@@ -244,7 +245,30 @@ export default function OrderDetailPage() {
       return
     }
 
-    toast.success(`Durum güncellendi: ${statusLabels[newStatus].label}`)
+    const statusLabelText = statusLabels[newStatus].label
+    const trackLink = order.trackingToken
+      ? `\n\nCanlı Sipariş Takip Linkiniz:\n${window.location.origin}/takip/${encodeURIComponent(order.trackingToken)}`
+      : ""
+    const remainingNote =
+      order.remainingAmount > 0
+        ? `\nKalan Tutar: ${formatPrice(order.remainingAmount)}`
+        : ""
+
+    if (order.customer.phone) {
+      toast.success(`Durum güncellendi: ${statusLabelText}`, {
+        description: "Müşteriye WhatsApp üzerinden bilgi vermek ister misiniz?",
+        duration: 8000,
+        action: {
+          label: "WhatsApp Bildir",
+          onClick: () => {
+            const msg = `Merhaba ${order.customer.name},\n\n${order.orderNumber} numaralı siparişinizin durumu "${statusLabelText}" olarak güncellenmiştir.${remainingNote}${trackLink}\n\n${user?.businessName || ""}`
+            sendWhatsAppMessage(order.customer.phone, msg)
+          },
+        },
+      })
+    } else {
+      toast.success(`Durum güncellendi: ${statusLabelText}`)
+    }
     await loadOrder()
   }
 
@@ -463,13 +487,14 @@ export default function OrderDetailPage() {
                 <TabsTrigger value="payments">
                   Tahsilat & Cari {order.remainingAmount > 0 ? `(${formatPrice(order.remainingAmount)})` : ""}
                 </TabsTrigger>
+                <TabsTrigger value="photos">Ürün Fotoğrafları</TabsTrigger>
                 <TabsTrigger value="timeline">Takip Geçmişi</TabsTrigger>
                 <TabsTrigger value="customer">Müşteri Bilgileri</TabsTrigger>
                 <TabsTrigger value="map">Konum & Harita</TabsTrigger>
                 <TabsTrigger value="status">Durum Güncelle</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details">
+              <TabsContent value="details" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
@@ -526,6 +551,11 @@ export default function OrderDetailPage() {
                     </CardContent>
                   </Card>
                 </div>
+                <OrderPhotosCard orderId={order.id} />
+              </TabsContent>
+
+              <TabsContent value="photos">
+                <OrderPhotosCard orderId={order.id} />
               </TabsContent>
 
               <TabsContent value="payments">
