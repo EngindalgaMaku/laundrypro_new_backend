@@ -37,6 +37,7 @@ import {
 } from "@/lib/turkish-locations";
 import { SaveConfirmationModal } from "@/components/ui/confirmation-modal";
 import { DeleteAccountDialog } from "@/components/settings/delete-account-dialog";
+import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { DEFAULT_VAT_RATE, TR_VAT_RATES, isStandardVatRate, isValidVatRate } from "@/lib/vat";
@@ -272,8 +273,11 @@ export default function SettingsPage() {
       });
 
       if (userResponse.ok) {
-        const userData = await userResponse.json();
-        
+        // The API wraps the record as { user: {...} }; reading it unwrapped left the business
+        // (and its province) unloaded, so a new account could not save Settings
+        const userResult = await userResponse.json();
+        const userData = userResult.user ?? userResult;
+
         // If user has a business, fetch business data
         if (userData.businessId) {
           const businessResponse = await fetch(`/api/business/${userData.businessId}`, {
@@ -514,7 +518,7 @@ export default function SettingsPage() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Üyelik Planı</CardTitle>
-                  <CardDescription>Geçerli planınızı görüntüleyin ve daha fazla özellik için yükseltin</CardDescription>
+                  <CardDescription>Geçerli planınız</CardDescription>
                 </div>
                 <div>
                   {loadingPlan ? (
@@ -530,16 +534,8 @@ export default function SettingsPage() {
                 <div className="text-sm text-muted-foreground">
                   {plan === "PRO"
                     ? "PRO plan ile gelişmiş entegrasyonlar ve daha yüksek limitlerin keyfini çıkarın."
-                    : "FREE plan kullanıyorsunuz. PRO ile WhatsApp entegrasyonu ve e-Fatura gibi gelişmiş özellikleri açabilirsiniz."}
+                    : "Ücretsiz planda günde 50 sipariş oluşturabilirsiniz. Ücretli plan seçenekleri yakında eklenecek."}
                 </div>
-                {plan !== "PRO" && (
-                  <Button
-                    onClick={() => toast.info("PRO'ya yükseltme henüz etkin değil.")}
-                    className="w-full sm:w-auto"
-                  >
-                    PRO'ya Yükselt
-                  </Button>
-                )}
               </CardContent>
             </Card>
             <Tabs defaultValue="business" className="space-y-6">
@@ -1029,39 +1025,11 @@ export default function SettingsPage() {
                 <div className="space-y-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Güvenlik Ayarları</CardTitle>
-                      <CardDescription>
-                        Hesabınızın güvenliğini artırın
-                      </CardDescription>
+                      <CardTitle>Şifre Değiştir</CardTitle>
+                      <CardDescription>Hesabınıza giriş şifrenizi değiştirin</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>İki Faktörlü Doğrulama</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Hesabınız için ek güvenlik katmanı
-                          </p>
-                        </div>
-                        <Button variant="outline">Etkinleştir</Button>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Oturum Geçmişi</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Son giriş yapılan cihazları görüntüle
-                          </p>
-                        </div>
-                        <Button variant="outline">Görüntüle</Button>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label>Veri İndirme</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Tüm verilerinizi indirin
-                          </p>
-                        </div>
-                        <Button variant="outline">İndir</Button>
-                      </div>
+                    <CardContent>
+                      <ChangePasswordForm />
                     </CardContent>
                   </Card>
 

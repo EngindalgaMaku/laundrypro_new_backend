@@ -6,12 +6,13 @@ import { clientIp, createRateLimiter } from "@/lib/password-reset";
 const allowLookup = createRateLimiter(30, 60_000);
 const NO_INDEX = { "X-Robots-Tag": "noindex, nofollow", "Cache-Control": "no-store" };
 
+/** "Ayşe Yıldız" → "Ayşe Y."; works when the whole name sits in firstName too */
 function maskCustomerName(firstName?: string | null, lastName?: string | null): string {
-  const first = (firstName || "").trim();
-  const last = (lastName || "").trim();
-  if (!first && !last) return "Değerli Müşterimiz";
-  if (!last) return first;
-  return `${first} ${last.charAt(0).toUpperCase()}.`;
+  const words = `${firstName || ""} ${lastName || ""}`.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "Değerli Müşterimiz";
+  if (words.length === 1) return words[0];
+  const last = words.pop()!;
+  return `${words.join(" ")} ${last.charAt(0).toLocaleUpperCase("tr")}.`;
 }
 
 export async function GET(

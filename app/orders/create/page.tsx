@@ -454,7 +454,7 @@ export default function CreateOrderPage() {
                         </div>
                         {usage.plan !== 'PRO' && (
                           <p className="text-xs text-muted-foreground mt-2">
-                            Daha fazla limit ve gelişmiş özellikler için aboneliğinizi <strong>mobil uygulama</strong> üzerinden PRO'ya yükseltebilirsiniz.
+                            Ücretsiz planda günde {usage.limit ?? 50} sipariş oluşturabilirsiniz.
                           </p>
                         )}
                       </div>

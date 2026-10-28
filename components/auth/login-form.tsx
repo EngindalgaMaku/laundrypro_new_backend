@@ -656,7 +656,7 @@ export function LoginForm() {
                             <SelectTrigger
                               className={`pl-12 h-10 bg-card border border-[color:var(--input-border)] text-foreground rounded-md transition-colors ${
                                 focusedField === "city"
-                                  ? "border-emerald-400/70 shadow-card shadow-emerald-500/20"
+                                  ? "border-primary"
                                   : ""
                               }`}
                               onFocus={() => setFocusedField("city")}
@@ -704,7 +704,7 @@ export function LoginForm() {
                             <SelectTrigger
                               className={`pl-12 h-10 bg-card border border-[color:var(--input-border)] text-foreground rounded-md transition-colors disabled:opacity-50 ${
                                 focusedField === "district"
-                                  ? "border-emerald-400/70 shadow-card shadow-emerald-500/20"
+                                  ? "border-primary"
                                   : ""
                               }`}
                               onFocus={() => setFocusedField("district")}
@@ -772,7 +772,7 @@ export function LoginForm() {
                         />
                       </div>
                       {registerData.city && registerData.district && (
-                        <p className="text-xs text-emerald-400/80 mt-2 flex items-center gap-1">
+                        <p className="text-xs text-primary/80 mt-2 flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
                           {getCityById(registerData.city)?.name} /{" "}
                           {
