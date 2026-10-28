@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, MessageCircle, MessageSquare, Edit, Trash2, Plus, Wallet } from "lucide-react";
 import { toast } from "sonner";
+import { customerDeleteMessage } from "@/lib/customer-delete-message";
 import { CustomerEditForm } from "@/components/customers/customer-edit-form";
 import { CustomerMap } from "@/components/maps/customer-map";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -180,7 +181,7 @@ export default function CustomerDetailPage() {
       });
 
       if (response.ok) {
-        toast.success("Müşteri silindi");
+        toast.success(customerDeleteMessage(await response.json().catch(() => null)));
         router.push("/customers");
       } else {
         toast.error("Müşteri silinemedi");

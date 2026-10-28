@@ -150,6 +150,26 @@ export async function POST(
       );
     }
 
+    // More than the debt used to be accepted and the surplus vanished (no change/credit record)
+    const current = computeOrderPaymentSummary(
+      Number(order.totalAmount || 0),
+      order.paymentStatus,
+      order.payments
+    );
+    if (current.remainingAmount <= 0) {
+      return NextResponse.json(
+        { error: "Bu siparişin borcu kalmadı; yeni tahsilat girilemez" },
+        { status: 400 }
+      );
+    }
+    if (rawAmount > current.remainingAmount + 0.005) {
+      const remaining = current.remainingAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return NextResponse.json(
+        { error: `Kalan borç ₺${remaining}; bundan fazla tahsilat girilemez`, remainingAmount: current.remainingAmount },
+        { status: 400 }
+      );
+    }
+
     const payment = await prisma.payment.create({
       data: {
         orderId: order.id,

@@ -61,7 +61,9 @@ export default function AdminBusinessDetailPage() {
           fetch(`/api/admin/businesses/${businessId}`, {
             headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           }),
-          fetch(`/api/subscriptions/plan?businessId=${businessId}`),
+          fetch(`/api/subscriptions/plan?businessId=${businessId}`, {
+            headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          }),
         ]);
 
         const detail = await detailRes.json();

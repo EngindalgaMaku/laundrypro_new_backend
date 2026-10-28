@@ -153,7 +153,10 @@ export default function SettingsPage() {
     // Fetch plan/entitlements
     (async () => {
       try {
-        const resp = await fetch("/api/subscriptions/plan");
+        // Without the token this always answered 401 and every business showed as FREE
+        const resp = await fetch("/api/subscriptions/plan", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        });
         const data = await resp.json();
         if (data?.plan) setPlan(data.plan);
       } catch (e) {

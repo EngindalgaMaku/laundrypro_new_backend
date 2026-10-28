@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { CustomerDetailModal } from "@/components/customers/customer-detail-modal";
 import { toast } from "sonner";
+import { customerDeleteMessage } from "@/lib/customer-delete-message";
 import { DeleteConfirmationModal } from "@/components/ui/confirmation-modal";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
@@ -267,7 +268,7 @@ export default function CustomersPage() {
       });
 
       if (response.ok) {
-        toast.success("Müşteri başarıyla silindi!");
+        toast.success(customerDeleteMessage(await response.json().catch(() => null)));
       } else {
         toast.error("Müşteri silinirken hata oluştu");
       }

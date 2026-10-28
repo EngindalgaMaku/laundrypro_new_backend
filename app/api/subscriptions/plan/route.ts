@@ -1,29 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth";
-import { UserDatabaseService } from "@/lib/database/users";
+import { requireBusinessAuth, requireSystemAdmin } from "@/lib/auth-utils";
 import { getEntitlements, getPlanForBusiness } from "@/lib/entitlements";
 
+/**
+ * GET /api/subscriptions/plan           → plan of the signed-in user's business
+ * GET /api/subscriptions/plan?businessId → any business, system admins only
+ * (the businessId form used to answer without any authentication)
+ */
 export async function GET(request: NextRequest) {
   try {
-    const url = new URL(request.url);
-    const businessIdParam = url.searchParams.get("businessId");
+    const requested = new URL(request.url).searchParams.get("businessId");
 
-    let businessId = businessIdParam || "";
-
-    if (!businessId) {
-      // Try from token
-      const user = getUserFromRequest(request);
-      if (!user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let businessId: string;
+    if (requested) {
+      const admin = await requireSystemAdmin(request);
+      if (admin instanceof NextResponse) {
+        const auth = await requireBusinessAuth(request);
+        if (auth instanceof NextResponse) return auth;
+        if (auth.businessId !== requested) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
       }
-      const currentUser = await UserDatabaseService.getUserById(user.userId);
-      if (!currentUser?.businessId) {
-        return NextResponse.json(
-          { error: "Business not found for user" },
-          { status: 400 }
-        );
-      }
-      businessId = currentUser.businessId;
+      businessId = requested;
+    } else {
+      const auth = await requireBusinessAuth(request);
+      if (auth instanceof NextResponse) return auth;
+      businessId = auth.businessId;
     }
 
     const plan = await getPlanForBusiness(businessId);
