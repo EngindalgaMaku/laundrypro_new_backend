@@ -59,7 +59,9 @@ cd android
 ./gradlew assembleRelease bundleRelease -PversionCode=2 -PversionName=1.1
 ```
 
-- `app/build/outputs/apk/release/app-release.apk`: siteden indirilecek APK
+PowerShell'de sürüm parametrelerini tırnağa alın, yoksa noktalardan bölünür: `.\gradlew.bat assembleRelease bundleRelease "-PversionCode=2" "-PversionName=1.1"`. Gradle için `JAVA_HOME` bir JDK 21'i, `ANDROID_HOME` Android SDK'yı göstermelidir; JDK'da gelen `keytool` da `%JAVA_HOME%\bin` içindedir.
+
+- `app/build/outputs/apk/release/app-release.apk`: siteden indirilecek APK (`public/LaundryPro.apk` olarak kopyalanır)
 - `app/build/outputs/bundle/release/app-release.aab`: Play Store'a yüklenecek paket
 
 Her yeni sürümde `versionCode` bir artırılmalı (Play aynı numarayı kabul etmez). `keystore.properties` yoksa release çıktısı imzasız kalır ve kurulamaz.
