@@ -39,6 +39,24 @@ Kodda sabit yazılmış Tailwind renk sınıfları (`bg-purple-600`, `from-pink-
 
 Yeni kodda sabit renk sınıfı yerine `primary`, `secondary`, `muted`, `destructive` gibi anlamlı adları kullanın; eşleme, eski sınıflar temizlenene kadar geçici bir köprüdür.
 
+## Yüzeyler ve bileşenler
+
+Ekranın dağınık görünmemesi için az sayıda, tutarlı yüzey kullanılır. Yarı saydam beyaz (`bg-white/80` gibi) ve buzlu cam efekti kullanılmaz.
+
+| Yüzey | Sınıf | Renk |
+|---|---|---|
+| Sayfa zemini | `bg-background` | #F6F9FB |
+| Kart | `bg-card border border-border shadow-card rounded-xl` | #FFFFFF, çerçeve #DCE4EA |
+| Kart içi grup, sekme zemini | `bg-muted` | #EEF2F5 |
+| Tek vurgulu yüzey (ör. ana sayfa karşılama) | `bg-primary` | #0A5C99 |
+
+- **Gölge:** yalnızca iki düzey vardır. Kartlar `shadow-card`, açılır pencere ve menüler `shadow-overlay` kullanır. Tailwind'in `shadow-sm` … `shadow-lg` sınıfları kart gölgesine, `shadow-xl` ve `shadow-2xl` açılır pencere gölgesine eşlenir.
+- **Köşe:** kartlar 16 px (`rounded-xl`), buton ve alanlar 10 px (`rounded-md`).
+- **Butonlar:** ana işlem `default` (mavi dolgu, ekranda bir tane), ikincil işlem `outline` (her zeminde beyaz, gri çerçeve), hafif işlem `ghost`, silme `destructive`. Kartlardaki iletişim düğmeleri renksiz `ghost` ikonlardır.
+- **Durum rengi:** sipariş durumları `OrderStatusBadge` ile gösterilir; renkler `lib/order-status.ts` içinde tek yerde tanımlıdır: bekliyor amber, işlemde mavi, hazır turkuaz, tamamlandı nötr, iptal kırmızı. Renk yalnızca anlam taşıdığında kullanılır.
+- **Sayfa başlığı:** `PageHeader` (başlık, kısa açıklama, sağda ana işlem). Başlık kart içine alınmaz; kart içinde kart kullanılmaz.
+- **Liste:** satırlar tek kart içinde ince çizgiyle ayrılır (`divide-y divide-border`).
+
 ## Yazı tipi
 
 - **Geist**: başlık ve arayüz (`font-sans`)

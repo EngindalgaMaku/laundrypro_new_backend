@@ -193,6 +193,20 @@
   --color-neutral-800: #24333F;
   --color-neutral-900: #0E1A24;
   --color-neutral-950: #081119;
+
+  /* Two elevations only (docs/BRAND.md): cards sit just above the page, overlays
+     (dialogs, popovers, menus) float. The whole Tailwind shadow scale maps onto them,
+     so older screens that still use shadow-xl or shadow-2xl stay consistent. */
+  --shadow-card: 0 1px 2px rgb(14 26 36 / 0.04), 0 1px 3px rgb(14 26 36 / 0.05);
+  --shadow-overlay: 0 12px 32px -8px rgb(14 26 36 / 0.18), 0 2px 6px rgb(14 26 36 / 0.06);
+  --shadow-2xs: 0 1px 2px rgb(14 26 36 / 0.04);
+  --shadow-xs: 0 1px 2px rgb(14 26 36 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(14 26 36 / 0.04), 0 1px 3px rgb(14 26 36 / 0.05);
+  --shadow: 0 1px 2px rgb(14 26 36 / 0.04), 0 1px 3px rgb(14 26 36 / 0.05);
+  --shadow-md: 0 1px 2px rgb(14 26 36 / 0.04), 0 1px 3px rgb(14 26 36 / 0.05);
+  --shadow-lg: 0 1px 2px rgb(14 26 36 / 0.04), 0 1px 3px rgb(14 26 36 / 0.05);
+  --shadow-xl: 0 12px 32px -8px rgb(14 26 36 / 0.18), 0 2px 6px rgb(14 26 36 / 0.06);
+  --shadow-2xl: 0 12px 32px -8px rgb(14 26 36 / 0.18), 0 2px 6px rgb(14 26 36 / 0.06);
 }
 
 :root {
@@ -297,15 +311,6 @@
   --space-xl: 2rem;
   --space-2xl: 3rem;
   --space-3xl: 4rem;
-
-  /* Shadows - Professional Depth */
-  --shadow-sm: 0 1px 2px 0 oklch(0.15 0.02 220 / 0.05);
-  --shadow-md: 0 4px 6px -1px oklch(0.15 0.02 220 / 0.1),
-    0 2px 4px -1px oklch(0.15 0.02 220 / 0.06);
-  --shadow-lg: 0 10px 15px -3px oklch(0.15 0.02 220 / 0.1),
-    0 4px 6px -2px oklch(0.15 0.02 220 / 0.05);
-  --shadow-xl: 0 20px 25px -5px oklch(0.15 0.02 220 / 0.1),
-    0 10px 10px -5px oklch(0.15 0.02 220 / 0.04);
 }
 
 .dark {
@@ -393,13 +398,8 @@
   );
 
   /* Dark Shadows */
-  --shadow-sm: 0 1px 2px 0 oklch(0.02 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px oklch(0.02 0 0 / 0.2),
-    0 2px 4px -1px oklch(0.02 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px oklch(0.02 0 0 / 0.2),
-    0 4px 6px -2px oklch(0.02 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px oklch(0.02 0 0 / 0.25),
-    0 10px 10px -5px oklch(0.02 0 0 / 0.1);
+  --shadow-card: 0 1px 2px oklch(0.02 0 0 / 0.2);
+  --shadow-overlay: 0 12px 32px -8px oklch(0.02 0 0 / 0.5);
 }
 
 @theme inline {
@@ -433,6 +433,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 4px);
+  --radius-3xl: calc(var(--radius) + 4px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);

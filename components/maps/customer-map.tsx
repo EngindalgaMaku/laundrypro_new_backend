@@ -72,7 +72,7 @@ export function CustomerMap({ customer }: CustomerMapProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Static Map Preview */}
-        <div className="relative bg-gray-100 rounded-lg overflow-hidden" style={{ height: "200px" }}>
+        <div className="relative bg-muted rounded-lg overflow-hidden" style={{ height: "200px" }}>
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
             <div className="text-center">
               <MapPin className="h-12 w-12 text-blue-500 mx-auto mb-2" />

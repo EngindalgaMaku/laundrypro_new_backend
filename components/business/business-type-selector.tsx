@@ -50,7 +50,7 @@ export function BusinessTypeSelector({
             <Card
               key={type.value}
               className={cn(
-                "cursor-pointer transition-all hover:shadow-md relative",
+                "cursor-pointer transition-all relative",
                 isSelected ? "ring-2 ring-primary border-primary bg-primary/5" : "hover:border-primary/50",
               )}
               onClick={() => handleSelect(type.value)}

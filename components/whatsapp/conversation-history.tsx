@@ -191,15 +191,15 @@ export default function ConversationHistory({
 
     switch (status) {
       case "sent":
-        return <CheckCircle className="h-3 w-3 text-gray-400" />;
+        return <CheckCircle className="h-3 w-3 text-muted-foreground" />;
       case "delivered":
-        return <CheckCircle className="h-3 w-3 text-gray-600" />;
+        return <CheckCircle className="h-3 w-3 text-muted-foreground" />;
       case "read":
         return <CheckCircle className="h-3 w-3 text-blue-500" />;
       case "failed":
         return <XCircle className="h-3 w-3 text-red-500" />;
       default:
-        return <Clock className="h-3 w-3 text-gray-400" />;
+        return <Clock className="h-3 w-3 text-muted-foreground" />;
     }
   };
 
@@ -324,7 +324,7 @@ export default function ConversationHistory({
                       className={`rounded-lg px-3 py-2 ${
                         message.direction === "OUTGOING"
                           ? "bg-green-500 text-white"
-                          : "bg-gray-100 text-gray-900"
+                          : "bg-muted text-foreground"
                       }`}
                     >
                       {message.type === "template" && message.templateName && (
@@ -341,7 +341,7 @@ export default function ConversationHistory({
                         className={`flex items-center justify-between mt-1 text-xs ${
                           message.direction === "OUTGOING"
                             ? "text-green-100"
-                            : "text-gray-500"
+                            : "text-muted-foreground"
                         }`}
                       >
                         <span>
@@ -369,10 +369,10 @@ export default function ConversationHistory({
                             message.status === "read"
                               ? "border-blue-500 text-blue-600"
                               : message.status === "delivered"
-                              ? "border-gray-500 text-gray-600"
+                              ? "border-gray-500 text-muted-foreground"
                               : message.status === "failed"
                               ? "border-red-500 text-red-600"
-                              : "border-gray-400 text-gray-500"
+                              : "border-gray-400 text-muted-foreground"
                           }`}
                         >
                           {getStatusText(message.status, message.direction)}
@@ -415,7 +415,7 @@ export default function ConversationHistory({
 
             {loading && (
               <div className="flex justify-center py-4">
-                <div className="w-6 h-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                <div className="w-6 h-6 animate-spin rounded-full border-2 border-border border-t-gray-600" />
               </div>
             )}
           </div>

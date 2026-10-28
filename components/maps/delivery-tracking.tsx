@@ -45,9 +45,9 @@ export function DeliveryTracking({ driverName, routeName, stops }: DeliveryTrack
       case "in_progress":
         return <Truck className="h-4 w-4 text-blue-600" />
       case "pending":
-        return <Clock className="h-4 w-4 text-gray-400" />
+        return <Clock className="h-4 w-4 text-muted-foreground" />
       default:
-        return <Clock className="h-4 w-4 text-gray-400" />
+        return <Clock className="h-4 w-4 text-muted-foreground" />
     }
   }
 
@@ -139,7 +139,7 @@ export function DeliveryTracking({ driverName, routeName, stops }: DeliveryTrack
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                      <span className="text-xs font-medium w-6 h-6 rounded-full bg-card flex items-center justify-center">
                         {index + 1}
                       </span>
                       {getStatusIcon(stop.status)}

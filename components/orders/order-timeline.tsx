@@ -86,7 +86,7 @@ export function OrderTimeline({ statusHistory }: OrderTimelineProps) {
                 <div key={index} className="relative flex items-start space-x-4">
                   {/* Timeline dot */}
                   <div
-                    className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full ${config.color} text-white shadow-lg`}
+                    className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full ${config.color} text-white shadow-card`}
                   >
                     <span className="text-lg">{config.icon}</span>
                   </div>

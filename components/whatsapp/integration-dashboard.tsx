@@ -235,7 +235,7 @@ export default function IntegrationDashboard({
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+          <div className="w-8 h-8 animate-spin rounded-full border-2 border-border border-t-gray-600" />
         </div>
       </div>
     );

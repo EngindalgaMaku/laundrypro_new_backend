@@ -209,7 +209,7 @@ export function DeliveryRoutePlanner({ orders }: DeliveryRoutePlannerProps) {
             {orders.map((order) => (
               <div
                 key={order.id}
-                className="flex items-center space-x-3 p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                className="flex items-center space-x-3 p-3 border rounded-lg bg-card hover:bg-muted transition-colors"
               >
                 <Checkbox
                   checked={selectedOrders.includes(order.id)}

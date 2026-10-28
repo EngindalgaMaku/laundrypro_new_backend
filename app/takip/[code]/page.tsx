@@ -163,15 +163,15 @@ export default function PublicOrderTrackingPage() {
   const isCancelled = data?.status === "CANCELLED";
 
   return (
-    <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6">
+    <div className="min-h-screen bg-background py-6 px-4 sm:px-6">
       <div className="max-w-xl mx-auto space-y-5">
         {/* Top Search / Brand Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-2xl shadow-sm border">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-card p-4 rounded-2xl shadow-sm border">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-primary">
               CANLI SİPARİŞ TAKİP SİSTEMİ
             </p>
-            <h1 className="text-lg font-bold text-slate-900">
+            <h1 className="text-lg font-bold text-foreground">
               {data?.business?.name || "Sipariş Durumu Sorgula"}
             </h1>
           </div>
@@ -200,7 +200,7 @@ export default function PublicOrderTrackingPage() {
           <Card className="rounded-2xl border-destructive/30">
             <CardContent className="p-6 text-center space-y-3">
               <XCircle className="h-10 w-10 text-destructive mx-auto" />
-              <p className="font-medium text-slate-900">{error}</p>
+              <p className="font-medium text-foreground">{error}</p>
             </CardContent>
           </Card>
         )}
@@ -217,7 +217,7 @@ export default function PublicOrderTrackingPage() {
                       {data.orderNumber}
                     </p>
                   </div>
-                  <Badge className="bg-white text-blue-700 hover:bg-white font-semibold px-3 py-1 text-xs">
+                  <Badge className="bg-card text-blue-700 hover:bg-card font-semibold px-3 py-1 text-xs">
                     {STATUS_LABELS[data.status] || data.status}
                   </Badge>
                 </div>
@@ -258,10 +258,10 @@ export default function PublicOrderTrackingPage() {
                             <div
                               className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all ${
                                 isCurrent
-                                  ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/30 scale-105"
+                                  ? "bg-blue-600 border-blue-600 text-white shadow-card shadow-blue-500/30 scale-105"
                                   : isCompleted
                                   ? "bg-emerald-500 border-emerald-500 text-white"
-                                  : "bg-slate-100 border-slate-200 text-slate-400"
+                                  : "bg-muted border-border text-muted-foreground"
                               }`}
                             >
                               <Icon className="h-4 w-4" />
@@ -280,8 +280,8 @@ export default function PublicOrderTrackingPage() {
                                 isCurrent
                                   ? "text-blue-700"
                                   : isCompleted
-                                  ? "text-slate-900"
-                                  : "text-slate-400"
+                                  ? "text-foreground"
+                                  : "text-muted-foreground"
                               }`}
                             >
                               {step.label}
@@ -298,25 +298,25 @@ export default function PublicOrderTrackingPage() {
 
                 {/* Dates Summary */}
                 <div className="mt-5 pt-4 border-t grid grid-cols-2 gap-3 text-xs">
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Calendar className="h-4 w-4 text-slate-400" />
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-[11px] text-muted-foreground">
                         Kayıt Tarihi
                       </p>
-                      <p className="font-medium text-slate-900">
+                      <p className="font-medium text-foreground">
                         {formatDate(data.createdAt)}
                       </p>
                     </div>
                   </div>
                   {data.deliveryDate && (
-                    <div className="flex items-center gap-2 text-slate-600">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       <Truck className="h-4 w-4 text-blue-500" />
                       <div>
                         <p className="text-[11px] text-muted-foreground">
                           Tahmini Teslim
                         </p>
-                        <p className="font-medium text-slate-900">
+                        <p className="font-medium text-foreground">
                           {formatDate(data.deliveryDate)}
                         </p>
                       </div>
@@ -340,12 +340,12 @@ export default function PublicOrderTrackingPage() {
                     className="flex items-center justify-between py-1.5 border-b last:border-b-0"
                   >
                     <div>
-                      <p className="font-medium text-slate-900">{item.name}</p>
+                      <p className="font-medium text-foreground">{item.name}</p>
                       <p className="text-xs text-muted-foreground">
                         Miktar: {item.quantity}
                       </p>
                     </div>
-                    <span className="font-medium text-slate-900">
+                    <span className="font-medium text-foreground">
                       {formatMoney(item.totalPrice)}
                     </span>
                   </div>
@@ -364,7 +364,7 @@ export default function PublicOrderTrackingPage() {
               <Card className="rounded-2xl shadow-sm">
                 <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <div className="text-center sm:text-left">
-                    <p className="font-semibold text-sm text-slate-900">
+                    <p className="font-semibold text-sm text-foreground">
                       {data.business.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -408,7 +408,7 @@ export default function PublicOrderTrackingPage() {
           </>
         )}
 
-        <p className="text-center text-xs text-slate-400 pt-2">
+        <p className="text-center text-xs text-muted-foreground pt-2">
           LaundryPro Akıllı İşletme Altyapısı ile Güçlendirilmiştir
         </p>
       </div>

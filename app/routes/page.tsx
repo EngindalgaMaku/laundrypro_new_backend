@@ -581,7 +581,7 @@ export default function RoutesPage() {
               <TabsContent value="routes" className="space-y-4">
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input
                       placeholder="Rota adı veya plaka ara..."
                       value={searchTerm}
@@ -609,10 +609,10 @@ export default function RoutesPage() {
                     <Card>
                       <CardContent className="flex flex-col items-center justify-center py-12">
                         <Route className="w-16 h-16 text-gray-300 mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                        <h3 className="text-lg font-semibold text-muted-foreground mb-2">
                           Henüz rota bulunmuyor
                         </h3>
-                        <p className="text-gray-500 text-center mb-4">
+                        <p className="text-muted-foreground text-center mb-4">
                           İlk rotanızı oluşturmak için "Yeni Rota Oluştur"
                           butonuna tıklayın
                         </p>
@@ -626,7 +626,7 @@ export default function RoutesPage() {
                     filteredRoutes.map((route) => (
                       <Card
                         key={route.id}
-                        className="hover:shadow-md transition-shadow"
+                        className="transition-shadow"
                       >
                         <CardContent className="p-4">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -714,10 +714,10 @@ export default function RoutesPage() {
                       <Card>
                         <CardContent className="flex flex-col items-center justify-center py-12">
                           <Truck className="w-16 h-16 text-gray-300 mb-4" />
-                          <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                          <h3 className="text-lg font-semibold text-muted-foreground mb-2">
                             Henüz araç bulunmuyor
                           </h3>
-                          <p className="text-gray-500 text-center mb-4">
+                          <p className="text-muted-foreground text-center mb-4">
                             İlk aracınızı eklemek için "Araç Ekle" butonuna
                             tıklayın
                           </p>
@@ -797,10 +797,10 @@ export default function RoutesPage() {
                       <Card>
                         <CardContent className="flex flex-col items-center justify-center py-12">
                           <MapPin className="w-16 h-16 text-gray-300 mb-4" />
-                          <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                          <h3 className="text-lg font-semibold text-muted-foreground mb-2">
                             Henüz teslimat bölgesi bulunmuyor
                           </h3>
-                          <p className="text-gray-500 text-center mb-4">
+                          <p className="text-muted-foreground text-center mb-4">
                             İlk teslimat bölgenizi eklemek için "Bölge Ekle"
                             butonuna tıklayın
                           </p>

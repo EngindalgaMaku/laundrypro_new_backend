@@ -61,7 +61,7 @@ export default function Homepage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
+      <nav className="sticky top-0 z-50 bg-background/95 border-b border-border shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -158,7 +158,7 @@ export default function Homepage() {
               <Button
                 size="lg"
                 onClick={() => router.push("/")}
-                className="bg-white text-primary hover:bg-white/90 font-bold px-8 py-4 text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 focus-ring"
+                className="bg-card text-primary hover:bg-card font-bold px-8 py-4 text-lg shadow-card transition-all duration-300 focus-ring"
               >
                 <Play className="w-5 h-5 mr-2" />
                 Hemen Başla
@@ -201,10 +201,10 @@ export default function Homepage() {
             {services.map((service, index) => (
               <Card
                 key={index}
-                className="card-hover gradient-card border-0 shadow-lg"
+                className="card-hover gradient-card border-0 shadow-card"
               >
                 <CardHeader className="text-center pb-4">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-lg">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-card">
                     <span className="text-2xl">{service.icon}</span>
                   </div>
                   <CardTitle className="text-xl mb-2">
@@ -270,7 +270,7 @@ export default function Homepage() {
                   },
                 ].map((feature, index) => (
                   <div key={index} className="flex gap-4">
-                    <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-md text-white flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center shadow-card text-white flex-shrink-0">
                       {feature.icon}
                     </div>
                     <div>
@@ -287,7 +287,7 @@ export default function Homepage() {
             </div>
 
             <div className="relative">
-              <div className="bg-gradient-card rounded-3xl p-8 shadow-2xl">
+              <div className="bg-gradient-card rounded-3xl p-8 shadow-card">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center">
@@ -340,7 +340,7 @@ export default function Homepage() {
             <Button
               size="lg"
               onClick={() => router.push("/")}
-              className="bg-white text-primary hover:bg-white/90 font-bold px-8 py-4 text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 focus-ring"
+              className="bg-card text-primary hover:bg-card font-bold px-8 py-4 text-lg shadow-card transition-all duration-300 focus-ring"
             >
               Ücretsiz Başla
               <ArrowRight className="w-5 h-5 ml-2" />

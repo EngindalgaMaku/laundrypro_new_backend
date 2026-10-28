@@ -593,10 +593,10 @@ function EFaturaSettingsPageContent() {
                   </div>
                 </div>
 
-                <div className="p-3 bg-gray-50 rounded-md">
+                <div className="p-3 bg-muted rounded-md">
                   <div className="text-sm">
                     <span className="font-medium">Sıradaki fatura numarası: </span>
-                    <code className="bg-white px-2 py-1 rounded text-blue-600">
+                    <code className="bg-card px-2 py-1 rounded text-blue-600">
                       {formatInvoiceNumber()}
                     </code>
                   </div>

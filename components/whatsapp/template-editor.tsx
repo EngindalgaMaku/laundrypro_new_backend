@@ -782,7 +782,7 @@ export default function TemplateEditor({
             <CardTitle className="text-sm">Preview</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-gray-50 p-4 rounded-md font-mono text-sm whitespace-pre-line">
+            <div className="bg-muted p-4 rounded-md font-mono text-sm whitespace-pre-line">
               {preview}
             </div>
           </CardContent>

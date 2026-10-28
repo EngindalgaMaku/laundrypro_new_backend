@@ -12,9 +12,9 @@ const Card: React.FC<{ title: string; children: React.ReactNode }> = ({
   title,
   children,
 }) => (
-  <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-    <h3 className="text-lg font-semibold mb-3 text-gray-800">{title}</h3>
-    <div className="text-gray-700 leading-7 text-sm md:text-base">
+  <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition">
+    <h3 className="text-lg font-semibold mb-3 text-foreground">{title}</h3>
+    <div className="text-foreground leading-7 text-sm md:text-base">
       {children}
     </div>
   </div>
@@ -37,10 +37,10 @@ function HelpPageContent() {
             <Pill>Dokümantasyon</Pill>
             <Pill>SSS</Pill>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground">
             LaundryPro Yardım ve Dokümantasyon
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-muted-foreground mt-2">
             Kurulumdan gelişmiş özelliklere kadar tüm bilgiler burada.
             Sorularınız için destek kanallarını kullanabilirsiniz.
           </p>
@@ -48,19 +48,19 @@ function HelpPageContent() {
         <div className="flex flex-wrap gap-3 mt-3 md:mt-0">
           <Link
             href="/gizlilik-politikasi"
-            className="inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-50 transition"
+            className="inline-flex items-center rounded-lg border border-border px-4 py-2 text-foreground hover:bg-muted transition"
           >
             Gizlilik Politikası
           </Link>
           <Link
             href="/kullanim-sartlari"
-            className="inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-50 transition"
+            className="inline-flex items-center rounded-lg border border-border px-4 py-2 text-foreground hover:bg-muted transition"
           >
             Kullanım Şartları
           </Link>
           <Link
             href="/kvkk"
-            className="inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-50 transition"
+            className="inline-flex items-center rounded-lg border border-border px-4 py-2 text-foreground hover:bg-muted transition"
           >
             KVKK
           </Link>
@@ -184,7 +184,7 @@ function HelpPageContent() {
               </a>
             </li>
           </ul>
-          <p className="text-xs text-gray-500 mt-3">
+          <p className="text-xs text-muted-foreground mt-3">
             Destek saatleri: Hafta içi 09:00 - 18:00 (TR)
           </p>
         </Card>
@@ -194,10 +194,10 @@ function HelpPageContent() {
       <section className="mt-10 rounded-2xl border bg-gradient-to-r from-blue-50 to-indigo-50 p-6 md:p-10">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-foreground">
               Sorunuz mu var?
             </h2>
-            <p className="text-gray-700 mt-1">
+            <p className="text-foreground mt-1">
               SSS bölümünde bulamadığınız konular için bizimle iletişime geçin.
             </p>
           </div>
@@ -216,7 +216,7 @@ function HelpPageContent() {
               WhatsApp
             </a>
             <Link
-              className="inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-50 transition"
+              className="inline-flex items-center rounded-lg border border-border px-4 py-2 text-foreground hover:bg-muted transition"
               href="/"
             >
               Ana Sayfa

@@ -769,7 +769,7 @@ export default function UsersPage() {
 
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
-                          <Badge className="bg-gray-100 text-gray-800">
+                          <Badge className="bg-muted text-foreground">
                             Görüntüleyici
                           </Badge>
                         </div>

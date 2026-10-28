@@ -78,7 +78,7 @@ export default function OnboardingPage() {
 
         {/* Step 1: Business Type Selection */}
         {step === 1 && (
-          <Card className="shadow-lg">
+          <Card className="shadow-card">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">İşletme Türlerinizi Seçin</CardTitle>
               <CardDescription className="text-lg">
@@ -106,7 +106,7 @@ export default function OnboardingPage() {
 
         {/* Step 2: Business Information */}
         {step === 2 && (
-          <Card className="shadow-lg">
+          <Card className="shadow-card">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">İşletme Bilgileri</CardTitle>
               <CardDescription className="text-lg">
@@ -184,7 +184,7 @@ export default function OnboardingPage() {
 
         {/* Step 3: Account Creation */}
         {step === 3 && (
-          <Card className="shadow-lg">
+          <Card className="shadow-card">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Hesap Oluştur</CardTitle>
               <CardDescription className="text-lg">Son adım! Giriş bilgilerinizi belirleyin</CardDescription>

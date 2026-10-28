@@ -238,7 +238,7 @@ export function AddressSelectionModal({
 
             {/* Interactive Map Interface */}
             <div
-              className="relative border-2 border-gray-300 rounded-lg cursor-crosshair overflow-hidden bg-gradient-to-br from-green-50 to-blue-50"
+              className="relative border-2 border-border rounded-lg cursor-crosshair overflow-hidden bg-gradient-to-br from-green-50 to-blue-50"
               style={{ width: mapWidth, height: mapHeight }}
               onClick={handleMapClick}
             >
@@ -295,7 +295,7 @@ export function AddressSelectionModal({
                     
                     {/* Hadrian's Gate */}
                     <div className="absolute top-24 left-40 w-8 h-8 bg-stone-300 rounded-full border-2 border-stone-500 shadow-sm">
-                      <div className="text-xs font-bold text-stone-800 text-center leading-3 pt-1">H</div>
+                      <div className="text-xs font-bold text-foreground text-center leading-3 pt-1">H</div>
                     </div>
                     
                     {/* Konyaaltı Beach */}
@@ -310,7 +310,7 @@ export function AddressSelectionModal({
                     
                     {/* Antalya Airport */}
                     <div className="absolute top-32 right-12 w-12 h-8 bg-gray-300 rounded border-2 border-gray-500 shadow-sm">
-                      <div className="text-xs font-bold text-gray-800 p-1 text-center">✈️</div>
+                      <div className="text-xs font-bold text-foreground p-1 text-center">✈️</div>
                     </div>
                     
                     {/* Shopping Centers */}
@@ -327,7 +327,7 @@ export function AddressSelectionModal({
                       <div className="text-xs text-blue-800 p-1 text-center">Merkez</div>
                     </div>
                     <div className="absolute top-16 left-24 w-8 h-12 bg-gray-400 rounded shadow-sm opacity-80">
-                      <div className="text-xs text-gray-800 p-1 text-center">🏢</div>
+                      <div className="text-xs text-foreground p-1 text-center">🏢</div>
                     </div>
                     <div className="absolute top-6 right-12 w-16 h-10 bg-red-300 rounded shadow-sm opacity-80">
                       <div className="text-xs text-red-800 p-1 text-center">Hastane</div>
@@ -351,32 +351,32 @@ export function AddressSelectionModal({
               </div>
 
               {/* City/District Overlay */}
-              <div className="absolute top-2 left-2 bg-white/90 rounded-lg px-3 py-1 text-sm font-medium shadow-sm border">
+              <div className="absolute top-2 left-2 bg-card rounded-lg px-3 py-1 text-sm font-medium shadow-sm border">
                 <MapPin className="h-3 w-3 inline mr-1 text-primary" />
                 {district && city ? `${district}, ${city}` : "Harita Görünümü"}
               </div>
 
               {/* Compass */}
-              <div className="absolute top-12 right-2 bg-white/90 rounded-full p-2 shadow-sm border">
+              <div className="absolute top-12 right-2 bg-card rounded-full p-2 shadow-sm border">
                 <div className="w-8 h-8 relative">
-                  <div className="absolute inset-0 rounded-full border border-gray-300"></div>
+                  <div className="absolute inset-0 rounded-full border border-border"></div>
                   <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 text-red-600 font-bold text-xs">K</div>
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1 text-gray-600 font-bold text-xs">G</div>
-                  <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 text-gray-600 font-bold text-xs">B</div>
-                  <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1 text-gray-600 font-bold text-xs">D</div>
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1 text-muted-foreground font-bold text-xs">G</div>
+                  <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 text-muted-foreground font-bold text-xs">B</div>
+                  <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1 text-muted-foreground font-bold text-xs">D</div>
                   <Navigation className="h-4 w-4 text-red-600 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
                 </div>
               </div>
 
               {/* Coordinate Display */}
               {selectedCoordinates && (
-                <div className="absolute top-2 right-2 bg-white/90 rounded-lg px-2 py-1 text-xs font-mono shadow-sm border">
+                <div className="absolute top-2 right-2 bg-card rounded-lg px-2 py-1 text-xs font-mono shadow-sm border">
                   {selectedCoordinates.latitude.toFixed(4)}, {selectedCoordinates.longitude.toFixed(4)}
                 </div>
               )}
 
               {/* Scale Bar */}
-              <div className="absolute bottom-12 right-4 bg-white/90 rounded px-2 py-1 shadow-sm border">
+              <div className="absolute bottom-12 right-4 bg-card rounded px-2 py-1 shadow-sm border">
                 <div className="flex items-center gap-2">
                   <div className="w-16 h-1 bg-gray-800 relative">
                     <div className="absolute -bottom-2 left-0 text-xs">0</div>
@@ -386,7 +386,7 @@ export function AddressSelectionModal({
               </div>
 
               {/* Instructions */}
-              <div className="absolute bottom-2 left-2 right-20 bg-white/95 rounded-lg p-2 text-xs text-center shadow-sm">
+              <div className="absolute bottom-2 left-2 right-20 bg-card rounded-lg p-2 text-xs text-center shadow-sm">
                 <Target className="h-3 w-3 inline mr-1" />
                 Tam konumunuzu işaretlemek için haritaya tıklayın
               </div>
