@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import { createWhatsAppService } from "../whatsapp-service";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
 
 export interface WhatsAppMessageFilters {
   businessId: string;

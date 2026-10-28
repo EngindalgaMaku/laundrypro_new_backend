@@ -4,14 +4,12 @@
  */
 
 import {
-  PrismaClient,
   OrderStatus,
   RouteStatus,
   StopType,
 } from "@prisma/client";
 import LocationService, { Coordinates } from "./location-service";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
 
 export interface OrderLocationData {
   orderId: string;

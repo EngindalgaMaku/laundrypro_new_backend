@@ -1,6 +1,5 @@
-import { PrismaClient, VehicleStatus, UserRole } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { VehicleStatus, UserRole } from "@prisma/client";
+import { prisma } from "@/lib/db";
 
 export interface VehicleFilters {
   businessId: string;

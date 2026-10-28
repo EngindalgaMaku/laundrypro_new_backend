@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 
-const prisma = new PrismaClient();
+const TIMESTAMP_COLUMN: Record<string, string> = {
+  viewed: "shown_at",
+  dismissed: "dismissed_at",
+  acted_upon: "acted_upon_at",
+};
 
 /**
  * POST /api/business/suggestions/track
@@ -9,14 +14,10 @@ const prisma = new PrismaClient();
  */
 export async function POST(request: NextRequest) {
   try {
-    const businessId = request.headers.get("x-business-id");
-
-    if (!businessId) {
-      return NextResponse.json(
-        { error: "Business ID required" },
-        { status: 401 }
-      );
-    }
+    // Business from the signed-in user's token; the x-business-id header was client-controlled
+    const auth = await requireBusinessAuth(request);
+    if (auth instanceof NextResponse) return auth;
+    const { businessId } = auth;
 
     const body = await request.json();
     const { suggestionId, action, metadata = {} } = body;
@@ -30,18 +31,12 @@ export async function POST(request: NextRequest) {
 
     const now = new Date();
 
-    // Define the update data based on action
-    const updateData: any = {};
-
     switch (action) {
       case "viewed":
-        updateData.shownAt = now;
         break;
       case "dismissed":
-        updateData.dismissedAt = now;
         break;
       case "acted_upon":
-        updateData.actedUponAt = now;
         // Create expansion history record
         try {
           const suggestion = (await prisma.$queryRaw`
@@ -77,66 +72,22 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // Update the suggestion
-    try {
-      const updateQuery = Object.entries(updateData)
-        .map(([key, value]) => {
-          const columnName = key.replace(/([A-Z])/g, "_$1").toLowerCase();
-          return `${columnName} = ${
-            value instanceof Date
-              ? `'${value.toISOString().slice(0, 19).replace("T", " ")}'`
-              : `'${value}'`
-          }`;
-        })
-        .join(", ");
+    // Update the suggestion. The old first attempt spliced a raw string into the query and
+    // always threw; the column name comes from the fixed TIMESTAMP_COLUMN map
+    await prisma.$executeRawUnsafe(
+      `UPDATE service_suggestions SET ${TIMESTAMP_COLUMN[action]} = ? WHERE id = ? AND business_id = ?`,
+      now.toISOString().slice(0, 19).replace("T", " "),
+      suggestionId,
+      businessId
+    );
 
-      if (updateQuery) {
-        await prisma.$executeRaw`
-          UPDATE service_suggestions 
-          SET ${prisma.$queryRaw`${updateQuery}`}
-          WHERE id = ${suggestionId} AND business_id = ${businessId}
-        `;
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: `Suggestion ${action} tracked successfully`,
-        suggestionId,
-        action,
-        timestamp: now,
-      });
-    } catch (error) {
-      // Try alternative raw query approach
-      let query = "";
-      switch (action) {
-        case "viewed":
-          query = `UPDATE service_suggestions SET shown_at = ? WHERE id = ? AND business_id = ?`;
-          break;
-        case "dismissed":
-          query = `UPDATE service_suggestions SET dismissed_at = ? WHERE id = ? AND business_id = ?`;
-          break;
-        case "acted_upon":
-          query = `UPDATE service_suggestions SET acted_upon_at = ? WHERE id = ? AND business_id = ?`;
-          break;
-      }
-
-      if (query) {
-        await prisma.$executeRawUnsafe(
-          query,
-          now.toISOString().slice(0, 19).replace("T", " "),
-          suggestionId,
-          businessId
-        );
-
-        return NextResponse.json({
-          success: true,
-          message: `Suggestion ${action} tracked successfully`,
-          suggestionId,
-          action,
-          timestamp: now,
-        });
-      }
-    }
+    return NextResponse.json({
+      success: true,
+      message: `Suggestion ${action} tracked successfully`,
+      suggestionId,
+      action,
+      timestamp: now,
+    });
   } catch (error: any) {
     console.error("Track suggestions API Error:", error);
     return NextResponse.json(
@@ -155,14 +106,10 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const businessId = request.headers.get("x-business-id");
-
-    if (!businessId) {
-      return NextResponse.json(
-        { error: "Business ID required" },
-        { status: 401 }
-      );
-    }
+    // Business from the signed-in user's token; the x-business-id header was client-controlled
+    const auth = await requireBusinessAuth(request);
+    if (auth instanceof NextResponse) return auth;
+    const { businessId } = auth;
 
     const searchParams = request.nextUrl.searchParams;
     const days = parseInt(searchParams.get("days") || "30");

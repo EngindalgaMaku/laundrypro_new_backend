@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, ServiceCategory } from "@prisma/client";
+import { ServiceCategory } from "@prisma/client";
 import { z } from "zod";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
+import { requireBusinessAuth } from "@/lib/auth-utils";
 
 // Business type to service category mapping
 const BUSINESS_TYPE_TO_SERVICE_CATEGORY: Record<string, ServiceCategory> = {
@@ -38,11 +38,10 @@ export async function POST(
   try {
     const { id: businessId } = await params;
 
-    if (!businessId) {
-      return NextResponse.json(
-        { error: "Business ID is required" },
-        { status: 400 }
-      );
+    const auth = await requireBusinessAuth(request);
+    if (auth instanceof NextResponse) return auth;
+    if (businessId !== auth.businessId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Parse and validate request body
@@ -226,11 +225,10 @@ export async function GET(
   try {
     const { id: businessId } = await params;
 
-    if (!businessId) {
-      return NextResponse.json(
-        { error: "Business ID is required" },
-        { status: 400 }
-      );
+    const auth = await requireBusinessAuth(request);
+    if (auth instanceof NextResponse) return auth;
+    if (businessId !== auth.businessId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Get current business service types and services for inspection

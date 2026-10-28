@@ -98,8 +98,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Check if PDF already exists for this invoice
-    const { PrismaClient } = await import("@prisma/client");
-    const prisma = new PrismaClient();
+    const { prisma } = await import("@/lib/db");
 
     const invoice = await (prisma as any).invoice.findUnique({
       where: { id: invoiceId },

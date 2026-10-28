@@ -1,9 +1,7 @@
 import puppeteer, { Browser, Page } from "puppeteer";
-import { PrismaClient } from "@prisma/client";
 import fs from "fs/promises";
 import path from "path";
-
-const prisma = new PrismaClient();
+import { prisma } from "./db";
 
 export interface InvoicePDFData {
   id: string;

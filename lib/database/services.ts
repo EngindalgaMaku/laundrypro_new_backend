@@ -1,6 +1,5 @@
-import { PrismaClient, ServiceCategory, PricingType } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { ServiceCategory, PricingType } from "@prisma/client";
+import { prisma } from "@/lib/db";
 
 export interface ServiceFilters {
   businessId: string;
