@@ -1,9 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { createWhatsAppService } from "./whatsapp-service";
-import { createCustomerCommunicationActions } from "./communication";
+import { createCustomerCommunicationActions } from "./whatsapp-business";
 import * as cron from "node-cron";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
 
 // Order status to WhatsApp template mapping
 const ORDER_STATUS_TEMPLATES = {

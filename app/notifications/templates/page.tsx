@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Mail, MessageSquare, Phone, Edit, Trash2, Plus, Eye } from "lucide-react"
+import { toast } from "sonner"
 
 interface User {
   id: string
@@ -53,42 +54,45 @@ const templateVariables = [
   "#{business_phone}",
 ]
 
+function mapApiTemplate(t: any): NotificationTemplate {
+  const normalizedType = String(t.type || "email").toLowerCase()
+  return {
+    id: t.id,
+    name: t.name,
+    type:
+      normalizedType === "sms" || normalizedType === "whatsapp"
+        ? normalizedType
+        : "email",
+    trigger: String(t.trigger || "order_created").toLowerCase(),
+    subject: t.subject || undefined,
+    content: t.message ?? t.content ?? "",
+    isActive: Boolean(t.isActive),
+  }
+}
+
 export default function NotificationTemplatesPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [templates, setTemplates] = useState<NotificationTemplate[]>([
-    {
-      id: "1",
-      name: "Sipariş Onayı - Email",
-      type: "email",
-      trigger: "order_confirmed",
-      subject: "Siparişiniz Onaylandı - #{order_number}",
-      content:
-        "Merhaba #{customer_name},\n\nSiparişiniz başarıyla onaylanmıştır.\n\nSipariş No: #{order_number}\nToplam Tutar: #{total_amount} TL\nTeslim Tarihi: #{delivery_date}\n\nTeşekkür ederiz,\n#{business_name}",
-      isActive: true,
-    },
-    {
-      id: "2",
-      name: "Sipariş Onayı - SMS",
-      type: "sms",
-      trigger: "order_confirmed",
-      content:
-        "#{business_name}: Siparişiniz onaylandı. Sipariş No: #{order_number}. Teslim: #{delivery_date}. Bilgi: #{business_phone}",
-      isActive: true,
-    },
-    {
-      id: "3",
-      name: "Hazır - WhatsApp",
-      type: "whatsapp",
-      trigger: "ready_for_delivery",
-      content:
-        "Merhaba #{customer_name}! 🎉\n\nSiparişiniz hazır!\nSipariş No: #{order_number}\n\nTeslimat için sizinle iletişime geçeceğiz.\n\n#{business_name}",
-      isActive: true,
-    },
-  ])
+  const [templates, setTemplates] = useState<NotificationTemplate[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<NotificationTemplate | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<Partial<NotificationTemplate>>({})
   const router = useRouter()
+
+  const loadTemplates = async () => {
+    try {
+      const token = localStorage.getItem("token")
+      const res = await fetch("/api/notifications", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setTemplates(data.map(mapApiTemplate))
+      }
+    } catch (err) {
+      console.error("Failed to load notification templates:", err)
+    }
+  }
 
   useEffect(() => {
     const userData = localStorage.getItem("user")
@@ -97,6 +101,7 @@ export default function NotificationTemplatesPage() {
       return
     }
     setUser(JSON.parse(userData))
+    loadTemplates()
   }, [router])
 
   if (!user) {
@@ -129,35 +134,95 @@ export default function NotificationTemplatesPage() {
     }
   }
 
-  const handleSaveTemplate = () => {
-    if (editingTemplate.id) {
-      // Update existing template
-      setTemplates((prev) =>
-        prev.map((t) => (t.id === editingTemplate.id ? ({ ...t, ...editingTemplate } as NotificationTemplate) : t)),
-      )
-    } else {
-      // Create new template
-      const newTemplate: NotificationTemplate = {
-        id: Date.now().toString(),
-        name: editingTemplate.name || "",
-        type: editingTemplate.type || "email",
-        trigger: editingTemplate.trigger || "order_created",
-        subject: editingTemplate.subject,
-        content: editingTemplate.content || "",
-        isActive: editingTemplate.isActive ?? true,
-      }
-      setTemplates((prev) => [...prev, newTemplate])
+  const handleSaveTemplate = async () => {
+    const token = localStorage.getItem("token")
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     }
-    setIsEditDialogOpen(false)
-    setEditingTemplate({})
+
+    try {
+      if (editingTemplate.id) {
+        const res = await fetch("/api/notifications", {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({
+            id: editingTemplate.id,
+            name: editingTemplate.name,
+            type: editingTemplate.type,
+            trigger: editingTemplate.trigger,
+            subject: editingTemplate.subject,
+            message: editingTemplate.content,
+            isActive: editingTemplate.isActive,
+          }),
+        })
+        if (!res.ok) throw new Error("Güncellenemedi")
+        const data = await res.json()
+        const updated = mapApiTemplate(data.template)
+        setTemplates((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
+        toast.success("Şablon güncellendi")
+      } else {
+        const res = await fetch("/api/notifications", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            name: editingTemplate.name || "",
+            type: editingTemplate.type || "email",
+            trigger: editingTemplate.trigger || "order_created",
+            subject: editingTemplate.subject,
+            message: editingTemplate.content || "",
+            isActive: editingTemplate.isActive ?? true,
+          }),
+        })
+        if (!res.ok) throw new Error("Oluşturulamadı")
+        const data = await res.json()
+        const created = mapApiTemplate(data.template)
+        setTemplates((prev) => [...prev, created])
+        toast.success("Şablon oluşturuldu")
+      }
+      setIsEditDialogOpen(false)
+      setEditingTemplate({})
+    } catch {
+      toast.error("Şablon kaydedilirken hata oluştu")
+    }
   }
 
-  const handleDeleteTemplate = (id: string) => {
-    setTemplates((prev) => prev.filter((t) => t.id !== id))
+  const handleDeleteTemplate = async (id: string) => {
+    try {
+      const token = localStorage.getItem("token")
+      const res = await fetch(`/api/notifications?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error("Silinemedi")
+      setTemplates((prev) => prev.filter((t) => t.id !== id))
+      toast.success("Şablon silindi")
+    } catch {
+      toast.error("Şablon silinirken hata oluştu")
+    }
   }
 
-  const handleToggleActive = (id: string) => {
-    setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, isActive: !t.isActive } : t)))
+  const handleToggleActive = async (id: string) => {
+    const target = templates.find((t) => t.id === id)
+    if (!target) return
+    const nextActive = !target.isActive
+    setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, isActive: nextActive } : t)))
+
+    try {
+      const token = localStorage.getItem("token")
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ id, isActive: nextActive }),
+      })
+      if (!res.ok) throw new Error("Durum güncellenemedi")
+    } catch {
+      setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, isActive: target.isActive } : t)))
+      toast.error("Şablon durumu güncellenemedi")
+    }
   }
 
   const openEditDialog = (template?: NotificationTemplate) => {

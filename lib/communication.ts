@@ -1,9 +1,33 @@
-// Customer communication utilities
-import { PrismaClient } from "@prisma/client";
-import {
-  WhatsAppBusinessService,
-  createWhatsAppService,
-} from "./whatsapp-service";
+// Customer communication utilities. Imported by client components, so nothing here may pull
+// in Prisma or other server-only code; the WhatsApp Business API helpers are in lib/whatsapp-business.ts
+
+/**
+ * Normalizes a phone number for WhatsApp (wa.me) links and WhatsApp Business API.
+ * Converts Turkish formats (e.g. "0532 123 45 67", "532 123 45 67", "+90 532...")
+ * into international format without "+" or leading zeros: "905321234567".
+ */
+export function normalizePhoneForWhatsApp(phoneNumber: string): string {
+  let digits = (phoneNumber || "").replace(/\D/g, "");
+  if (digits.startsWith("00")) {
+    digits = digits.slice(2);
+  }
+  if (digits.length === 11 && digits.startsWith("0")) {
+    return `90${digits.slice(1)}`;
+  }
+  if (digits.length === 10 && digits.startsWith("5")) {
+    return `90${digits}`;
+  }
+  return digits;
+}
+
+/**
+ * Normalizes a phone number for tel: links (e.g. "+905321234567").
+ */
+export function normalizePhoneForCall(phoneNumber: string): string {
+  const waPhone = normalizePhoneForWhatsApp(phoneNumber);
+  if (!waPhone) return "";
+  return `+${waPhone}`;
+}
 
 export interface Customer {
   id: string;
@@ -34,7 +58,8 @@ export interface WhatsAppBusinessMessage {
 
 // Phone call functionality
 export function makePhoneCall(phoneNumber: string) {
-  const cleanPhone = phoneNumber.replace(/\D/g, "");
+  const cleanPhone = normalizePhoneForCall(phoneNumber);
+  if (!cleanPhone) return;
   const phoneUrl = `tel:${cleanPhone}`;
 
   if (typeof window !== "undefined") {
@@ -52,7 +77,8 @@ export function makePhoneCall(phoneNumber: string) {
 
 // WhatsApp functionality - Legacy web WhatsApp
 export function sendWhatsAppMessage(phoneNumber: string, message?: string) {
-  const cleanPhone = phoneNumber.replace(/\D/g, "");
+  const cleanPhone = normalizePhoneForWhatsApp(phoneNumber);
+  if (!cleanPhone) return;
   let whatsappUrl = `https://wa.me/${cleanPhone}`;
 
   if (message) {
@@ -71,74 +97,6 @@ export function sendWhatsAppMessage(phoneNumber: string, message?: string) {
     phone: cleanPhone,
     content: message,
   });
-}
-
-// WhatsApp Business API - Server-side function
-export async function sendWhatsAppBusinessMessage(
-  customer: Customer,
-  message: string,
-  orderId?: string,
-  templateName?: string,
-  templateParams?: Array<{ type: string; text: string }>
-): Promise<WhatsAppBusinessMessage> {
-  try {
-    if (!customer.businessId) {
-      return {
-        success: false,
-        error: "Business ID required for WhatsApp Business API",
-      };
-    }
-
-    // This should be called on the server side with proper Prisma instance
-    const prisma = new PrismaClient();
-    const whatsappService = await createWhatsAppService(
-      customer.businessId,
-      prisma
-    );
-
-    if (!whatsappService) {
-      // Fallback to web WhatsApp
-      sendWhatsAppMessage(customer.whatsapp || customer.phone, message);
-      return { success: true, isBusinessAPI: false };
-    }
-
-    const phoneNumber = customer.whatsapp || customer.phone;
-
-    let result;
-    if (templateName) {
-      result = await whatsappService.sendTemplateMessage(
-        phoneNumber,
-        templateName,
-        "tr",
-        templateParams || [],
-        customer.id,
-        orderId,
-        customer.businessId
-      );
-    } else {
-      result = await whatsappService.sendTextMessage(
-        phoneNumber,
-        message,
-        customer.id,
-        orderId,
-        customer.businessId
-      );
-    }
-
-    await prisma.$disconnect();
-
-    return {
-      success: result.success,
-      messageId: result.messageId,
-      error: result.error,
-      isBusinessAPI: true,
-    };
-  } catch (error: any) {
-    console.error("WhatsApp Business API error:", error);
-    // Fallback to web WhatsApp
-    sendWhatsAppMessage(customer.whatsapp || customer.phone, message);
-    return { success: true, isBusinessAPI: false, error: error.message };
-  }
 }
 
 // Email functionality
@@ -335,243 +293,4 @@ export function logCommunication(log: CommunicationLog) {
 
   // TODO: Save to database
   // await prisma.communicationLog.create({ data: log })
-}
-
-// Enhanced communication actions with WhatsApp Business API support
-export function createCustomerCommunicationActions(customer: Customer) {
-  return {
-    call: () => makePhoneCall(customer.phone),
-    whatsapp: (message?: string) => {
-      const phone = customer.whatsapp || customer.phone;
-      sendWhatsAppMessage(phone, message);
-    },
-    whatsappBusiness: async (
-      message: string,
-      orderId?: string,
-      templateName?: string,
-      templateParams?: Array<{ type: string; text: string }>
-    ) => {
-      return await sendWhatsAppBusinessMessage(
-        customer,
-        message,
-        orderId,
-        templateName,
-        templateParams
-      );
-    },
-    email: (subject?: string, body?: string) => {
-      if (customer.email) {
-        sendEmail(customer.email, subject, body);
-      }
-    },
-    sendOrderReady: async (orderNumber: string) => {
-      const customerName = `${customer.firstName} ${customer.lastName}`;
-      const template = communicationTemplates.orderReady;
-
-      // Try WhatsApp Business API first
-      if (customer.businessId) {
-        const result = await sendWhatsAppBusinessMessage(
-          customer,
-          template.whatsapp(customerName, orderNumber),
-          undefined,
-          template.whatsappTemplate.name,
-          template.whatsappTemplate.params(customerName, orderNumber)
-        );
-        return result;
-      } else {
-        // Fallback to web WhatsApp
-        const message = template.whatsapp(customerName, orderNumber);
-        const phone = customer.whatsapp || customer.phone;
-        sendWhatsAppMessage(phone, message);
-        return { success: true, isBusinessAPI: false };
-      }
-    },
-    sendOrderPickup: async (orderNumber: string, pickupTime: string) => {
-      const customerName = `${customer.firstName} ${customer.lastName}`;
-      const template = communicationTemplates.orderPickup;
-
-      if (customer.businessId) {
-        return await sendWhatsAppBusinessMessage(
-          customer,
-          template.whatsapp(customerName, orderNumber, pickupTime),
-          undefined,
-          template.whatsappTemplate.name,
-          template.whatsappTemplate.params(
-            customerName,
-            orderNumber,
-            pickupTime
-          )
-        );
-      } else {
-        const message = template.whatsapp(
-          customerName,
-          orderNumber,
-          pickupTime
-        );
-        const phone = customer.whatsapp || customer.phone;
-        sendWhatsAppMessage(phone, message);
-        return { success: true, isBusinessAPI: false };
-      }
-    },
-    sendOrderDelivery: async (orderNumber: string, deliveryTime: string) => {
-      const customerName = `${customer.firstName} ${customer.lastName}`;
-      const template = communicationTemplates.orderDelivery;
-
-      if (customer.businessId) {
-        return await sendWhatsAppBusinessMessage(
-          customer,
-          template.whatsapp(customerName, orderNumber, deliveryTime),
-          undefined,
-          template.whatsappTemplate.name,
-          template.whatsappTemplate.params(
-            customerName,
-            orderNumber,
-            deliveryTime
-          )
-        );
-      } else {
-        const message = template.whatsapp(
-          customerName,
-          orderNumber,
-          deliveryTime
-        );
-        const phone = customer.whatsapp || customer.phone;
-        sendWhatsAppMessage(phone, message);
-        return { success: true, isBusinessAPI: false };
-      }
-    },
-    sendOrderUpdate: async (orderNumber: string, status: string) => {
-      const customerName = `${customer.firstName} ${customer.lastName}`;
-      const template = communicationTemplates.orderUpdate;
-
-      if (customer.businessId) {
-        return await sendWhatsAppBusinessMessage(
-          customer,
-          template.whatsapp(customerName, orderNumber, status),
-          undefined,
-          template.whatsappTemplate.name,
-          template.whatsappTemplate.params(customerName, orderNumber, status)
-        );
-      } else {
-        const message = template.whatsapp(customerName, orderNumber, status);
-        const phone = customer.whatsapp || customer.phone;
-        sendWhatsAppMessage(phone, message);
-        return { success: true, isBusinessAPI: false };
-      }
-    },
-    sendOrderConfirmation: async (orderNumber: string, totalAmount: string) => {
-      const customerName = `${customer.firstName} ${customer.lastName}`;
-      const template = communicationTemplates.orderConfirmation;
-
-      if (customer.businessId) {
-        return await sendWhatsAppBusinessMessage(
-          customer,
-          template.whatsapp(customerName, orderNumber, totalAmount),
-          undefined,
-          template.whatsappTemplate.name,
-          template.whatsappTemplate.params(
-            customerName,
-            orderNumber,
-            totalAmount
-          )
-        );
-      } else {
-        const message = template.whatsapp(
-          customerName,
-          orderNumber,
-          totalAmount
-        );
-        const phone = customer.whatsapp || customer.phone;
-        sendWhatsAppMessage(phone, message);
-        return { success: true, isBusinessAPI: false };
-      }
-    },
-    sendPaymentReceived: async (orderNumber: string, amount: string) => {
-      const customerName = `${customer.firstName} ${customer.lastName}`;
-      const template = communicationTemplates.paymentReceived;
-
-      if (customer.businessId) {
-        return await sendWhatsAppBusinessMessage(
-          customer,
-          template.whatsapp(customerName, orderNumber, amount),
-          undefined,
-          template.whatsappTemplate.name,
-          template.whatsappTemplate.params(customerName, orderNumber, amount)
-        );
-      } else {
-        const message = template.whatsapp(customerName, orderNumber, amount);
-        const phone = customer.whatsapp || customer.phone;
-        sendWhatsAppMessage(phone, message);
-        return { success: true, isBusinessAPI: false };
-      }
-    },
-    sendWelcomeMessage: async (businessName: string) => {
-      const customerName = `${customer.firstName} ${customer.lastName}`;
-      const template = communicationTemplates.customerWelcome;
-
-      if (customer.businessId) {
-        return await sendWhatsAppBusinessMessage(
-          customer,
-          template.whatsapp(customerName, businessName),
-          undefined,
-          template.whatsappTemplate.name,
-          template.whatsappTemplate.params(customerName, businessName)
-        );
-      } else {
-        const message = template.whatsapp(customerName, businessName);
-        const phone = customer.whatsapp || customer.phone;
-        sendWhatsAppMessage(phone, message);
-        return { success: true, isBusinessAPI: false };
-      }
-    },
-  };
-}
-
-// Utility function to get WhatsApp message status
-export async function getWhatsAppMessageStatus(
-  businessId: string,
-  customerId: string,
-  limit: number = 10
-) {
-  try {
-    const prisma = new PrismaClient();
-    const whatsappService = await createWhatsAppService(businessId, prisma);
-
-    if (!whatsappService) {
-      return [];
-    }
-
-    const messages = await whatsappService.getCustomerMessages(
-      customerId,
-      limit
-    );
-    await prisma.$disconnect();
-
-    return messages;
-  } catch (error) {
-    console.error("Error getting WhatsApp message status:", error);
-    return [];
-  }
-}
-
-// Utility function to check if WhatsApp Business API is available for business
-export async function isWhatsAppBusinessAvailable(
-  businessId: string
-): Promise<boolean> {
-  try {
-    const prisma = new PrismaClient();
-    const settings = await prisma.whatsAppSettings.findUnique({
-      where: { businessId },
-    });
-    await prisma.$disconnect();
-
-    return !!(
-      settings?.isEnabled &&
-      settings?.accessToken &&
-      settings?.phoneNumberId
-    );
-  } catch (error) {
-    console.error("Error checking WhatsApp Business availability:", error);
-    return false;
-  }
 }
