@@ -2,7 +2,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Home,
@@ -186,8 +186,8 @@ export function Sidebar({
                 className={cn(
                   "w-full justify-start touch-target h-12 px-4 rounded-xl font-medium transition-all duration-300",
                   isActive
-                    ? "gradient-primary text-white shadow-md border-0 hover:shadow-lg"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-0 hover:shadow-sm",
+                    ? "gradient-primary text-white shadow-card border-0"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-0",
                   "hover:scale-[1.02] active:scale-[0.98]",
                   "focus-ring"
                 )}
@@ -203,7 +203,7 @@ export function Sidebar({
                   {item.name}
                 </span>
                 {isActive && (
-                  <div className="ml-auto w-2 h-2 bg-white/80 rounded-full animate-pulse"></div>
+                  <div className="ml-auto w-2 h-2 bg-card rounded-full animate-pulse"></div>
                 )}
               </Button>
             );
@@ -217,8 +217,8 @@ export function Sidebar({
                 className={cn(
                   "w-full justify-start touch-target h-12 px-4 rounded-xl font-medium transition-all duration-300",
                   pathname === "/admin"
-                    ? "gradient-primary text-white shadow-md border-0 hover:shadow-lg"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-0 hover:shadow-sm",
+                    ? "gradient-primary text-white shadow-card border-0"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-0",
                   "hover:scale-[1.02] active:scale-[0.98]",
                   "focus-ring"
                 )}
@@ -230,7 +230,7 @@ export function Sidebar({
                 )} />
                 <span className="text-sm font-medium truncate">Yönetim</span>
                 {pathname === "/admin" && (
-                  <div className="ml-auto w-2 h-2 bg-white/80 rounded-full animate-pulse"></div>
+                  <div className="ml-auto w-2 h-2 bg-card rounded-full animate-pulse"></div>
                 )}
               </Button>
             </div>
@@ -263,17 +263,16 @@ export function Sidebar({
       <Sheet
         open={isOpen}
         onOpenChange={(open) => {
-          console.log("DEBUG: Sheet onOpenChange:", open);
           if (!open) onClose?.();
         }}
       >
         <SheetContent
           side="left"
           className="w-72 p-0 bg-sidebar border-sidebar-border"
+          showCloseButton={false}
         >
-          <div className="sr-only">
-            <h2>Navigation Menu</h2>
-          </div>
+          {/* The menu header has its own close button */}
+          <SheetTitle className="sr-only">Menü</SheetTitle>
           <SidebarContent />
         </SheetContent>
       </Sheet>
@@ -284,7 +283,7 @@ export function Sidebar({
   return (
     <div
       className={cn(
-        "hidden md:flex bg-sidebar border-r border-sidebar-border shadow-lg transition-all duration-300",
+        "hidden md:flex bg-sidebar border-r border-sidebar-border shadow-card transition-all duration-300",
         isCollapsed ? "w-20" : "w-72"
       )}
     >
@@ -349,8 +348,8 @@ export function Sidebar({
                   className={cn(
                     "w-full touch-target h-12 font-medium transition-all duration-300 rounded-xl",
                     isActive
-                      ? "gradient-primary text-white shadow-md border-0 hover:shadow-lg"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-0 hover:shadow-sm",
+                      ? "gradient-primary text-white shadow-card border-0"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-0",
                     "hover:scale-[1.02] active:scale-[0.98]",
                     "focus-ring",
                     isCollapsed ? "justify-center px-2" : "justify-start px-4"
@@ -374,7 +373,7 @@ export function Sidebar({
                     {item.name}
                   </span>
                   {isActive && !isCollapsed && (
-                    <div className="ml-auto w-2 h-2 bg-white/80 rounded-full animate-pulse"></div>
+                    <div className="ml-auto w-2 h-2 bg-card rounded-full animate-pulse"></div>
                   )}
                 </Button>
               );
@@ -388,8 +387,8 @@ export function Sidebar({
                   className={cn(
                     "w-full touch-target h-12 font-medium transition-all duration-300 rounded-xl",
                     pathname === "/admin"
-                      ? "gradient-primary text-white shadow-md border-0 hover:shadow-lg"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-0 hover:shadow-sm",
+                      ? "gradient-primary text-white shadow-card border-0"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-0",
                     "hover:scale-[1.02] active:scale-[0.98]",
                     "focus-ring",
                     isCollapsed ? "justify-center px-2" : "justify-start px-4"
@@ -413,7 +412,7 @@ export function Sidebar({
                     Yönetim
                   </span>
                   {pathname === "/admin" && !isCollapsed && (
-                    <div className="ml-auto w-2 h-2 bg-white/80 rounded-full animate-pulse"></div>
+                    <div className="ml-auto w-2 h-2 bg-card rounded-full animate-pulse"></div>
                   )}
                 </Button>
               </div>

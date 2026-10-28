@@ -43,10 +43,10 @@ export default function HomePage() {
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-cyan-400">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <LogoMark className="w-16 h-16" />
-          <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"></div>
+          <LogoMark className="mx-auto mb-4 h-14 w-14" />
+          <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
     );
@@ -59,46 +59,16 @@ export default function HomePage() {
 
   // Show login form for existing users or after onboarding
   return (
-    <div className="min-h-screen gradient-hero relative overflow-hidden">
-      {/* Mobile-first background effects */}
-      <div className="absolute inset-0 bg-black/20"></div>
-
-      {/* Responsive background particles */}
-      <div className="absolute top-5 left-5 w-20 h-20 sm:top-10 sm:left-10 sm:w-40 sm:h-40 bg-white/10 rounded-full blur-2xl sm:blur-3xl animate-pulse"></div>
-      <div
-        className="absolute bottom-5 right-5 w-32 h-32 sm:bottom-10 sm:right-10 sm:w-60 sm:h-60 bg-white/5 rounded-full blur-2xl sm:blur-3xl animate-pulse"
-        style={{ animationDelay: "1s" }}
-      ></div>
-      <div
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 sm:w-96 sm:h-96 bg-white/5 rounded-full blur-2xl sm:blur-3xl animate-pulse"
-        style={{ animationDelay: "2s" }}
-      ></div>
-
-      {/* Mobile-optimized floating particles */}
-      <div
-        className="hidden sm:block absolute top-1/4 left-1/4 w-2 h-2 bg-white/30 rounded-full animate-bounce"
-        style={{ animationDelay: "0.5s" }}
-      ></div>
-      <div
-        className="hidden sm:block absolute top-3/4 left-3/4 w-1 h-1 bg-white/40 rounded-full animate-bounce"
-        style={{ animationDelay: "1.5s" }}
-      ></div>
-      <div
-        className="hidden sm:block absolute top-1/3 right-1/4 w-1.5 h-1.5 bg-white/20 rounded-full animate-bounce"
-        style={{ animationDelay: "2.5s" }}
-      ></div>
-
+    <div className="min-h-screen bg-background">
       {/* Mobile-first container - Compact */}
-      <div className="flex flex-col h-screen p-3 sm:p-4 relative z-10">
-        <div className="flex-1 flex flex-col justify-center max-w-sm sm:max-w-md mx-auto w-full">
-          {/* Ultra compact header */}
-          <div className="text-center mb-3 sm:mb-4">
-            <LogoMark className="w-10 h-10 sm:w-12 sm:h-12" />
-
-            <h1 className="text-xl sm:text-2xl font-bold text-white mb-1 tracking-tight">
-              Laundry<span className="text-white/80">Pro</span>
+      <div className="flex min-h-screen flex-col px-4 py-6">
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center sm:max-w-md">
+          <div className="mb-6 text-center">
+            <LogoMark className="mx-auto mb-3 h-12 w-12" />
+            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              Laundry<span className="text-primary">Pro</span>
             </h1>
-            <p className="text-xs sm:text-sm text-white/80 font-medium">
+            <p className="mt-1 text-sm text-muted-foreground">
               Temizlik işinizi dijitalleştirin
             </p>
           </div>
@@ -106,20 +76,19 @@ export default function HomePage() {
           <LoginForm />
 
           {/* Compact onboarding button */}
-          <div className="text-center mt-3 sm:mt-4">
+          <div className="mt-4 text-center">
             <button
               onClick={() => setShowOnboarding(true)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-xs rounded-lg border border-white/20 hover:border-white/30 backdrop-blur-sm transition-all duration-300"
+              className="text-sm font-medium text-primary hover:underline"
             >
-              <span>🎥</span>
-              <span>Tanıtım</span>
+              Uygulamayı tanıyın
             </button>
           </div>
         </div>
 
         {/* Minimal footer */}
         <div className="text-center mt-2">
-          <p className="text-white/50 text-xs">© {new Date().getFullYear()} LaundryPro</p>
+          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} LaundryPro</p>
         </div>
       </div>
     </div>

@@ -13,9 +13,10 @@ import { OrderStatusUpdater } from "@/components/orders/order-status-updater"
 import { CustomerInfo } from "@/components/orders/customer-info"
 import { CustomerMap } from "@/components/maps/customer-map"
 import { OrderReceiptDialog } from "@/components/orders/order-receipt-dialog"
-import { QRBarcodeScannerDialog } from "@/components/orders/qr-barcode-scanner-dialog"
 import { sendWhatsAppMessage } from "@/lib/communication"
-import { QrCode, Printer, MessageSquare, Share2 } from "lucide-react"
+import { ArrowLeft, Printer, MessageSquare, Share2 } from "lucide-react"
+import { OrderStatusBadge } from "@/components/orders/order-status-badge"
+import { orderStatusInfo } from "@/lib/order-status"
 import { toast } from "sonner"
 
 interface User {
@@ -129,7 +130,6 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isReceiptOpen, setIsReceiptOpen] = useState(false)
-  const [isScannerOpen, setIsScannerOpen] = useState(false)
   const router = useRouter()
   const params = useParams()
   const orderId = params.id as string
@@ -197,7 +197,6 @@ export default function OrderDetailPage() {
     )
   }
 
-  const currentStatusInfo = statusLabels[order.status]
   const trackingUrl = order.trackingToken
     ? `${window.location.origin}/takip/${encodeURIComponent(order.trackingToken)}`
     : null
@@ -210,104 +209,88 @@ export default function OrderDetailPage() {
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Header */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Sipariş <span className="font-mono">{order.orderNumber}</span></h1>
-                  <Badge variant={currentStatusInfo.variant} className="text-sm">
-                    {currentStatusInfo.label}
-                  </Badge>
+            <div className="space-y-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-2 text-muted-foreground"
+                onClick={() => router.push("/orders")}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Siparişler
+              </Button>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-xl font-bold text-foreground sm:text-2xl">{order.customer.name}</h1>
+                    <OrderStatusBadge status={order.status} />
+                  </div>
+                  <p className="mt-1 font-mono text-sm text-muted-foreground">
+                    {order.orderNumber} • {order.date}
+                  </p>
                 </div>
-                <p className="text-muted-foreground mt-1">
-                  {order.customer.name} • {order.service} • {order.date}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => router.push("/orders")}>
-                  Geri Dön
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={!trackingUrl}
-                  onClick={async () => {
-                    if (!trackingUrl) return
-                    try {
-                      // navigator.clipboard is missing on plain-HTTP origins (LAN dev, some WebViews)
-                      if (!navigator.clipboard) throw new Error("clipboard unavailable")
-                      await navigator.clipboard.writeText(trackingUrl)
-                      toast.success("Müşteri takip linki kopyalandı")
-                    } catch {
-                      window.prompt("Takip linkini kopyalayın:", trackingUrl)
-                    }
-                  }}
-                  className="gap-1.5"
-                >
-                  <Share2 className="h-4 w-4" />
-                  Takip Linki Kopyala
-                </Button>
-                {order.customer.phone && trackingUrl && (
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                  <Button className="col-span-2" onClick={() => setIsReceiptOpen(true)}>
+                    <Printer className="h-4 w-4" />
+                    Fiş / Etiket Yazdır
+                  </Button>
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      const url = trackingUrl
-                      const msg = `Merhaba ${order.customer.name},\n\n${order.orderNumber} numaralı siparişinizin güncel durumunu aşağıdaki bağlantıdan üyeliksiz takip edebilirsiniz:\n${url}\n\n${user.businessName || ""}`
-                      sendWhatsAppMessage(order.customer.phone, msg)
+                    disabled={!trackingUrl}
+                    className={order.customer.phone ? "" : "col-span-2"}
+                    onClick={async () => {
+                      if (!trackingUrl) return
+                      try {
+                        // navigator.clipboard is missing on plain-HTTP origins (LAN dev, some WebViews)
+                        if (!navigator.clipboard) throw new Error("clipboard unavailable")
+                        await navigator.clipboard.writeText(trackingUrl)
+                        toast.success("Müşteri takip linki kopyalandı")
+                      } catch {
+                        window.prompt("Takip linkini kopyalayın:", trackingUrl)
+                      }
                     }}
-                    className="gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50"
                   >
-                    <MessageSquare className="h-4 w-4" />
-                    WhatsApp Takip Gönder
+                    <Share2 className="h-4 w-4" />
+                    Takip Linki
                   </Button>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={() => setIsScannerOpen(true)}
-                  className="gap-1.5"
-                >
-                  <QrCode className="h-4 w-4" />
-                  QR / Barkod Okut
-                </Button>
-                <Button
-                  onClick={() => setIsReceiptOpen(true)}
-                  className="gap-1.5"
-                >
-                  <Printer className="h-4 w-4" />
-                  QR Fiş / Etiket Yazdır
-                </Button>
+                  {order.customer.phone && trackingUrl && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const url = trackingUrl
+                        const msg = `Merhaba ${order.customer.name},\n\n${order.orderNumber} numaralı siparişinizin güncel durumunu aşağıdaki bağlantıdan üyeliksiz takip edebilirsiniz:\n${url}\n\n${user.businessName || ""}`
+                        sendWhatsAppMessage(order.customer.phone, msg)
+                      }}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      WhatsApp
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Order Overview Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-lg sm:text-2xl font-bold font-mono break-words">{order.amount}</div>
-                  <p className="text-xs text-muted-foreground">Toplam Tutar</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-lg sm:text-2xl font-bold font-mono text-primary break-words">{order.orderNumber}</div>
-                  <p className="text-xs text-muted-foreground">Sipariş Numarası</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-lg sm:text-2xl font-bold text-secondary">{order.deliveryDate || "Belirtilmedi"}</div>
-                  <p className="text-xs text-muted-foreground">Teslim Tarihi</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className={`text-lg sm:text-2xl font-bold ${currentStatusInfo.color}`}>{currentStatusInfo.label}</div>
-                  <p className="text-xs text-muted-foreground">Mevcut Durum</p>
-                </CardContent>
-              </Card>
+            {/* Summary */}
+            <div className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-card shadow-card">
+              <div className="p-4">
+                <p className="text-xs text-muted-foreground">Tutar</p>
+                <p className="mt-1 font-bold tabular-nums text-foreground sm:text-lg">{order.amount}</p>
+              </div>
+              <div className="p-4">
+                <p className="text-xs text-muted-foreground">Teslim</p>
+                <p className="mt-1 font-semibold text-foreground sm:text-lg">{order.deliveryDate || "—"}</p>
+              </div>
+              <div className="p-4">
+                <p className="text-xs text-muted-foreground">Durum</p>
+                <p className={`mt-1 font-semibold sm:text-lg ${orderStatusInfo(order.status).classes.text}`}>
+                  {orderStatusInfo(order.status).label}
+                </p>
+              </div>
             </div>
 
             {/* Main Content Tabs */}
             <Tabs defaultValue="details" className="space-y-4">
-              <TabsList className="w-full justify-start overflow-x-auto">
+              <TabsList className="w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <TabsTrigger value="details">Sipariş Detayları</TabsTrigger>
                 <TabsTrigger value="timeline">Takip Geçmişi</TabsTrigger>
                 <TabsTrigger value="customer">Müşteri Bilgileri</TabsTrigger>
@@ -407,11 +390,6 @@ export default function OrderDetailPage() {
                 description: order.description,
                 items: order.items,
               }}
-            />
-
-            <QRBarcodeScannerDialog
-              open={isScannerOpen}
-              onOpenChange={setIsScannerOpen}
             />
           </div>
         </main>

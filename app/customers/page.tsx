@@ -8,17 +8,18 @@ import { EnhancedCustomerMap } from "@/components/maps/enhanced-customer-map";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { DeleteConfirmationModal } from "@/components/ui/confirmation-modal";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/layout/page-header";
+import { Download, Filter, MoreHorizontal, Pencil, Phone, Search, Trash2, UserPlus, Users } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface User {
   id: string;
@@ -273,211 +274,155 @@ export default function CustomersPage() {
         />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">
-                  Müşteriler
-                </h1>
-                <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-                  Müşteri bilgilerini yönetin
-                </p>
+            <PageHeader
+              title="Müşteriler"
+              description="Müşteri bilgilerini yönetin"
+              actions={
+                <Button onClick={() => router.push("/customers/create")} className="w-full sm:w-auto">
+                  <UserPlus className="h-4 w-4" />
+                  Yeni Müşteri
+                </Button>
+              }
+            />
+
+            {/* Search and tools */}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative flex-1 sm:max-w-md">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="İsim, telefon veya e-posta ara..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-              <Button 
-                onClick={() => router.push("/customers/create")}
-                className="w-full sm:w-auto"
-              >
-                Yeni Müşteri
-              </Button>
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <Button variant="outline">
+                  <Filter className="h-4 w-4" />
+                  Filtrele
+                </Button>
+                <Button variant="outline">
+                  <Download className="h-4 w-4" />
+                  Dışa Aktar
+                </Button>
+              </div>
             </div>
 
-            {/* Search and Stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
-              <div className="lg:col-span-3">
-                <div className="relative">
-                  <svg
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                  <Input
-                    className="pl-10"
-                    placeholder="İsim, telefon veya e-posta ara..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
+            {/* Summary */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                { label: "Toplam Müşteri", value: customers.length.toLocaleString("tr-TR") },
+                {
+                  label: "Aktif Müşteri",
+                  value: customers.filter((c) => c.status === "active").length.toLocaleString("tr-TR"),
+                },
+                {
+                  label: "Toplam Sipariş",
+                  value: customers.reduce((sum, c) => sum + c.totalOrders, 0).toLocaleString("tr-TR"),
+                },
+                {
+                  label: "Toplam Ciro",
+                  value: `₺${customers
+                    .reduce((sum, c) => sum + (c.totalSpentValue ?? 0), 0)
+                    .toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                },
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-xl border border-border bg-card p-4 shadow-card">
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                  <p className="mt-1 text-lg font-bold tabular-nums text-foreground sm:text-2xl">{stat.value}</p>
                 </div>
-              </div>
-              <div className="flex items-center justify-end space-x-2">
-                <Button variant="outline">Filtrele</Button>
-                <Button variant="outline">Dışa Aktar</Button>
-              </div>
-            </div>
-
-            {/* Customer Stats - Compact Mobile Design */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Card className="border-0 bg-muted/30">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="text-lg sm:text-2xl font-bold">{customers.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Toplam Müşteri
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="border-0 bg-muted/30">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="text-lg sm:text-2xl font-bold">
-                    {customers.filter((c) => c.status === "active").length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Aktif Müşteri</p>
-                </CardContent>
-              </Card>
-              <Card className="border-0 bg-muted/30">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="text-lg sm:text-2xl font-bold">
-                    {customers.reduce((sum, c) => sum + c.totalOrders, 0)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Toplam Sipariş
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="border-0 bg-muted/30">
-                <CardContent className="p-3 sm:p-4">
-                  <div className="text-lg sm:text-2xl font-bold">
-                    ₺{customers
-                      .reduce((sum, c) => sum + (c.totalSpentValue ?? 0), 0)
-                      .toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Toplam Ciro</p>
-                </CardContent>
-              </Card>
+              ))}
             </div>
 
             {/* Customer List */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Müşteri Listesi</CardTitle>
-                <CardDescription>
-                  {filteredCustomers.length} müşteri bulundu
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredCustomers.map((customer) => (
-                    <div
-                      key={customer.id}
-                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors gap-4"
-                      onClick={() => router.push(`/customers/${customer.id}`)}
-                    >
-                      <div className="flex items-center space-x-3 sm:space-x-4 flex-1">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-medium text-sm sm:text-base">
+            <section className="space-y-3">
+              <div className="flex items-baseline justify-between">
+                <h2 className="text-base font-semibold text-foreground">Müşteri Listesi</h2>
+                <p className="text-sm text-muted-foreground">{filteredCustomers.length} müşteri</p>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+                {filteredCustomers.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <Users className="mx-auto h-10 w-10 text-muted-foreground" />
+                    <h3 className="mt-3 font-semibold text-foreground">Müşteri bulunamadı</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Arama kriterlerinize uygun müşteri bulunmuyor.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {filteredCustomers.map((customer) => (
+                      <li
+                        key={customer.id}
+                        className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-muted"
+                        onClick={() => router.push(`/customers/${customer.id}`)}
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent font-semibold text-primary">
                           {customer.name.charAt(0).toUpperCase()}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                            <span className="font-medium text-sm sm:text-base truncate">{customer.name}</span>
-                            <Badge
-                              variant={
-                                customer.status === "active"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                              className="w-fit"
-                            >
-                              {customer.status === "active" ? "Aktif" : "Pasif"}
-                            </Badge>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate font-medium text-foreground">{customer.name}</span>
+                            {customer.status !== "active" && (
+                              <Badge variant="muted" className="shrink-0">Pasif</Badge>
+                            )}
                           </div>
-                          <div className="text-xs sm:text-sm text-muted-foreground truncate">
-                            {customer.phone} • {customer.email}
-                          </div>
-                          <div className="text-xs sm:text-sm text-muted-foreground truncate">
-                            {customer.address}
-                          </div>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {[customer.phone, customer.address].filter(Boolean).join(" • ")}
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            <span className="font-semibold tabular-nums text-foreground">{customer.totalSpent}</span>
+                            {" • "}
+                            {customer.totalOrders} sipariş • Son: {customer.lastOrder}
+                          </p>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">{customer.totalSpent}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {customer.totalOrders} sipariş
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Son: {customer.lastOrder}
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
+                        <div className="flex shrink-0 items-center">
                           <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs px-2 py-1"
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-foreground"
+                            aria-label="Müşteriyi ara"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleCallCustomer(customer.phone);
                             }}
                           >
-                            📞 Ara
+                            <Phone className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs px-2 py-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCustomerDetail(customer);
-                            }}
-                          >
-                            Detay
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="text-xs px-2 py-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteCustomer(customer.id, customer.name);
-                            }}
-                          >
-                            Sil
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-muted-foreground hover:text-foreground"
+                                aria-label="Diğer işlemler"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem onClick={() => handleCustomerDetail(customer)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Düzenle
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleDeleteCustomer(customer.id, customer.name)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Sil
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                  {filteredCustomers.length === 0 && (
-                    <div className="text-center py-12">
-                      <div className="text-muted-foreground">
-                        <svg
-                          className="mx-auto h-12 w-12 text-muted-foreground/50"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1}
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                          />
-                        </svg>
-                        <h3 className="mt-2 text-sm font-medium">
-                          Müşteri bulunamadı
-                        </h3>
-                        <p className="mt-1 text-sm">
-                          Arama kriterlerinize uygun müşteri bulunmuyor.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
           </div>
         </main>
       </div>

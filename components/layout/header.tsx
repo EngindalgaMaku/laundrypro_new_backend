@@ -95,7 +95,7 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
 
   return (
     <>
-    <header className="sticky top-0 z-50 h-14 sm:h-16 border-b border-border bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 shadow-sm">
+    <header className="sticky top-0 z-50 h-14 sm:h-16 border-b border-border bg-card">
       <div className="flex items-center justify-between h-full px-3 sm:px-4 lg:px-6">
         {/* Mobile menu button + Logo */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 md:flex-none">
@@ -172,7 +172,7 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
           >
             <Bell className="w-4 h-4" />
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full flex items-center justify-center">
-              <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+              <span className="w-1.5 h-1.5 bg-card rounded-full"></span>
             </span>
             <span className="sr-only">Bildirimler</span>
           </Button>
@@ -189,7 +189,7 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="relative touch-target h-10 w-10 rounded-xl bg-gradient-primary text-primary-foreground hover:scale-105 hover:shadow-md transition-all duration-200 focus-ring"
+                className="relative touch-target h-10 w-10 rounded-xl bg-gradient-primary text-primary-foreground transition-all duration-200 focus-ring"
               >
                 <span className="font-semibold text-sm">
                   {user.business?.name?.charAt(0)?.toUpperCase() || "Z"}
@@ -197,7 +197,7 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-64 p-2 bg-card/95 backdrop-blur-lg border border-border/50 shadow-xl rounded-xl fade-in-scale"
+              className="w-64 p-2 bg-card/95 border border-border/50 shadow-card rounded-xl fade-in-scale"
               align="end"
               forceMount
             >
@@ -256,7 +256,7 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
 
       {/* Enhanced Mobile Search Bar */}
       {isSearchOpen && (
-        <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-md p-3 slide-in-up">
+        <div className="md:hidden border-t border-border bg-background/95 p-3 slide-in-up">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 z-10" />
             <Input

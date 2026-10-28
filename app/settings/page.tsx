@@ -488,7 +488,7 @@ export default function SettingsPage() {
           <div className="max-w-4xl mx-auto space-y-6">
             {/* Header */}
             <div>
-              <h1 className="text-3xl font-semibold text-foreground">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
                 Ayarlar
               </h1>
               <p className="text-muted-foreground mt-1">

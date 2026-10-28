@@ -33,7 +33,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       accent: "from-pink-500 to-rose-500",
       mockup: (
         <div className="relative w-80 h-96 mx-auto">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-3xl border border-white/20 shadow-2xl">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl"></div>
@@ -60,8 +60,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </div>
             </div>
           </div>
-          <div className="absolute -top-4 -right-4 w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full animate-bounce shadow-lg"></div>
-          <div className="absolute -bottom-2 -left-2 w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full animate-pulse shadow-lg"></div>
         </div>
       ),
     },
@@ -72,7 +70,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       accent: "from-yellow-500 to-orange-500",
       mockup: (
         <div className="relative w-80 h-96 mx-auto">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-3xl border border-white/20 shadow-2xl">
             <div className="p-6">
               <div className="relative h-40 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-2xl mb-6 overflow-hidden">
                 <div className="absolute inset-0">
@@ -116,7 +114,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </div>
             </div>
           </div>
-          <div className="absolute -top-3 -left-3 w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl rotate-12 animate-spin-slow shadow-xl"></div>
           <div className="absolute -bottom-4 -right-4 w-20 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full animate-pulse shadow-lg flex items-center justify-center">
             <Zap className="w-4 h-4 text-white" />
           </div>
@@ -133,7 +130,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <div className="flex items-center justify-center gap-8">
             {/* Phone mockup */}
             <div className="relative">
-              <div className="w-32 h-56 bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl">
+              <div className="w-32 h-56 bg-gradient-to-br from-white/20 to-white/10 rounded-3xl border border-white/30 shadow-card">
                 <div className="p-4">
                   <div className="w-full h-2 bg-white/30 rounded mb-4"></div>
                   <div className="space-y-3">
@@ -156,7 +153,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
             {/* Tablet mockup */}
             <div className="relative">
-              <div className="w-40 h-28 bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-xl rounded-2xl border border-white/30 shadow-2xl">
+              <div className="w-40 h-28 bg-gradient-to-br from-white/20 to-white/10 rounded-2xl border border-white/30 shadow-card">
                 <div className="p-3">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg"></div>
@@ -178,13 +175,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
           {/* Floating elements */}
           <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full animate-bounce flex items-center justify-center shadow-2xl">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full animate-bounce flex items-center justify-center shadow-card">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
           </div>
 
-          <div className="absolute -bottom-4 -left-4 w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl rotate-45 animate-spin-slow shadow-xl"></div>
-          <div className="absolute -bottom-2 -right-6 w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full animate-pulse shadow-lg"></div>
         </div>
       ),
     },
@@ -213,13 +208,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {/* Animated background elements */}
       <div className="absolute inset-0">
         {/* Floating orbs */}
-        <div className="absolute top-20 left-20 w-32 h-32 bg-white/10 rounded-full blur-2xl animate-float"></div>
-        <div className="absolute top-40 right-32 w-48 h-48 bg-white/5 rounded-full blur-3xl animate-float-delayed"></div>
-        <div className="absolute bottom-20 left-1/3 w-64 h-64 bg-white/5 rounded-full blur-3xl animate-float-slow"></div>
 
         {/* Geometric shapes */}
-        <div className="absolute top-32 right-20 w-16 h-16 border-2 border-white/20 rounded-lg rotate-45 animate-spin-slow"></div>
-        <div className="absolute bottom-40 left-20 w-12 h-12 bg-white/10 rounded-full animate-bounce"></div>
 
         {/* Grid pattern */}
         <div className="absolute inset-0 opacity-5">
@@ -258,9 +248,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 key={index}
                 className={`h-1.5 rounded-full transition-all duration-500 ${
                   index === currentPage
-                    ? "w-12 bg-white"
+                    ? "w-12 bg-card"
                     : index < currentPage
-                    ? "w-6 bg-white/70"
+                    ? "w-6 bg-card"
                     : "w-6 bg-white/30"
                 }`}
               />
@@ -296,7 +286,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <Button
                     onClick={nextPage}
                     size="lg"
-                    className={`bg-gradient-to-r ${currentPageData.accent} hover:scale-105 transform transition-all duration-300 shadow-2xl border-0 text-white px-8 py-6 text-lg font-semibold rounded-2xl group`}
+                    className="h-12 rounded-md border-0 bg-white px-8 text-base font-semibold text-primary hover:bg-white/90 group"
                   >
                     {currentPage === pages.length - 1 ? (
                       <>
@@ -326,7 +316,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
               {/* Visual mockup */}
               <div className="flex items-center justify-center">
-                <div className="transform hover:scale-105 transition-all duration-500">
+                <div className="transform transition-all duration-500">
                   {currentPageData.mockup}
                 </div>
               </div>

@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Check, ChevronsUpDown, Plus } from "lucide-react"
+import { ArrowLeft, Check, ChevronsUpDown, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
@@ -225,18 +225,20 @@ export default function CreateOrderPage() {
                 )}
               </div>
             </div>
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Header: back link above the title on phones, beside it on wider screens */}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Yeni Sipariş</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Yeni Sipariş</h1>
                 <p className="text-muted-foreground mt-1 text-sm sm:text-base">Yeni bir sipariş oluşturun</p>
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => router.push("/orders")}
-                className="w-full sm:w-auto"
+                className="-ml-2 w-fit text-muted-foreground"
               >
-                Geri Dön
+                <ArrowLeft className="h-4 w-4" />
+                Siparişler
               </Button>
             </div>
 

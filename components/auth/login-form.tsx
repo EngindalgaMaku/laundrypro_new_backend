@@ -180,65 +180,55 @@ export function LoginForm() {
   return (
     <div className="w-full relative">
       {/* Compact Glass Card */}
-      <div className="relative backdrop-blur-xl bg-white/[0.08] border border-white/20 rounded-2xl shadow-xl overflow-hidden">
-        {/* Shimmer Effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full"></div>
+      <div className="relative bg-card border border-border rounded-xl shadow-card overflow-hidden">
 
         {/* Header Section */}
         <div className="relative p-3 sm:p-4 pb-2 sm:pb-3">
           {/* Logo/Icon */}
           <div className="flex justify-center mb-3 sm:mb-4">
                 <div className="relative">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent rounded-full flex items-center justify-center">
                     {isLogin ? (
-                      <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                      <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                     ) : (
-                      <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white animate-pulse" />
+                      <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary animate-pulse" />
                     )}
                   </div>
-                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/50 to-purple-600/50 rounded-xl blur-md opacity-60 -z-10"></div>
                 </div>
               </div>
 
               {/* Title */}
               <div className="text-center mb-4 sm:mb-6">
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent mb-2 leading-tight">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 leading-tight">
                   {isLogin ? "Hoş Geldiniz" : "Kayıt Olun"}
                 </h1>
-                <p className="text-white/70 text-sm sm:text-base font-medium">
+                <p className="text-muted-foreground text-sm sm:text-base font-medium">
                   {isLogin ? "Giriş yapın" : "Hesap oluşturun"}
                 </p>
               </div>
 
               {/* Premium Mode Toggle */}
-              <div className="relative bg-white/10 p-1 rounded-xl mb-4 sm:mb-6 border border-white/20">
-                <div
-                  className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-gradient-to-r shadow-lg rounded-xl transition-all duration-700 ease-out ${
-                    isLogin
-                      ? "left-1 from-blue-500 to-purple-600 shadow-blue-500/50"
-                      : "left-[calc(50%+4px-1px)] from-emerald-500 to-cyan-600 shadow-emerald-500/50"
-                  }`}
-                />
+              <div className="relative mb-5 rounded-lg bg-muted p-1">
                 <div className="relative grid grid-cols-2">
                   <button
                     onClick={() => setIsLogin(true)}
-                    className={`py-4 px-6 rounded-xl font-bold text-sm transition-all duration-500 ${
+                    className={`h-10 rounded-md text-sm font-semibold transition-colors ${
                       isLogin
-                        ? "text-white shadow-lg transform scale-105"
-                        : "text-white/60 hover:text-white/90 hover:scale-105"
+                        ? "bg-card text-foreground shadow-card"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    GİRİŞ YAP
+                    Giriş Yap
                   </button>
                   <button
                     onClick={() => setIsLogin(false)}
-                    className={`py-4 px-6 rounded-xl font-bold text-sm transition-all duration-500 ${
+                    className={`h-10 rounded-md text-sm font-semibold transition-colors ${
                       !isLogin
-                        ? "text-white shadow-lg transform scale-105"
-                        : "text-white/60 hover:text-white/90 hover:scale-105"
+                        ? "bg-card text-foreground shadow-card"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    KAYIT OL
+                    Kayıt Ol
                   </button>
                 </div>
               </div>
@@ -254,16 +244,16 @@ export function LoginForm() {
                     <div className="relative group">
                       <Label
                         htmlFor="email"
-                        className="block text-white/90 font-semibold mb-2 text-sm tracking-wide"
+                        className="block text-foreground font-semibold mb-2 text-sm"
                       >
-                        E-POSTA ADRESİ
+                        E-posta adresi
                       </Label>
                       <div className="relative">
                         <Mail
                           className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-all duration-300 ${
                             focusedField === "email"
-                              ? "text-blue-400 scale-110"
-                              : "text-white/50"
+                              ? "text-primary"
+                              : "text-muted-foreground"
                           }`}
                         />
                         <Input
@@ -280,10 +270,10 @@ export function LoginForm() {
                           onFocus={() => setFocusedField("email")}
                           onBlur={() => setFocusedField(null)}
                           required
-                          className={`pl-12 h-12 sm:h-14 bg-white/5 border-2 border-white/20 text-white placeholder:text-white/50 rounded-xl transition-all duration-300 hover:bg-white/10 focus:bg-white/10 focus:border-blue-400/70 focus:shadow-xl focus:shadow-blue-500/20 ${
+                          className={`pl-12 h-11 bg-card border border-[color:var(--input-border)] text-foreground placeholder:text-muted-foreground rounded-md transition-colors focus:border-primary ${
                             focusedField === "email"
-                              ? "border-blue-400/70 shadow-xl shadow-blue-500/20 scale-[1.02]"
-                              : "hover:border-white/40"
+                              ? "border-primary"
+                              : ""
                           }`}
                         />
                       </div>
@@ -293,16 +283,16 @@ export function LoginForm() {
                     <div className="relative group">
                       <Label
                         htmlFor="password"
-                        className="block text-white/90 font-semibold mb-3 text-sm tracking-wide"
+                        className="block text-foreground font-semibold mb-3 text-sm"
                       >
-                        ŞİFRE
+                        Şifre
                       </Label>
                       <div className="relative">
                         <Lock
                           className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-all duration-300 ${
                             focusedField === "password"
-                              ? "text-blue-400 scale-110"
-                              : "text-white/50"
+                              ? "text-primary"
+                              : "text-muted-foreground"
                           }`}
                         />
                         <Input
@@ -319,16 +309,16 @@ export function LoginForm() {
                           onFocus={() => setFocusedField("password")}
                           onBlur={() => setFocusedField(null)}
                           required
-                          className={`pl-12 pr-12 h-12 sm:h-14 bg-white/5 border-2 border-white/20 text-white placeholder:text-white/50 rounded-xl transition-all duration-300 hover:bg-white/10 focus:bg-white/10 focus:border-blue-400/70 focus:shadow-xl focus:shadow-blue-500/20 ${
+                          className={`pl-12 pr-12 h-11 bg-card border border-[color:var(--input-border)] text-foreground placeholder:text-muted-foreground rounded-md transition-colors focus:border-primary ${
                             focusedField === "password"
-                              ? "border-blue-400/70 shadow-xl shadow-blue-500/20 scale-[1.02]"
-                              : "hover:border-white/40"
+                              ? "border-primary"
+                              : ""
                           }`}
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/80 transition-all duration-300 hover:scale-110"
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-all duration-300"
                         >
                           {showPassword ? (
                             <EyeOff className="h-5 w-5" />
@@ -342,17 +332,17 @@ export function LoginForm() {
 
                   {/* Remember Me & Forgot Password */}
                   <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center space-x-3 text-white/70 cursor-pointer hover:text-white/90 transition-colors">
+                    <label className="flex items-center space-x-3 text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
                       <input
                         type="checkbox"
                         defaultChecked={true}
-                        className="w-4 h-4 rounded border-white/30 bg-white/10 text-blue-500 focus:ring-blue-500/50 focus:ring-2"
+                        className="w-4 h-4 rounded border-[color:var(--input-border)] text-primary focus:ring-ring/50 focus:ring-2"
                       />
                       <span className="font-medium">Beni hatırla</span>
                     </label>
                     <Link
                       href="/sifre-sifirla"
-                      className="text-blue-300 hover:text-white font-semibold transition-colors"
+                      className="text-primary hover:underline font-semibold transition-colors"
                     >
                       Şifremi unuttum
                     </Link>
@@ -362,18 +352,16 @@ export function LoginForm() {
                   <Button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-12 sm:h-14 bg-gradient-to-r from-blue-600 via-blue-700 to-purple-700 hover:from-blue-700 hover:via-blue-800 hover:to-purple-800 text-white font-bold text-base sm:text-lg rounded-xl transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/30 hover:scale-[1.02] disabled:opacity-60 disabled:scale-100 disabled:cursor-not-allowed group overflow-hidden relative"
+                    className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base rounded-md disabled:opacity-60 disabled:cursor-not-allowed group overflow-hidden relative"
                   >
-                    {/* Button Shimmer Effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-pulse"></div>
 
                     <div className="relative flex items-center justify-center">
                       {isLoading ? (
-                        <Loader2 className="h-6 w-6 animate-spin mr-3" />
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
                       ) : (
-                        <ArrowRight className="h-6 w-6 mr-3 transition-transform duration-300 group-hover:translate-x-1" />
+                        <ArrowRight className="h-5 w-5 mr-2" />
                       )}
-                      {isLoading ? "Giriş yapılıyor..." : "GİRİŞ YAP"}
+                      {isLoading ? "Giriş yapılıyor..." : "Giriş Yap"}
                     </div>
                   </Button>
                 </form>
@@ -389,16 +377,16 @@ export function LoginForm() {
                       <div className="relative group">
                         <Label
                           htmlFor="firstName"
-                          className="block text-white/90 font-semibold mb-3 text-sm tracking-wide"
+                          className="block text-foreground font-semibold mb-3 text-sm"
                         >
-                          AD
+                          Ad
                         </Label>
                         <div className="relative">
                           <User
                             className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-all duration-300 ${
                               focusedField === "firstName"
-                                ? "text-emerald-400 scale-110"
-                                : "text-white/50"
+                                ? "text-primary"
+                                : "text-muted-foreground"
                             }`}
                           />
                           <Input
@@ -414,10 +402,10 @@ export function LoginForm() {
                             }
                             onFocus={() => setFocusedField("firstName")}
                             onBlur={() => setFocusedField(null)}
-                            className={`pl-12 h-10 bg-white/5 border-2 border-white/20 text-white placeholder:text-white/50 rounded-lg transition-all duration-300 hover:bg-white/10 focus:bg-white/10 ${
+                            className={`pl-12 h-10 bg-card border border-[color:var(--input-border)] text-foreground placeholder:text-muted-foreground rounded-md transition-colors ${
                               focusedField === "firstName"
-                                ? "border-emerald-400/70 shadow-lg shadow-emerald-500/20 scale-[1.02]"
-                                : "hover:border-white/40"
+                                ? "border-primary"
+                                : ""
                             }`}
                           />
                         </div>
@@ -426,16 +414,16 @@ export function LoginForm() {
                       <div className="relative group">
                         <Label
                           htmlFor="lastName"
-                          className="block text-white/90 font-semibold mb-3 text-sm tracking-wide"
+                          className="block text-foreground font-semibold mb-3 text-sm"
                         >
-                          SOYAD
+                          Soyad
                         </Label>
                         <div className="relative">
                           <User
                             className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-all duration-300 ${
                               focusedField === "lastName"
-                                ? "text-emerald-400 scale-110"
-                                : "text-white/50"
+                                ? "text-primary"
+                                : "text-muted-foreground"
                             }`}
                           />
                           <Input
@@ -451,10 +439,10 @@ export function LoginForm() {
                             }
                             onFocus={() => setFocusedField("lastName")}
                             onBlur={() => setFocusedField(null)}
-                            className={`pl-12 h-10 bg-white/5 border-2 border-white/20 text-white placeholder:text-white/50 rounded-lg transition-all duration-300 hover:bg-white/10 focus:bg-white/10 ${
+                            className={`pl-12 h-10 bg-card border border-[color:var(--input-border)] text-foreground placeholder:text-muted-foreground rounded-md transition-colors ${
                               focusedField === "lastName"
-                                ? "border-emerald-400/70 shadow-lg shadow-emerald-500/20 scale-[1.02]"
-                                : "hover:border-white/40"
+                                ? "border-primary"
+                                : ""
                             }`}
                           />
                         </div>
@@ -465,16 +453,16 @@ export function LoginForm() {
                     <div className="relative group">
                       <Label
                         htmlFor="businessName"
-                        className="block text-white/90 font-semibold mb-3 text-sm tracking-wide"
+                        className="block text-foreground font-semibold mb-3 text-sm"
                       >
-                        İŞLETME ADI
+                        İşletme adı
                       </Label>
                       <div className="relative">
                         <Building
                           className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-all duration-300 ${
                             focusedField === "businessName"
-                              ? "text-emerald-400 scale-110"
-                              : "text-white/50"
+                              ? "text-primary"
+                              : "text-muted-foreground"
                           }`}
                         />
                         <Input
@@ -491,10 +479,10 @@ export function LoginForm() {
                           onFocus={() => setFocusedField("businessName")}
                           onBlur={() => setFocusedField(null)}
                           required
-                          className={`pl-12 h-9 sm:h-10 bg-white/5 border-2 border-white/20 text-white placeholder:text-white/50 rounded-lg transition-all duration-300 hover:bg-white/10 focus:bg-white/10 ${
+                          className={`pl-12 h-9 sm:h-10 bg-card border border-[color:var(--input-border)] text-foreground placeholder:text-muted-foreground rounded-md transition-colors ${
                             focusedField === "businessName"
-                              ? "border-emerald-400/70 shadow-xl shadow-emerald-500/20 scale-[1.02]"
-                              : "hover:border-white/40"
+                              ? "border-primary"
+                              : ""
                           }`}
                         />
                       </div>
@@ -502,10 +490,10 @@ export function LoginForm() {
 
                     {/* Business Types */}
                     <div className="space-y-3">
-                      <Label className="block text-white/90 font-semibold mb-3 text-sm tracking-wide">
-                        HİZMET TÜRLERİ
+                      <Label className="block text-foreground font-semibold mb-3 text-sm">
+                        Hizmet türleri
                       </Label>
-                      <p className="text-xs text-white/70 mb-3">
+                      <p className="text-xs text-muted-foreground mb-3">
                         İşletmenizin sunduğu hizmetleri seçin (birden fazla
                         seçebilirsiniz)
                       </p>
@@ -513,7 +501,7 @@ export function LoginForm() {
                         {businessTypes.map((type) => (
                           <div
                             key={type.value}
-                            className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-all duration-300"
+                            className="flex items-center space-x-3 p-3 bg-card rounded-md border border-border hover:bg-muted transition-colors"
                           >
                             <Checkbox
                               id={type.value}
@@ -538,19 +526,19 @@ export function LoginForm() {
                                   }));
                                 }
                               }}
-                              className="border-white/30 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                              className="border-[color:var(--input-border)] data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                             />
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <span className="text-lg">{type.icon}</span>
                                 <Label
                                   htmlFor={type.value}
-                                  className="text-white/90 font-medium cursor-pointer"
+                                  className="text-foreground font-medium cursor-pointer"
                                 >
                                   {type.label}
                                 </Label>
                               </div>
-                              <p className="text-xs text-white/60 mt-1">
+                              <p className="text-xs text-muted-foreground mt-1">
                                 {type.description}
                               </p>
                             </div>
@@ -564,16 +552,16 @@ export function LoginForm() {
                       <div className="relative group">
                         <Label
                           htmlFor="regEmail"
-                          className="block text-white/90 font-semibold mb-3 text-sm tracking-wide"
+                          className="block text-foreground font-semibold mb-3 text-sm"
                         >
-                          E-POSTA
+                          E-posta
                         </Label>
                         <div className="relative">
                           <Mail
                             className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-all duration-300 ${
                               focusedField === "regEmail"
-                                ? "text-emerald-400 scale-110"
-                                : "text-white/50"
+                                ? "text-primary"
+                                : "text-muted-foreground"
                             }`}
                           />
                           <Input
@@ -590,10 +578,10 @@ export function LoginForm() {
                             onFocus={() => setFocusedField("regEmail")}
                             onBlur={() => setFocusedField(null)}
                             required
-                            className={`pl-12 h-10 bg-white/5 border-2 border-white/20 text-white placeholder:text-white/50 rounded-lg transition-all duration-300 hover:bg-white/10 focus:bg-white/10 ${
+                            className={`pl-12 h-10 bg-card border border-[color:var(--input-border)] text-foreground placeholder:text-muted-foreground rounded-md transition-colors ${
                               focusedField === "regEmail"
-                                ? "border-emerald-400/70 shadow-lg shadow-emerald-500/20 scale-[1.02]"
-                                : "hover:border-white/40"
+                                ? "border-primary"
+                                : ""
                             }`}
                           />
                         </div>
@@ -602,16 +590,16 @@ export function LoginForm() {
                       <div className="relative group">
                         <Label
                           htmlFor="phone"
-                          className="block text-white/90 font-semibold mb-3 text-sm tracking-wide"
+                          className="block text-foreground font-semibold mb-3 text-sm"
                         >
-                          TELEFON
+                          Telefon
                         </Label>
                         <div className="relative">
                           <Phone
                             className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-all duration-300 ${
                               focusedField === "phone"
-                                ? "text-emerald-400 scale-110"
-                                : "text-white/50"
+                                ? "text-primary"
+                                : "text-muted-foreground"
                             }`}
                           />
                           <Input
@@ -627,10 +615,10 @@ export function LoginForm() {
                             }
                             onFocus={() => setFocusedField("phone")}
                             onBlur={() => setFocusedField(null)}
-                            className={`pl-12 h-10 bg-white/5 border-2 border-white/20 text-white placeholder:text-white/50 rounded-lg transition-all duration-300 hover:bg-white/10 focus:bg-white/10 ${
+                            className={`pl-12 h-10 bg-card border border-[color:var(--input-border)] text-foreground placeholder:text-muted-foreground rounded-md transition-colors ${
                               focusedField === "phone"
-                                ? "border-emerald-400/70 shadow-lg shadow-emerald-500/20 scale-[1.02]"
-                                : "hover:border-white/40"
+                                ? "border-primary"
+                                : ""
                             }`}
                           />
                         </div>
@@ -642,16 +630,16 @@ export function LoginForm() {
                       <div className="relative group">
                         <Label
                           htmlFor="city"
-                          className="block text-white/90 font-semibold mb-3 text-sm tracking-wide"
+                          className="block text-foreground font-semibold mb-3 text-sm"
                         >
-                          İL *
+                          İl *
                         </Label>
                         <div className="relative">
                           <MapPin
                             className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-all duration-300 ${
                               focusedField === "city"
-                                ? "text-emerald-400 scale-110"
-                                : "text-white/50"
+                                ? "text-primary"
+                                : "text-muted-foreground"
                             }`}
                           />
                           <Select
@@ -666,10 +654,10 @@ export function LoginForm() {
                             required
                           >
                             <SelectTrigger
-                              className={`pl-12 h-10 bg-white/5 border-2 border-white/20 text-white rounded-lg transition-all duration-300 hover:bg-white/10 focus:bg-white/10 ${
+                              className={`pl-12 h-10 bg-card border border-[color:var(--input-border)] text-foreground rounded-md transition-colors ${
                                 focusedField === "city"
-                                  ? "border-emerald-400/70 shadow-lg shadow-emerald-500/20"
-                                  : "hover:border-white/40"
+                                  ? "border-emerald-400/70 shadow-card shadow-emerald-500/20"
+                                  : ""
                               }`}
                               onFocus={() => setFocusedField("city")}
                               onBlur={() => setFocusedField(null)}
@@ -690,16 +678,16 @@ export function LoginForm() {
                       <div className="relative group">
                         <Label
                           htmlFor="district"
-                          className="block text-white/90 font-semibold mb-3 text-sm tracking-wide"
+                          className="block text-foreground font-semibold mb-3 text-sm"
                         >
-                          İLÇE *
+                          İlçe *
                         </Label>
                         <div className="relative">
                           <Navigation
                             className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-all duration-300 ${
                               focusedField === "district"
-                                ? "text-emerald-400 scale-110"
-                                : "text-white/50"
+                                ? "text-primary"
+                                : "text-muted-foreground"
                             }`}
                           />
                           <Select
@@ -714,10 +702,10 @@ export function LoginForm() {
                             required
                           >
                             <SelectTrigger
-                              className={`pl-12 h-10 bg-white/5 border-2 border-white/20 text-white rounded-lg transition-all duration-300 hover:bg-white/10 focus:bg-white/10 disabled:opacity-50 ${
+                              className={`pl-12 h-10 bg-card border border-[color:var(--input-border)] text-foreground rounded-md transition-colors disabled:opacity-50 ${
                                 focusedField === "district"
-                                  ? "border-emerald-400/70 shadow-lg shadow-emerald-500/20"
-                                  : "hover:border-white/40"
+                                  ? "border-emerald-400/70 shadow-card shadow-emerald-500/20"
+                                  : ""
                               }`}
                               onFocus={() => setFocusedField("district")}
                               onBlur={() => setFocusedField(null)}
@@ -752,16 +740,16 @@ export function LoginForm() {
                     <div className="relative group">
                       <Label
                         htmlFor="address"
-                        className="block text-white/90 font-semibold mb-3 text-sm tracking-wide"
+                        className="block text-foreground font-semibold mb-3 text-sm"
                       >
-                        DETAY ADRES
+                        Detay adres
                       </Label>
                       <div className="relative">
                         <MapPin
                           className={`absolute left-4 top-4 h-5 w-5 transition-all duration-300 ${
                             focusedField === "address"
-                              ? "text-emerald-400 scale-110"
-                              : "text-white/50"
+                              ? "text-primary"
+                              : "text-muted-foreground"
                           }`}
                         />
                         <Textarea
@@ -776,10 +764,10 @@ export function LoginForm() {
                           }
                           onFocus={() => setFocusedField("address")}
                           onBlur={() => setFocusedField(null)}
-                          className={`pl-12 bg-white/5 border-2 border-white/20 text-white placeholder:text-white/50 rounded-lg transition-all duration-300 hover:bg-white/10 focus:bg-white/10 resize-none h-20 ${
+                          className={`pl-12 bg-card border border-[color:var(--input-border)] text-foreground placeholder:text-muted-foreground rounded-md transition-colors resize-none h-20 ${
                             focusedField === "address"
-                              ? "border-emerald-400/70 shadow-lg shadow-emerald-500/20 scale-[1.02]"
-                              : "hover:border-white/40"
+                              ? "border-primary"
+                              : ""
                           }`}
                         />
                       </div>
@@ -800,16 +788,16 @@ export function LoginForm() {
                     <div className="relative group">
                       <Label
                         htmlFor="regPassword"
-                        className="block text-white/90 font-semibold mb-3 text-sm tracking-wide"
+                        className="block text-foreground font-semibold mb-3 text-sm"
                       >
-                        ŞİFRE
+                        Şifre
                       </Label>
                       <div className="relative">
                         <Lock
                           className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 transition-all duration-300 ${
                             focusedField === "regPassword"
-                              ? "text-emerald-400 scale-110"
-                              : "text-white/50"
+                              ? "text-primary"
+                              : "text-muted-foreground"
                           }`}
                         />
                         <Input
@@ -827,16 +815,16 @@ export function LoginForm() {
                           onFocus={() => setFocusedField("regPassword")}
                           onBlur={() => setFocusedField(null)}
                           required
-                          className={`pl-12 pr-12 h-9 sm:h-10 bg-white/5 border-2 border-white/20 text-white placeholder:text-white/50 rounded-lg transition-all duration-300 hover:bg-white/10 focus:bg-white/10 ${
+                          className={`pl-12 pr-12 h-9 sm:h-10 bg-card border border-[color:var(--input-border)] text-foreground placeholder:text-muted-foreground rounded-md transition-colors ${
                             focusedField === "regPassword"
-                              ? "border-emerald-400/70 shadow-xl shadow-emerald-500/20 scale-[1.02]"
-                              : "hover:border-white/40"
+                              ? "border-primary"
+                              : ""
                           }`}
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/80 transition-all duration-300 hover:scale-110"
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-all duration-300"
                         >
                           {showPassword ? (
                             <EyeOff className="h-5 w-5" />
@@ -849,7 +837,7 @@ export function LoginForm() {
                   </div>
 
                   {/* KVKK consents */}
-                  <div className="space-y-2 text-sm text-white/80">
+                  <div className="space-y-2 text-sm text-foreground">
                     {(
                       [
                         ["kvkk", "/kvkk", "KVKK Aydınlatma Metni", "'ni okudum."],
@@ -864,18 +852,18 @@ export function LoginForm() {
                           onChange={(e) => setConsents((prev) => ({ ...prev, [key]: e.target.checked }))}
                           required
                           aria-label={`${title}${suffix}`}
-                          className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30"
+                          className="mt-0.5 h-4 w-4 shrink-0 rounded border-[color:var(--input-border)]"
                         />
                         <span>
                           <a
                             href={href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-semibold text-white underline underline-offset-2"
+                            className="font-semibold text-primary underline underline-offset-2"
                           >
                             {title}
                           </a>
-                          {suffix} <span className="text-white/50">(zorunlu)</span>
+                          {suffix} <span className="text-muted-foreground">(zorunlu)</span>
                         </span>
                       </label>
                     ))}
@@ -885,7 +873,7 @@ export function LoginForm() {
                         checked={consents.marketing}
                         onChange={(e) => setConsents((prev) => ({ ...prev, marketing: e.target.checked }))}
                         aria-label="Ticari ileti almak istiyorum (isteğe bağlı)"
-                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30"
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-[color:var(--input-border)]"
                       />
                       <span>Kampanya ve duyurular için ticari ileti almak istiyorum. (isteğe bağlı)</span>
                     </label>
@@ -895,26 +883,21 @@ export function LoginForm() {
                   <Button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-12 sm:h-14 bg-gradient-to-r from-emerald-600 via-emerald-700 to-cyan-700 hover:from-emerald-700 hover:via-emerald-800 hover:to-cyan-800 text-white font-bold text-base sm:text-lg rounded-xl transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/30 hover:scale-[1.02] disabled:opacity-60 disabled:scale-100 disabled:cursor-not-allowed group overflow-hidden relative"
+                    className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base rounded-md disabled:opacity-60 disabled:cursor-not-allowed group overflow-hidden relative"
                   >
-                    {/* Button Shimmer Effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-pulse"></div>
 
                     <div className="relative flex items-center justify-center">
                       {isLoading ? (
-                        <Loader2 className="h-6 w-6 animate-spin mr-3" />
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
                       ) : (
-                        <Sparkles className="h-6 w-6 mr-3 transition-transform duration-300 group-hover:rotate-12" />
+                        <Sparkles className="h-5 w-5 mr-2 transition-transform duration-300 group-hover:rotate-12" />
                       )}
-                      {isLoading ? "Hesap oluşturuluyor..." : "HESAP OLUŞTUR"}
+                      {isLoading ? "Hesap oluşturuluyor..." : "Hesap Oluştur"}
                     </div>
                   </Button>
                 </form>
               )}
             </div>
-
-        {/* Premium Bottom Accent */}
-        <div className="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 opacity-60"></div>
       </div>
     </div>
   );

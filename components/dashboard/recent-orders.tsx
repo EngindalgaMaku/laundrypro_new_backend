@@ -1,17 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronRight, Clock, Eye } from "lucide-react";
+import { ChevronRight, Clock } from "lucide-react";
+import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { useRouter } from "next/navigation";
 
 interface Order {
@@ -22,67 +14,15 @@ interface Order {
     lastName: string;
   };
   orderItems: Array<{
-    service: {
+    serviceName?: string | null;
+    service?: {
       name: string;
-    };
+    } | null;
   }>;
   status: string;
   totalAmount: number;
   createdAt: string;
 }
-
-const statusLabels: Record<
-  string,
-  {
-    label: string;
-    variant: "default" | "secondary" | "destructive" | "outline";
-    color: string;
-    icon: string;
-  }
-> = {
-  pending: {
-    label: "Beklemede",
-    variant: "outline",
-    color: "text-orange-600 bg-orange-50 border-orange-200",
-    icon: "⏳",
-  },
-  confirmed: {
-    label: "Onaylandı",
-    variant: "default",
-    color: "text-blue-600 bg-blue-50 border-blue-200",
-    icon: "✔️",
-  },
-  in_progress: {
-    label: "İşlemde",
-    variant: "default",
-    color: "text-purple-600 bg-purple-50 border-purple-200",
-    icon: "🔄",
-  },
-  ready_for_pickup: {
-    label: "Teslim Hazır",
-    variant: "secondary",
-    color: "text-green-600 bg-green-50 border-green-200",
-    icon: "✅",
-  },
-  delivered: {
-    label: "Teslim Edildi",
-    variant: "secondary",
-    color: "text-cyan-600 bg-cyan-50 border-cyan-200",
-    icon: "📦",
-  },
-  completed: {
-    label: "Tamamlandı",
-    variant: "secondary",
-    color: "text-emerald-600 bg-emerald-50 border-emerald-200",
-    icon: "🎉",
-  },
-  cancelled: {
-    label: "İptal",
-    variant: "destructive",
-    color: "text-red-600 bg-red-50 border-red-200",
-    icon: "❌",
-  },
-};
 
 export function RecentOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -141,139 +81,72 @@ export function RecentOrders() {
     };
   };
 
-  const getMainService = (orderItems: Order["orderItems"]) => {
-    if (orderItems.length === 0) return "Hizmet yok";
-    if (orderItems.length === 1) return orderItems[0].service.name;
-    return `${orderItems[0].service.name} ve ${orderItems.length - 1} diğer`;
+  // Manual order items have no catalogue service, only a name
+  const getMainService = (orderItems: Order["orderItems"] = []) => {
+    if (orderItems.length === 0) return null;
+    const first = orderItems[0].serviceName || orderItems[0].service?.name || "Hizmet";
+    return orderItems.length === 1 ? first : `${first} ve ${orderItems.length - 1} diğer`;
   };
 
   return (
-    <Card className="shadow-lg border-0 bg-gradient-to-br from-card to-card/50 overflow-hidden">
-      <CardHeader className="pb-4 sm:pb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <div>
-            <CardTitle className="text-lg sm:text-xl font-bold flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 bg-primary/20 rounded-xl flex items-center justify-center">
-                <Clock className="h-4 w-4 text-primary" />
-              </div>
-              Son Siparişler
-            </CardTitle>
-            <CardDescription className="text-sm text-muted-foreground mt-1">
-              En son eklenen siparişler
-            </CardDescription>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleViewAll}
-            className="w-full sm:w-auto touch-manipulation transition-all hover:scale-105 active:scale-95"
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            <span className="sm:hidden">Tüm Siparişleri Görüntüle</span>
-            <span className="hidden sm:inline">Tümünü Gör</span>
-          </Button>
-        </div>
-      </CardHeader>
+    <section className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold text-foreground">Son Siparişler</h2>
+        <Button variant="ghost" size="sm" onClick={handleViewAll} className="text-primary">
+          Tümünü Gör
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
 
-      <CardContent className="px-0 sm:px-6">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-sm text-muted-foreground">
-                Siparişler yükleniyor...
-              </span>
-            </div>
+          <div className="flex items-center justify-center gap-2 py-8">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+            <span className="text-sm text-muted-foreground">Siparişler yükleniyor...</span>
           </div>
         ) : orders.length === 0 ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-                <Clock className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Henüz sipariş bulunmuyor
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                onClick={() => router.push("/orders/create")}
-              >
-                İlk Siparişi Oluştur
-              </Button>
-            </div>
+          <div className="py-8 text-center">
+            <Clock className="mx-auto h-6 w-6 text-muted-foreground" />
+            <p className="mt-2 text-sm text-muted-foreground">Henüz sipariş bulunmuyor</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => router.push("/orders/create")}>
+              İlk Siparişi Oluştur
+            </Button>
           </div>
         ) : (
-          <ScrollArea className="h-auto max-h-[400px] sm:max-h-[500px]">
-            <div className="space-y-2 sm:space-y-3 px-6 sm:px-0">
-              {orders.map((order) => {
-                const status =
-                  statusLabels[order.status] || statusLabels.pending;
-                const { date, time } = formatDate(order.createdAt);
-                const mainService = getMainService(order.orderItems);
+          <ul className="divide-y divide-border">
+            {orders.map((order) => {
+              const { date, time } = formatDate(order.createdAt);
+              const mainService = getMainService(order.orderItems);
 
-                return (
-                  <div
-                    key={order.id}
+              return (
+                <li key={order.id}>
+                  <button
+                    type="button"
                     onClick={() => handleOrderClick(order.id)}
-                    className="flex items-center justify-between p-4 sm:p-5 border border-border/50 rounded-xl hover:bg-muted/50 hover:border-border transition-all duration-300 cursor-pointer touch-manipulation group hover:shadow-md active:scale-[0.98]"
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted"
                   >
-                    <div className="flex-1 min-w-0 pr-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                        <span className="font-semibold text-sm sm:text-base text-foreground">
-                          {order.orderNumber}
-                        </span>
-                        <Badge
-                          className={`${status.color} text-xs font-medium border w-fit`}
-                        >
-                          <span className="mr-1">{status.icon}</span>
-                          {status.label}
-                        </Badge>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium text-foreground truncate">
-                          {order.customer.firstName} {order.customer.lastName}
-                        </div>
-                        <div className="text-xs sm:text-sm text-muted-foreground">
-                          {mainService}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{date}</span>
-                          <span>•</span>
-                          <span>{time}</span>
-                        </div>
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-foreground">
+                        {order.customer.firstName} {order.customer.lastName}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {[order.orderNumber, mainService, `${date} ${time}`].filter(Boolean).join(" • ")}
+                      </p>
                     </div>
-
-                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                      <div className="text-right">
-                        <div className="font-bold text-base sm:text-lg text-foreground">
-                          {formatCurrency(order.totalAmount)}
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all duration-200" />
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className="font-semibold tabular-nums text-foreground">
+                        {formatCurrency(Number(order.totalAmount))}
+                      </span>
+                      <OrderStatusBadge status={String(order.status).toUpperCase()} />
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </ScrollArea>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
-
-        {/* Show more button for mobile */}
-        <div className="mt-4 sm:hidden px-6">
-          <Button
-            variant="ghost"
-            className="w-full py-3 text-sm font-medium touch-manipulation"
-            onClick={handleViewAll}
-          >
-            Daha fazla sipariş göster
-            <ChevronRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }
