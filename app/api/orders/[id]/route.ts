@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { OrderDatabaseService } from "@/lib/database/orders";
 import { UserDatabaseService } from "@/lib/database/users";
+import { prisma } from "@/lib/db";
+import { newTrackingToken } from "@/lib/order-codes";
 
 export async function GET(
   request: NextRequest,
@@ -30,6 +32,15 @@ export async function GET(
       currentUser.businessId
     );
 
+    // Orders created before tracking tokens existed get one the first time they are opened
+    if (!order.trackingToken) {
+      order.trackingToken = newTrackingToken();
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { trackingToken: order.trackingToken },
+      });
+    }
+
     // Log order data for debugging
     console.log(`[ORDER-GET] Processing order ${order.id}:`, {
       hasOrderInfo: !!order.orderInfo,
@@ -45,6 +56,7 @@ export async function GET(
       id: order.id, // Use actual database ID
       businessId: order.businessId, // Add missing businessId
       orderNumber: order.orderNumber,
+      trackingToken: order.trackingToken,
       // Customer as object for proper frontend handling
       customer: {
         id: order.customer.id,

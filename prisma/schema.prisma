@@ -535,6 +535,7 @@ model Order {
   id                 String        @id @default(cuid())
   businessId         String        @map("business_id")
   orderNumber        String        @unique @map("order_number")
+  trackingToken      String?       @unique @map("tracking_token") @db.VarChar(32) // Public /takip link key
   customerId         String        @map("customer_id")
   assignedUserId     String?       @map("assigned_user_id")
   status             OrderStatus   @default(PENDING)

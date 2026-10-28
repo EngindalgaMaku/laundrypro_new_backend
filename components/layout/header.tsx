@@ -23,9 +23,11 @@ import {
   LogOut,
   Settings,
   UserCog,
+  QrCode,
 } from "lucide-react";
 import { useState } from "react";
 import { LogoMark } from "@/components/brand/logo";
+import { QRBarcodeScannerDialog } from "@/components/orders/qr-barcode-scanner-dialog";
 
 interface User {
   id: string;
@@ -46,6 +48,7 @@ interface HeaderProps {
 export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
   const router = useRouter();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [showBetaDetails, setShowBetaDetails] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
@@ -147,6 +150,18 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
           >
             <Search className="h-4 w-4" />
             <span className="sr-only">Ara</span>
+          </Button>
+
+          {/* QR / Barcode Scanner Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="touch-target h-9 px-2.5 sm:px-3 rounded-xl gap-1.5"
+            onClick={() => setIsScannerOpen(true)}
+            title="QR / Barkod Okut"
+          >
+            <QrCode className="h-4 w-4 text-primary" />
+            <span className="hidden sm:inline text-xs font-medium">QR Okut</span>
           </Button>
 
           {/* Notification Button - Enhanced */}
@@ -309,6 +324,11 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <QRBarcodeScannerDialog
+      open={isScannerOpen}
+      onOpenChange={setIsScannerOpen}
+    />
     </>
   );
 }

@@ -6,6 +6,7 @@ import {
 } from "@prisma/client";
 import { WhatsAppDatabaseService } from "./whatsapp";
 import { prisma } from "@/lib/db";
+import { newOrderNumber, newTrackingToken } from "@/lib/order-codes";
 
 export interface OrderFilters {
   businessId: string;
@@ -96,15 +97,16 @@ export class OrderDatabaseService {
    * Create a new order
    */
   static async createOrder(data: CreateOrderData) {
-    // Generate order number
-    const orderCount = await prisma.order.count({
-      where: { businessId: data.businessId },
-    });
-    const orderNumber = `ORD-${Date.now().toString().slice(-6)}-${(
-      orderCount + 1
-    )
-      .toString()
-      .padStart(3, "0")}`;
+    // Random suffix: a per-business counter collided with other businesses on the global unique index
+    let orderNumber = newOrderNumber();
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const taken = await prisma.order.findUnique({
+        where: { orderNumber },
+        select: { id: true },
+      });
+      if (!taken) break;
+      orderNumber = newOrderNumber();
+    }
 
     // Calculate totals
     let subtotal = 0;
@@ -274,6 +276,7 @@ export class OrderDatabaseService {
           businessId: data.businessId,
           customerId: data.customerId,
           orderNumber,
+          trackingToken: newTrackingToken(),
           status: "PENDING",
           pickupAddress: data.pickupAddress,
           deliveryAddress: data.deliveryAddress,
@@ -575,8 +578,14 @@ export class OrderDatabaseService {
 
       const order = await prisma.order.findFirst({
         where: {
-          id: orderId,
           businessId,
+          OR: [
+            { id: orderId },
+            { orderNumber: orderId },
+            { referenceCode: orderId },
+            // Receipt QR codes carry the tracking token; the in-app scanner opens /orders/<token>
+            { trackingToken: orderId },
+          ],
         },
         include: {
           customer: {

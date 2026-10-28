@@ -12,6 +12,10 @@ import { OrderTimeline } from "@/components/orders/order-timeline"
 import { OrderStatusUpdater } from "@/components/orders/order-status-updater"
 import { CustomerInfo } from "@/components/orders/customer-info"
 import { CustomerMap } from "@/components/maps/customer-map"
+import { OrderReceiptDialog } from "@/components/orders/order-receipt-dialog"
+import { QRBarcodeScannerDialog } from "@/components/orders/qr-barcode-scanner-dialog"
+import { sendWhatsAppMessage } from "@/lib/communication"
+import { QrCode, Printer, MessageSquare, Share2 } from "lucide-react"
 import { toast } from "sonner"
 
 interface User {
@@ -43,6 +47,7 @@ interface OrderStatus {
 interface Order {
   id: string
   orderNumber: string
+  trackingToken: string | null
   customer: {
     name: string
     phone: string
@@ -90,6 +95,7 @@ function toOrder(data: any): Order {
   return {
     id: data.id,
     orderNumber: data.orderNumber,
+    trackingToken: data.trackingToken || null,
     customer: {
       name: data.customer?.name || "İsimsiz",
       phone: data.customer?.phone || "",
@@ -122,6 +128,8 @@ export default function OrderDetailPage() {
   const [user, setUser] = useState<User | null>(null)
   const [order, setOrder] = useState<Order | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false)
+  const [isScannerOpen, setIsScannerOpen] = useState(false)
   const router = useRouter()
   const params = useParams()
   const orderId = params.id as string
@@ -190,6 +198,9 @@ export default function OrderDetailPage() {
   }
 
   const currentStatusInfo = statusLabels[order.status]
+  const trackingUrl = order.trackingToken
+    ? `${window.location.origin}/takip/${encodeURIComponent(order.trackingToken)}`
+    : null
 
   return (
     <div className="flex h-screen bg-background">
@@ -211,11 +222,58 @@ export default function OrderDetailPage() {
                   {order.customer.name} • {order.service} • {order.date}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => router.push("/orders")}>
                   Geri Dön
                 </Button>
-                <Button variant="outline" onClick={() => window.print()}>Yazdır</Button>
+                <Button
+                  variant="outline"
+                  disabled={!trackingUrl}
+                  onClick={async () => {
+                    if (!trackingUrl) return
+                    try {
+                      // navigator.clipboard is missing on plain-HTTP origins (LAN dev, some WebViews)
+                      if (!navigator.clipboard) throw new Error("clipboard unavailable")
+                      await navigator.clipboard.writeText(trackingUrl)
+                      toast.success("Müşteri takip linki kopyalandı")
+                    } catch {
+                      window.prompt("Takip linkini kopyalayın:", trackingUrl)
+                    }
+                  }}
+                  className="gap-1.5"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Takip Linki Kopyala
+                </Button>
+                {order.customer.phone && trackingUrl && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const url = trackingUrl
+                      const msg = `Merhaba ${order.customer.name},\n\n${order.orderNumber} numaralı siparişinizin güncel durumunu aşağıdaki bağlantıdan üyeliksiz takip edebilirsiniz:\n${url}\n\n${user.businessName || ""}`
+                      sendWhatsAppMessage(order.customer.phone, msg)
+                    }}
+                    className="gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    WhatsApp Takip Gönder
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => setIsScannerOpen(true)}
+                  className="gap-1.5"
+                >
+                  <QrCode className="h-4 w-4" />
+                  QR / Barkod Okut
+                </Button>
+                <Button
+                  onClick={() => setIsReceiptOpen(true)}
+                  className="gap-1.5"
+                >
+                  <Printer className="h-4 w-4" />
+                  QR Fiş / Etiket Yazdır
+                </Button>
               </div>
             </div>
 
@@ -332,6 +390,29 @@ export default function OrderDetailPage() {
                 <OrderStatusUpdater currentStatus={order.status} onStatusUpdate={handleStatusUpdate} />
               </TabsContent>
             </Tabs>
+
+            <OrderReceiptDialog
+              open={isReceiptOpen}
+              onOpenChange={setIsReceiptOpen}
+              order={{
+                id: order.id,
+                orderNumber: order.orderNumber,
+                trackingToken: order.trackingToken,
+                businessName: user.businessName,
+                customer: order.customer,
+                date: order.date,
+                deliveryDate: order.deliveryDate,
+                amount: order.amount,
+                notes: order.notes,
+                description: order.description,
+                items: order.items,
+              }}
+            />
+
+            <QRBarcodeScannerDialog
+              open={isScannerOpen}
+              onOpenChange={setIsScannerOpen}
+            />
           </div>
         </main>
       </div>
