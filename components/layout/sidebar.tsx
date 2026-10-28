@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/brand/logo";
+import { APP_VERSION } from "@/lib/app-info";
 
 const navigation = [
   { name: "Ana Sayfa", href: "/dashboard", icon: Home },
@@ -237,21 +238,19 @@ export function Sidebar({
           )}
         </nav>
 
-        {/* Enhanced Mobile Footer */}
+        {/* Footer: about page */}
         {isMobile && (
-          <div className="mt-8 mx-3 p-4 bg-gradient-secondary/10 rounded-xl border border-sidebar-border/50">
-            <div className="text-center space-y-2">
-              <div className="w-8 h-8 bg-gradient-secondary rounded-lg mx-auto flex items-center justify-center">
-                <span className="text-sm">✨</span>
-              </div>
-              <p className="text-xs font-medium text-sidebar-foreground">
-                LaundryPro v1.0
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Profesyonel temizlik çözümleri
-              </p>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleNavigation("/hakkinda")}
+            className="mt-8 mx-3 flex w-[calc(100%-1.5rem)] items-center gap-3 rounded-xl border border-sidebar-border p-3 text-left transition-colors hover:bg-sidebar-accent"
+          >
+            <LogoMark className="h-8 w-8" />
+            <span className="min-w-0">
+              <span className="block text-xs font-medium text-sidebar-foreground">LaundryPro {APP_VERSION}</span>
+              <span className="block text-xs text-muted-foreground">Hakkında, destek ve yasal</span>
+            </span>
+          </button>
         )}
       </ScrollArea>
     </div>
@@ -419,22 +418,20 @@ export function Sidebar({
             )}
           </nav>
 
-          {/* Enhanced Desktop Footer */}
+          {/* Footer: about page */}
           {!isCollapsed && (
-            <div className="mt-8 mx-3 p-4 bg-gradient-secondary/10 rounded-xl border border-sidebar-border/50">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-secondary rounded-lg flex items-center justify-center">
-                  <span className="text-sm">✨</span>
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <p className="text-xs font-medium text-sidebar-foreground truncate">
-                    LaundryPro v1.0
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    Profesyonel çözümler
-                  </p>
-                </div>
-              </div>
+            <div className="mt-8 mx-3">
+              <button
+                type="button"
+                onClick={() => handleNavigation("/hakkinda")}
+                className="flex w-full items-center gap-3 rounded-xl border border-sidebar-border p-3 text-left transition-colors hover:bg-sidebar-accent"
+              >
+                <LogoMark className="h-8 w-8" />
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-xs font-medium text-sidebar-foreground">LaundryPro {APP_VERSION}</span>
+                  <span className="truncate text-xs text-muted-foreground">Hakkında, destek ve yasal</span>
+                </span>
+              </button>
             </div>
           )}
         </ScrollArea>

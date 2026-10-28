@@ -1068,6 +1068,17 @@ export default function SettingsPage() {
                           Çıkış Yap
                         </Button>
                       </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Uygulama hakkında</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Sürüm, destek ve yasal metinler
+                          </p>
+                        </div>
+                        <Button variant="outline" onClick={() => router.push("/hakkinda")}>
+                          Hakkında
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
