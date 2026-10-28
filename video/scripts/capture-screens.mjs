@@ -53,7 +53,7 @@ async function shot(url, file, before) {
 await shot("/dashboard", "dashboard.png");
 await shot("/orders", "orders.png");
 await shot(`/orders/${session.orderId}`, "receipt.png", async () => {
-  const [button] = await page.$$("xpath/.//button[contains(., 'Fiş / Etiket Yazdır')]");
+  const [button] = await page.$$("xpath/.//button[contains(., 'Fiş / Etiket')]");
   await button.click();
   await settle(1200);
 });

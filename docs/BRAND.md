@@ -6,13 +6,15 @@ Sakin, güven veren, iş odaklı bir panel. Düz renk, ince çizgi, tek vurgu re
 
 `components/brand/logo.tsx`
 
-- `LogoMark`: Derin Mavi kare üzerinde çamaşır makinesi kapağı ve su dalgası. 24 px altında `simple` ile yalnız kapak halkası kullanılır.
+- `LogoMark`: Derin Mavi kare üzerinde, ayağı turkuaz bir su dalgasına basan "L" harfi. 24 px altında `simple` ile dalga düşer, harf kalınlaşır.
 - `Logo`: işaret ve "Laundry**Pro**" yazısı (Pro turkuaz). Koyu zeminde `inverted`.
 
-Aynı çizim şu yerlerde de üretilir; logo değişirse hepsi güncellenmeli:
+Çizimin tek kaynağı `lib/brand-mark.json` (72 birimlik ızgarada harf ve dalga yolları, kalınlıklar, renkler). Şunlar oradan okur:
 
-- `app/icon.tsx`, `app/apple-icon.tsx`, `app/favicon.ico` (16/32/48 px)
-- `assets/` (Android ikon ve açılış ekranı kaynakları) → `npx capacitor-assets generate --android ...` (bkz. `docs/ANDROID.md`)
+- `components/brand/logo.tsx`, `app/icon.tsx`, `app/apple-icon.tsx`
+- `scripts/render-brand-assets.mjs` → `assets/` (Android ikon katmanları ve açılış görselleri); ardından `npx capacitor-assets generate --android`
+
+`app/favicon.ico`: `node scripts/render-favicon.mjs`. Elle güncellenmesi gerekenler: `capacitor/offline.html` içindeki SVG ve Android 12+ açılış animasyonu `android/app/src/main/res/drawable/splash_icon.xml` (harf, sonra dalga çizilir).
 
 ## Renkler
 

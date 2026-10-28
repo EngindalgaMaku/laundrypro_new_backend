@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import MARK from "@/lib/brand-mark.json";
 
 // Route segment config
 export const runtime = 'edge'
@@ -10,7 +11,7 @@ export const size = {
 }
 export const contentType = 'image/png'
 
-// LaundryPro mark (components/brand/logo.tsx); the wave is dropped below 48px to stay legible
+// LaundryPro mark (lib/brand-mark.json); the wave is dropped below 48px to stay legible
 export default function Icon({ searchParams }: { searchParams?: { size?: string } }) {
   const iconSize = searchParams?.size ? parseInt(searchParams.size) : 32
   const simple = iconSize < 48
@@ -18,12 +19,11 @@ export default function Icon({ searchParams }: { searchParams?: { size?: string 
   return new ImageResponse(
     (
       <svg width={iconSize} height={iconSize} viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
-        <rect width="72" height="72" rx="18" fill="#0A5C99" />
-        <circle cx="36" cy="38" r="20" fill="none" stroke="#FFFFFF" strokeWidth={simple ? 7 : 5} />
+        <rect width="72" height="72" rx={MARK.radius} fill={MARK.blue} />
+        <path d={MARK.letter} fill="none" stroke="#FFFFFF" strokeWidth={simple ? MARK.letterWidthSimple : MARK.letterWidth} strokeLinecap="round" strokeLinejoin="round" />
         {!simple && (
-          <path d="M24 42c4-4 8-4 12 0s8 4 12 0" fill="none" stroke="#7FD8CC" strokeWidth="5" strokeLinecap="round" />
+          <path d={MARK.wavePath} fill="none" stroke={MARK.wave} strokeWidth={MARK.waveWidth} strokeLinecap="round" />
         )}
-        {!simple && <circle cx="20" cy="15" r="3" fill="#FFFFFF" />}
       </svg>
     ),
     {

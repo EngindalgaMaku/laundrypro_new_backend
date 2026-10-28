@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import MARK from "@/lib/brand-mark.json";
 
 // Route segment config
 export const runtime = 'edge'
@@ -15,10 +16,9 @@ export default function AppleIcon() {
   return new ImageResponse(
     (
       <svg width="180" height="180" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
-        <rect width="72" height="72" fill="#0A5C99" />
-        <circle cx="36" cy="38" r="18" fill="none" stroke="#FFFFFF" strokeWidth="4.5" />
-        <path d="M25.5 41.5c3.5-3.5 7-3.5 10.5 0s7 3.5 10.5 0" fill="none" stroke="#7FD8CC" strokeWidth="4.5" strokeLinecap="round" />
-        <circle cx="22" cy="17" r="2.7" fill="#FFFFFF" />
+        <rect width="72" height="72" fill={MARK.blue} />
+        <path d={MARK.letter} fill="none" stroke="#FFFFFF" strokeWidth={MARK.letterWidth} strokeLinecap="round" strokeLinejoin="round" />
+        <path d={MARK.wavePath} fill="none" stroke={MARK.wave} strokeWidth={MARK.waveWidth} strokeLinecap="round" />
       </svg>
     ),
     {

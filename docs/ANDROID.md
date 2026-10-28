@@ -28,17 +28,49 @@ Gerçek bir telefonda denemek için `CAP_SERVER_URL` değişkenine bilgisayarın
 
 ## Yayın derlemesi
 
-1. Siteyi HTTPS bir adreste yayına alın.
-2. Sunucu adresiyle senkronize edin; adres APK'nın içine yazılır:
-   ```bash
-   CAP_SERVER_URL=https://uygulama.ornek.com npm run cap:sync
-   ```
-3. Android Studio'da (`npm run cap:open`) **Build > Generate Signed App Bundle** ile imzalı `.aab` üretin. İmza anahtarını (keystore) güvenli bir yerde saklayın; kaybedilirse uygulama güncellenemez.
+Siteye konan ve Play Store'a yüklenen sürüm **release** olmalıdır. Debug sürüm `debuggable` işaretlidir: bağlanan herkes uygulamanın içini (oturum bilgileri dahil) inceleyebilir.
 
-## İkonları yeniden üretme
+### 1. İmza anahtarını bir kez oluşturun
 
-`assets/` içindeki görselleri değiştirdikten sonra:
+`android/` klasöründe çalıştırın; şifreleri komut size sorar:
 
 ```bash
-npx capacitor-assets generate --android --iconBackgroundColor '#3b82f6' --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#0f172a'
+keytool -genkeypair -v -keystore laundrypro-upload.jks -alias laundrypro -keyalg RSA -keysize 2048 -validity 10000
 ```
+
+Sonra `android/keystore.properties` dosyasını oluşturun:
+
+```properties
+storeFile=../laundrypro-upload.jks
+storePassword=…
+keyAlias=laundrypro
+keyPassword=…
+```
+
+`*.jks` ve `keystore.properties` Git'e girmez (`android/.gitignore`). **İkisinin de yedeğini alın:** anahtar kaybolursa Play Store'daki uygulama bir daha güncellenemez.
+
+### 2. Derleyin
+
+Varsayılan sunucu adresi `https://laundry.kodleon.com`; senkronizasyon bu adresi uygulamaya yazar.
+
+```bash
+npm run cap:sync
+cd android
+./gradlew assembleRelease bundleRelease -PversionCode=2 -PversionName=1.1
+```
+
+- `app/build/outputs/apk/release/app-release.apk`: siteden indirilecek APK
+- `app/build/outputs/bundle/release/app-release.aab`: Play Store'a yüklenecek paket
+
+Her yeni sürümde `versionCode` bir artırılmalı (Play aynı numarayı kabul etmez). `keystore.properties` yoksa release çıktısı imzasız kalır ve kurulamaz.
+
+## İkonları ve açılış ekranını yeniden üretme
+
+Logo çizimi `lib/brand-mark.json` içindedir (bkz. `docs/BRAND.md`). Değiştirdikten sonra:
+
+```bash
+node scripts/render-brand-assets.mjs
+npx capacitor-assets generate --android
+```
+
+Android 12 ve sonrası açılışta `res/drawable/splash_icon.xml` animasyonunu (marka mavisi üzerinde önce harf, sonra dalga) gösterir; eski sürümler `splash.png` görselini kullanır.

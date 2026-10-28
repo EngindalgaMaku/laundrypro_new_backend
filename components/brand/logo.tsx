@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import MARK from "@/lib/brand-mark.json";
 
 // Brand colors (Berrak). Kept here so the logo renders the same outside the theme.
 export const BRAND = {
@@ -9,34 +10,32 @@ export const BRAND = {
 
 interface LogoMarkProps {
   className?: string;
-  /** Drops the wave and dot so the mark stays legible below ~24px */
+  /** Drops the wave so the mark stays legible below ~24px */
   simple?: boolean;
   title?: string;
 }
 
-/** Washing-machine door with a water wave, on a rounded brand-blue square. */
+/** An L whose foot rests on a water wave, on a rounded brand-blue square (lib/brand-mark.json). */
 export function LogoMark({ className, simple = false, title }: LogoMarkProps) {
   return (
     <svg
-      viewBox="0 0 72 72"
+      viewBox={`0 0 ${MARK.viewBox} ${MARK.viewBox}`}
       className={cn("shrink-0", className)}
       role={title ? "img" : undefined}
       aria-label={title}
       aria-hidden={title ? undefined : true}
     >
-      <rect width="72" height="72" rx="18" fill={BRAND.blue} />
-      <circle cx="36" cy="38" r="20" fill="none" stroke="#FFFFFF" strokeWidth={simple ? 7 : 5} />
+      <rect width={MARK.viewBox} height={MARK.viewBox} rx={MARK.radius} fill={BRAND.blue} />
+      <path
+        d={MARK.letter}
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth={simple ? MARK.letterWidthSimple : MARK.letterWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       {!simple && (
-        <>
-          <path
-            d="M24 42c4-4 8-4 12 0s8 4 12 0"
-            fill="none"
-            stroke={BRAND.wave}
-            strokeWidth="5"
-            strokeLinecap="round"
-          />
-          <circle cx="20" cy="15" r="3" fill="#FFFFFF" />
-        </>
+        <path d={MARK.wavePath} fill="none" stroke={BRAND.wave} strokeWidth={MARK.waveWidth} strokeLinecap="round" />
       )}
     </svg>
   );

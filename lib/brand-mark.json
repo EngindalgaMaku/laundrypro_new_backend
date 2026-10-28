@@ -1,0 +1,12 @@
+{
+  "_comment": "LaundryPro mark on a 72-unit grid: an L whose foot sits on a water wave. Read by components/brand/logo.tsx, app/icon.tsx, app/apple-icon.tsx and scripts/render-brand-assets.mjs. 'simple' drops the wave below ~48px.",
+  "viewBox": 72,
+  "radius": 18,
+  "blue": "#0A5C99",
+  "wave": "#7FD8CC",
+  "letter": "M25.5 13v28a5 5 0 0 0 5 5h17",
+  "letterWidth": 7,
+  "letterWidthSimple": 9,
+  "wavePath": "M20.5 56c3.5-3.5 7-3.5 10.5 0s7 3.5 10.5 0 7-3.5 10.5 0",
+  "waveWidth": 4.5
+}
