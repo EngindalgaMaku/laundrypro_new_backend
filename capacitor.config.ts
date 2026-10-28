@@ -3,7 +3,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // The Android app loads the deployed Next.js site; API routes cannot be bundled.
 // Run `npm run cap:sync` with CAP_SERVER_URL set to the production URL before a release build.
 // The default points the Android emulator at the local dev server (localhost:3000 on the host).
-const serverUrl = process.env.CAP_SERVER_URL || "http://10.0.2.2:3000";
+const serverUrl = process.env.CAP_SERVER_URL || "https://laundry.kodleon.com";
 
 const config: CapacitorConfig = {
   appId: "com.engindalga.laundrypro",

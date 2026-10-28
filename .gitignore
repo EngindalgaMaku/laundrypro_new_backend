@@ -31,8 +31,9 @@ capacitor/www/
 # Order photos (set ORDER_PHOTOS_DIR to a persistent volume in production)
 /storage/
 
-# Locally built Android packages
+# Locally built Android packages (except public/LaundryPro.apk for cloud download)
 *.apk
+!/public/LaundryPro.apk
 
 # Promo video (video/): packages, renders and generated media
 /video/node_modules/

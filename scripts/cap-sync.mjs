@@ -3,7 +3,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 
-const serverUrl = process.env.CAP_SERVER_URL || "http://10.0.2.2:3000";
+const serverUrl = process.env.CAP_SERVER_URL || "https://laundry.kodleon.com";
 
 const template = readFileSync(new URL("../capacitor/offline.html", import.meta.url), "utf8");
 const page = template.replace("__SERVER_URL__", serverUrl.replace(/["\\<>]/g, ""));

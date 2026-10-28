@@ -67,14 +67,15 @@ Android WebView ve mobil tarayıcılarda dış uygulama tetiklemeleri (`Intent`)
 
 ---
 
-## 3. Google Play Store'a Çıkmadan Önceki Tek Fark Nedir?
+## 3. Hetzner + Coolify Canlı Sunucu (`https://laundry.kodleon.com`) ve Bulut APK Kurulumu
 
-Şu an uygulama **özellik ve kod olarak %100 hazırdır**. Yalnızca çalışma ortamı açısından şu ayrım vardır:
+Uygulama ve veritabanı Hetzner üzerindeki Coolify sunucusunda **`https://laundry.kodleon.com`** adresinde canlıya alınmıştır:
 
-1. **Şu An (Yerel Wi-Fi Test Modu):**
-   - Veritabanı ve Next.js sunucusu senin bilgisayarında (`http://192.168.1.113:3000`) çalışıyor.
-   - Telefonundaki APK da bu yerel adrese bağlanıyor. Bilgisayarın açık ve aynı Wi-Fi ağında olduğu sürece her şey çalışır.
-2. **Google Play Store / Canlı Yayın Modu (Son Adım):**
-   - Next.js uygulaması ve MySQL veritabanı 7/24 açık bir bulut sunucuya (ör. Railway, Render, Vercel veya VPS - `https://panel.senindomainin.com`) yüklenecek.
-   - `CAP_SERVER_URL=https://panel.senindomainin.com npm run cap:sync` komutuyla Android uygulaması canlı HTTPS adresine bağlanacak ve Google Play için imzalı `.aab` (Android App Bundle) paketi üretilecek.
-   - Canlı sunucu `HTTPS` olduğu için barkod/QR okuyucudaki canlı video akışı da ekstra fotoğraf çekmeye gerek kalmadan doğrudan açılacak.
+1. **Masaüstü (Bilgisayar) ve Mobil Uyumlu Giriş Ekranı (`app/page.tsx` & `components/onboarding/onboarding-flow.tsx`):**
+   - Bilgisayardan (`>= 768px`) `https://laundry.kodleon.com/` açıldığında artık telefon çerçeveli dar tanıtım ekranına kilitlenmez; sol tarafta özellik vitrini, canlı uygulama ekran önizlemeleri ve **Android APK İndir** butonu, sağ tarafta ise giriş/kayıt kartı bulunan **çift sütunlu geniş masaüstü (SaaS) arayüzü** açılır.
+   - Cep telefonundan girildiğinde ise mobil öncelikli kompakt görünüm ve kaydırmalı uygulama tanıtım ekranı çalışmaya devam eder.
+2. **7/24 Bulut Bağlantılı Android APK (`public/LaundryPro.apk`):**
+   - `capacitor.config.ts` ve `android/app/src/main/assets/capacitor.config.json` dosyalarında sunucu adresi doğrudan **`https://laundry.kodleon.com`** (`HTTPS`) olarak yapılandırıldı ve yeni `public/LaundryPro.apk` derlendi.
+   - Artık telefonun bilgisayarla aynı Wi-Fi ağında olmasına veya bilgisayarın açık kalmasına gerek yoktur; mobil veri (4.5G/5G) dahil her yerden 7/24 çalışır.
+   - Sunucu `HTTPS` üzerinde çalıştığı için uygulama içindeki **canlı kamera ile QR ve Barkod okuyucu** (`getUserMedia`) doğrudan video akışıyla çalışır.
+   - Güncel APK doğrudan **`https://laundry.kodleon.com/LaundryPro.apk`** adresinden veya masaüstü giriş ekranındaki **"Android APK İndir"** butonundan indirilebilir.
