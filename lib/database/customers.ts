@@ -1,6 +1,7 @@
 import { Customer } from "@prisma/client";
 import { WhatsAppDatabaseService } from "./whatsapp";
 import { prisma } from "@/lib/db";
+import { normalizeCity, normalizeDistrict } from "@/lib/turkish-locations";
 
 export interface CustomerFilters {
   businessId: string;
@@ -43,6 +44,8 @@ export interface UpdateCustomerData {
   district?: string;
   customerType?: string;
   isActive?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface CustomerStats {
@@ -97,8 +100,9 @@ export class CustomerDatabaseService {
         email: data.email,
         whatsapp: data.whatsapp,
         address: data.address,
-        city: data.city,
-        district: data.district,
+        // stored as display names ("İstanbul", "Çankaya"); invoices print them as is
+        city: data.city ? normalizeCity(data.city) : data.city,
+        district: data.district ? normalizeDistrict(data.city || "", data.district) : data.district,
         customerType: data.customerType || "individual",
         whatsappVerified: false,
       },
@@ -327,6 +331,8 @@ export class CustomerDatabaseService {
       where: { id: customerId },
       data: {
         ...data,
+        ...(data.city && { city: normalizeCity(data.city) }),
+        ...(data.district && { district: normalizeDistrict(data.city || customer.city || "", data.district) }),
         updatedAt: new Date(),
       },
       include: {

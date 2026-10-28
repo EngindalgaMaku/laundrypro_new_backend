@@ -17,7 +17,6 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get current user's business ID
     const currentUser = await UserDatabaseService.getUserById(user.userId);
 
     if (!currentUser?.businessId) {
@@ -41,23 +40,43 @@ export async function GET(
       });
     }
 
-    // Log order data for debugging
-    console.log(`[ORDER-GET] Processing order ${order.id}:`, {
-      hasOrderInfo: !!order.orderInfo,
-      hasDeliveryNotes: !!order.deliveryNotes,
-      hasReferenceCode: !!order.referenceCode,
-      hasNotes: !!order.notes,
-      hasSpecialInstructions: !!order.specialInstructions,
-      orderItemsCount: order.orderItems?.length || 0,
-    });
+    // Fetch customer GPS coordinates, payment records, and status history
+    const [customerCoords, payments, statusHistoryRows] = await Promise.all([
+      prisma.customer.findUnique({
+        where: { id: order.customer.id },
+        select: { latitude: true, longitude: true },
+      }),
+      prisma.payment.findMany({
+        where: { orderId: order.id },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.orderStatusHistory.findMany({
+        where: { orderId: order.id },
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: {
+            select: { firstName: true, lastName: true },
+          },
+        },
+      }),
+    ]);
 
-    // Transform order for frontend with comprehensive field mapping
+    const totalAmount = Number(order.totalAmount || 0);
+    const recordedPaid = payments
+      .filter((p) => p.status === "PAID")
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    const paidAmount =
+      payments.length === 0 && order.paymentStatus === "PAID"
+        ? totalAmount
+        : Number(recordedPaid.toFixed(2));
+    const remainingAmount = Number(Math.max(0, totalAmount - paidAmount).toFixed(2));
+
     const transformedOrder = {
-      id: order.id, // Use actual database ID
-      businessId: order.businessId, // Add missing businessId
+      id: order.id,
+      businessId: order.businessId,
       orderNumber: order.orderNumber,
       trackingToken: order.trackingToken,
-      // Customer as object for proper frontend handling
       customer: {
         id: order.customer.id,
         name:
@@ -72,33 +91,42 @@ export async function GET(
         address: order.customer.address || "",
         district: order.customer.district || "",
         city: order.customer.city || "",
+        latitude: customerCoords?.latitude ?? undefined,
+        longitude: customerCoords?.longitude ?? undefined,
       },
       service: order.orderItems?.[0]?.service?.name,
       serviceType: order.orderItems?.[0]?.service?.category || "OTHER",
       status: order.status,
-      amount: `₺${Number(order.totalAmount || 0).toLocaleString("tr-TR")}`,
-      totalAmount: Number(order.totalAmount || 0),
-      // Add missing payment fields for frontend compatibility
+      amount: `₺${totalAmount.toLocaleString("tr-TR")}`,
+      totalAmount,
+      paidAmount,
+      remainingAmount,
       paymentMethod: order.paymentMethod || "CASH",
       paymentStatus: order.paymentStatus || "PENDING",
+      payments: payments.map((p) => ({
+        id: p.id,
+        amount: Number(p.amount),
+        paymentMethod: p.paymentMethod,
+        status: p.status,
+        notes: p.notes,
+        paidAt: p.paidAt?.toISOString() || p.createdAt.toISOString(),
+        createdAt: p.createdAt.toISOString(),
+      })),
       date: order.createdAt.toISOString().split("T")[0],
       phone: order.customer.phone || "",
       whatsapp: order.customer.whatsapp || order.customer.phone || "",
       email: order.customer.email || "",
       description: order.notes || `${order.orderItems?.length || 0} hizmet`,
 
-      // CRITICAL FIELDS: Always include these fields, even if null/empty
-      // This prevents frontend conditional rendering from hiding entire sections
-      orderInfo: order.orderInfo || null, // Sipariş Bilgisi - Primary order details
-      deliveryNotes: order.deliveryNotes || null, // Teslimat Notu - Delivery instructions
-      referenceCode: order.referenceCode || null, // Referans Kodu - Reference identifier
-      notes: order.notes || null, // Genel notlar - General notes
-      specialInstructions: order.specialInstructions || null, // Özel talimatlar - Special instructions
+      orderInfo: order.orderInfo || null,
+      deliveryNotes: order.deliveryNotes || null,
+      referenceCode: order.referenceCode || null,
+      notes: order.notes || null,
+      specialInstructions: order.specialInstructions || null,
 
       priority: order.priority || "NORMAL",
-      // Add missing fields for frontend
       isUrgent: order.priority === "URGENT" || false,
-      whatsappNotifications: true, // Default value since not in database yet
+      whatsappNotifications: true,
       address: order.customer.address || "",
       district: order.customer.district || "",
       city: order.customer.city || "",
@@ -107,66 +135,46 @@ export async function GET(
       updatedAt: order.updatedAt.toISOString(),
       pickupDate: order.pickupDate?.toISOString() || null,
       deliveryDate: order.deliveryDate?.toISOString() || null,
-      // Add syncStatus for frontend compatibility
       syncStatus: "synced" as const,
 
-      // Transform real order items - no fallback logic
-      items: (order.orderItems || []).map((item: any) => {
-        console.log(`[ORDER-GET] Processing item ${item.id}:`, {
-          hasServiceId: !!item.serviceId,
-          hasService: !!item.service,
-          serviceName: item.service?.name,
-          isManualEntry: item.isManualEntry,
-        });
+      items: (order.orderItems || []).map((item: any) => ({
+        id: item.id,
+        serviceId: item.serviceId,
+        serviceName: item.service?.name || item.serviceName,
+        serviceDescription:
+          item.service?.description || item.serviceDescription || "",
+        serviceCategory: item.service?.category || "OTHER",
+        isManualEntry: item.isManualEntry || false,
+        quantity: Number(item.quantity) || 1,
+        unitPrice: Number(item.unitPrice) || 0,
+        totalPrice: Number(item.totalPrice) || 0,
+        notes: item.notes || "",
+        service: item.service
+          ? {
+              id: item.service.id,
+              name: item.service.name,
+              category: item.service.category,
+              description: item.service.description,
+            }
+          : null,
+      })),
 
-        return {
-          id: item.id,
-          serviceId: item.serviceId,
-          serviceName: item.service?.name || item.serviceName,
-          serviceDescription:
-            item.service?.description || item.serviceDescription || "",
-          serviceCategory: item.service?.category || "OTHER",
-          isManualEntry: item.isManualEntry || false,
-          quantity: Number(item.quantity) || 1,
-          unitPrice: Number(item.unitPrice) || 0,
-          totalPrice: Number(item.totalPrice) || 0,
-          notes: item.notes || "",
-          // Include service reference for database services
-          service: item.service
-            ? {
-                id: item.service.id,
-                name: item.service.name,
-                category: item.service.category,
-                description: item.service.description,
-              }
-            : null,
-        };
-      }),
-
-      photos: [], // Add photos support later
-      // Initialize statusHistory as empty array for frontend compatibility
-      statusHistory: [],
+      photos: [],
+      statusHistory: statusHistoryRows.map((sh) => ({
+        status: sh.status,
+        timestamp: sh.createdAt.toISOString(),
+        note: sh.notes || undefined,
+        updatedBy: sh.user
+          ? `${sh.user.firstName || ""} ${sh.user.lastName || ""}`.trim() || "Kullanıcı"
+          : "Sistem",
+      })),
     };
-
-    console.log(
-      `[ORDER-GET] Successfully transformed order ${order.id} with ${transformedOrder.items.length} items:`,
-      {
-        hasOrderItems: !!(order.orderItems && order.orderItems.length > 0),
-        itemsCount: transformedOrder.items.length,
-        firstItemName: transformedOrder.items[0]?.serviceName,
-      }
-    );
 
     return NextResponse.json(transformedOrder);
   } catch (error) {
     console.error(`[ORDER-GET] Critical error fetching order ${params.id}:`, {
       error: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined,
       orderId: params.id,
-      timestamp: new Date().toISOString(),
-      userAgent: request.headers.get("user-agent"),
-      businessContext:
-        "Potential items array failure causing mobile app errors",
     });
 
     if (error instanceof Error && error.message === "Order not found") {
@@ -180,23 +188,12 @@ export async function GET(
       );
     }
 
-    // Enhanced error response with debugging information
     return NextResponse.json(
       {
         error: "Internal server error",
         message: "Failed to load order details",
         code: "ORDER_FETCH_ERROR",
         orderId: params.id,
-        timestamp: new Date().toISOString(),
-        // Only include debug info in development
-        ...(process.env.NODE_ENV === "development" && {
-          debugInfo: {
-            errorMessage:
-              error instanceof Error ? error.message : "Unknown error",
-            context:
-              "This error may cause mobile app to show Turkish error messages",
-          },
-        }),
       },
       { status: 500 }
     );
@@ -215,7 +212,6 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get current user's business ID
     const currentUser = await UserDatabaseService.getUserById(user.userId);
 
     if (!currentUser?.businessId) {
@@ -226,28 +222,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-
-    // Transform frontend data structure to backend format for updates
-    let transformedUpdateData = { ...body };
-
-    // If frontend sends items, we need to handle them (though order items updating is complex)
-    if (body.items && Array.isArray(body.items)) {
-      console.log(
-        "⚠️ Order update with items detected - this requires special handling"
-      );
-
-      // For now, preserve the items in the update data but don't crash
-      // Full item updates would require deleting/recreating order items
-      // which is a complex operation that should be handled carefully
-    }
-
-    // Log the update operation for debugging
-    console.log("🔄 Order update data:", {
-      orderId: params.id,
-      hasItems: !!body.items,
-      itemCount: body.items?.length || 0,
-      updateFields: Object.keys(transformedUpdateData),
-    });
+    const transformedUpdateData = { ...body };
 
     const updatedOrder = await OrderDatabaseService.updateOrder(
       params.id,
@@ -255,12 +230,10 @@ export async function PUT(
       transformedUpdateData
     );
 
-    // Transform order for frontend
     const transformedOrder = {
-      id: updatedOrder.id, // Use actual database ID
-      businessId: updatedOrder.businessId, // Add missing businessId
+      id: updatedOrder.id,
+      businessId: updatedOrder.businessId,
       orderNumber: updatedOrder.orderNumber,
-      // Customer as object for proper frontend handling
       customer: {
         id: updatedOrder.customer.id,
         name:
@@ -282,7 +255,6 @@ export async function PUT(
       status: updatedOrder.status,
       amount: `₺${Number(updatedOrder.totalAmount).toLocaleString("tr-TR")}`,
       totalAmount: Number(updatedOrder.totalAmount),
-      // Add missing payment fields for frontend compatibility
       paymentMethod: updatedOrder.paymentMethod || "CASH",
       paymentStatus: updatedOrder.paymentStatus || "PENDING",
       date: updatedOrder.createdAt.toISOString().split("T")[0],
@@ -291,15 +263,14 @@ export async function PUT(
       email: (updatedOrder.customer as any).email,
       description:
         updatedOrder.notes || `${updatedOrder.orderItems?.length || 0} hizmet`,
-      orderInfo: updatedOrder.orderInfo, // Sipariş Bilgisi
-      deliveryNotes: updatedOrder.deliveryNotes, // Teslimat Notu
-      referenceCode: updatedOrder.referenceCode, // Referans Kodu
-      notes: updatedOrder.notes, // Genel notlar
-      specialInstructions: updatedOrder.specialInstructions, // Özel talimatlar
+      orderInfo: updatedOrder.orderInfo,
+      deliveryNotes: updatedOrder.deliveryNotes,
+      referenceCode: updatedOrder.referenceCode,
+      notes: updatedOrder.notes,
+      specialInstructions: updatedOrder.specialInstructions,
       priority: updatedOrder.priority,
-      // Add missing fields for frontend
       isUrgent: updatedOrder.priority === "URGENT" || false,
-      whatsappNotifications: true, // Default value since not in database yet
+      whatsappNotifications: true,
       address: (updatedOrder.customer as any).address,
       district: (updatedOrder.customer as any).district || "",
       city: (updatedOrder.customer as any).city || "",
@@ -308,73 +279,38 @@ export async function PUT(
       updatedAt: updatedOrder.updatedAt.toISOString(),
       pickupDate: updatedOrder.pickupDate?.toISOString(),
       deliveryDate: updatedOrder.deliveryDate?.toISOString(),
-      // Add syncStatus for frontend compatibility
       syncStatus: "synced" as const,
-      // Transform real order items - no fallback logic
-      items: (updatedOrder.orderItems || []).map((item: any) => {
-        console.log(`[ORDER-UPDATE] Processing item ${item.id}:`, {
-          hasServiceId: !!item.serviceId,
-          hasService: !!item.service,
-          serviceName: item.service?.name,
-          isManualEntry: item.isManualEntry,
-        });
-
-        return {
-          id: item.id,
-          serviceId: item.serviceId,
-          serviceName: item.service?.name || item.serviceName,
-          serviceDescription:
-            item.service?.description || item.serviceDescription || "",
-          serviceCategory: item.service?.category || "OTHER",
-          isManualEntry: item.isManualEntry || false,
-          quantity: Number(item.quantity) || 1,
-          unitPrice: Number(item.unitPrice) || 0,
-          totalPrice: Number(item.totalPrice) || 0,
-          notes: item.notes || "",
-          // Include service reference for database services
-          service: item.service
-            ? {
-                id: item.service.id,
-                name: item.service.name,
-                category: item.service.category,
-                description: item.service.description,
-              }
-            : null,
-        };
-      }),
-      photos: [], // Add photos support later
-      // Initialize statusHistory as empty array for frontend compatibility
+      items: (updatedOrder.orderItems || []).map((item: any) => ({
+        id: item.id,
+        serviceId: item.serviceId,
+        serviceName: item.service?.name || item.serviceName,
+        serviceDescription:
+          item.service?.description || item.serviceDescription || "",
+        serviceCategory: item.service?.category || "OTHER",
+        isManualEntry: item.isManualEntry || false,
+        quantity: Number(item.quantity) || 1,
+        unitPrice: Number(item.unitPrice) || 0,
+        totalPrice: Number(item.totalPrice) || 0,
+        notes: item.notes || "",
+        service: item.service
+          ? {
+              id: item.service.id,
+              name: item.service.name,
+              category: item.service.category,
+              description: item.service.description,
+            }
+          : null,
+      })),
+      photos: [],
       statusHistory: [],
     };
-
-    console.log(
-      `[ORDER-UPDATE] Successfully transformed updated order ${updatedOrder.id} with ${transformedOrder.items.length} items:`,
-      {
-        hasOrderItems: !!(
-          updatedOrder.orderItems && updatedOrder.orderItems.length > 0
-        ),
-        itemsCount: transformedOrder.items.length,
-        firstItemName: transformedOrder.items[0]?.serviceName,
-      }
-    );
 
     return NextResponse.json({
       message: "Order updated successfully",
       order: transformedOrder,
     });
   } catch (error) {
-    console.error(
-      `[ORDER-UPDATE] Critical error updating order ${params.id}:`,
-      {
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-        orderId: params.id,
-        timestamp: new Date().toISOString(),
-        userAgent: request.headers.get("user-agent"),
-        businessContext:
-          "Potential items array failure causing mobile app errors",
-      }
-    );
+    console.error(`[ORDER-UPDATE] Critical error updating order ${params.id}:`, error);
 
     if (error instanceof Error && error.message === "Order not found") {
       return NextResponse.json(
@@ -387,23 +323,12 @@ export async function PUT(
       );
     }
 
-    // Enhanced error response with debugging information
     return NextResponse.json(
       {
         error: "Internal server error",
         message: "Failed to update order details",
         code: "ORDER_UPDATE_ERROR",
         orderId: params.id,
-        timestamp: new Date().toISOString(),
-        // Only include debug info in development
-        ...(process.env.NODE_ENV === "development" && {
-          debugInfo: {
-            errorMessage:
-              error instanceof Error ? error.message : "Unknown error",
-            context:
-              "This error may cause mobile app to show Turkish error messages",
-          },
-        }),
       },
       { status: 500 }
     );
@@ -422,7 +347,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get current user's business ID
     const currentUser = await UserDatabaseService.getUserById(user.userId);
 
     if (!currentUser?.businessId) {
@@ -443,7 +367,6 @@ export async function DELETE(
     if (err instanceof Error && err.message === "Order not found") {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
-    // Map known business errors to 400
     if (err?.code === "ORDER_ASSIGNED_TO_ROUTE") {
       return NextResponse.json(
         {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeCity, normalizeDistrict } from "@/lib/turkish-locations";
 import { requireBusinessAuth } from "@/lib/auth-utils";
 import { isValidVatRate, vatSettingsOf } from "@/lib/vat";
 import {
@@ -123,7 +124,7 @@ export async function PUT(
 
     if (vatRate !== undefined && !isValidVatRate(vatRate)) {
       return NextResponse.json(
-        { error: "Geçersiz KDV oranı. Kullanılabilecek oranlar: %0, %1, %10, %20." },
+        { error: "Geçersiz KDV oranı: 0 ile 100 arasında, en fazla iki ondalıklı bir sayı girin." },
         { status: 400 }
       );
     }
@@ -154,8 +155,8 @@ export async function PUT(
       phone: phone,
       email: email,
       address: address,
-      city: city,
-      district: district,
+      city: city !== undefined ? normalizeCity(city) : city,
+      district: district !== undefined ? normalizeDistrict(city ?? "", district) : district,
       description: description,
       ...(vatRate !== undefined && { vatRate }),
       ...(pricesIncludeVat !== undefined && { pricesIncludeVat }),

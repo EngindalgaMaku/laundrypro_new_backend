@@ -77,8 +77,8 @@ function HelpPageContent() {
             <li>WhatsApp ve E-Fatura gibi entegrasyonları yapılandırın.</li>
           </ol>
           <div className="mt-3 flex gap-2">
-            <Link href="/onboarding" className="text-blue-600 hover:underline">
-              Hızlı kurulum sihirbazı →
+            <Link href="/settings" className="text-primary hover:underline">
+              İşletme ayarlarını tamamlayın →
             </Link>
           </div>
         </Card>
@@ -109,10 +109,10 @@ function HelpPageContent() {
           </ul>
           <div className="mt-3">
             <Link
-              href="/notifications"
-              className="text-blue-600 hover:underline"
+              href="/notifications/templates"
+              className="text-primary hover:underline"
             >
-              Bildirim ayarları →
+              Bildirim şablonları →
             </Link>
           </div>
         </Card>

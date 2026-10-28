@@ -33,3 +33,9 @@ capacitor/www/
 
 # Locally built Android packages
 *.apk
+
+# Promo video (video/): packages, renders and generated media
+/video/node_modules/
+/video/out/
+/video/public/screens/
+/video/public/voice/

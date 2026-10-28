@@ -6,14 +6,22 @@ export const TR_VAT_RATES = [0, 1, 10, 20] as const;
 export const DEFAULT_VAT_RATE = 20;
 
 export interface VatSettings {
-  /** Percent, one of TR_VAT_RATES */
+  /** Percent; normally one of TR_VAT_RATES, any 0–100 value is accepted for future changes */
   vatRate: number;
   /** true: entered prices already include VAT (common for walk-in customers) */
   pricesIncludeVat: boolean;
 }
 
+/** Any percentage 0–100 with at most two decimals (the column is DECIMAL(5,2)) */
 export const isValidVatRate = (rate: unknown): rate is number =>
-  typeof rate === "number" && (TR_VAT_RATES as readonly number[]).includes(rate);
+  typeof rate === "number" &&
+  Number.isFinite(rate) &&
+  rate >= 0 &&
+  rate <= 100 &&
+  Math.round(rate * 100) === rate * 100;
+
+/** One of the rates in force in Turkey (KDV Kanunu, since 10.07.2023) */
+export const isStandardVatRate = (rate: number) => (TR_VAT_RATES as readonly number[]).includes(rate);
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 

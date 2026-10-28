@@ -3,6 +3,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Phone, MessageCircle, Mail, MessageSquare, MapPin, Navigation } from "lucide-react"
+import {
+  makePhoneCall,
+  sendWhatsAppMessage,
+  sendSMS,
+  sendEmail,
+  openGoogleMapsLocation,
+  openGoogleMapsDirections,
+} from "@/lib/communication"
 
 interface Customer {
   name: string
@@ -19,42 +27,43 @@ interface CustomerInfoProps {
 
 export function CustomerInfo({ customer }: CustomerInfoProps) {
   const handleCall = () => {
-    window.open(`tel:${customer.phone}`)
+    makePhoneCall(customer.phone)
   }
 
   const handleEmail = () => {
     if (customer.email) {
-      window.open(`mailto:${customer.email}`)
+      sendEmail(customer.email, "Sipariş Bilgilendirmesi")
     }
   }
 
   const handleWhatsApp = () => {
-    const cleanPhone = customer.phone.replace(/\D/g, "")
-    const message = encodeURIComponent("Merhaba, LaundryPro'dan siparişiniz hakkında bilgi vermek istiyoruz.")
-    window.open(`https://wa.me/90${cleanPhone}?text=${message}`)
+    sendWhatsAppMessage(
+      customer.phone,
+      `Merhaba ${customer.name}, siparişiniz hakkında bilgi vermek istiyoruz.`
+    )
   }
 
   const handleSMS = () => {
-    const message = encodeURIComponent("LaundryPro'dan siparişiniz hakkında bilgi: ")
-    window.open(`sms:${customer.phone}?body=${message}`)
+    sendSMS(
+      customer.phone,
+      `Merhaba ${customer.name}, siparişiniz hakkında bilgi: `
+    )
   }
 
   const handleViewOnMap = () => {
-    if (customer.latitude && customer.longitude) {
-      window.open(`https://www.google.com/maps?q=${customer.latitude},${customer.longitude}`)
-    } else if (customer.address) {
-      const encodedAddress = encodeURIComponent(customer.address)
-      window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`)
-    }
+    openGoogleMapsLocation({
+      latitude: customer.latitude,
+      longitude: customer.longitude,
+      address: customer.address,
+    })
   }
 
   const handleGetDirections = () => {
-    if (customer.latitude && customer.longitude) {
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${customer.latitude},${customer.longitude}`)
-    } else if (customer.address) {
-      const encodedAddress = encodeURIComponent(customer.address)
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`)
-    }
+    openGoogleMapsDirections({
+      latitude: customer.latitude,
+      longitude: customer.longitude,
+      address: customer.address,
+    })
   }
 
   return (
@@ -77,8 +86,22 @@ export function CustomerInfo({ customer }: CustomerInfoProps) {
                 <Button size="sm" variant="outline" onClick={handleCall} aria-label="Ara">
                   <Phone className="h-4 w-4" />
                 </Button>
-                <Button size="sm" variant="outline" onClick={handleWhatsApp} className="text-green-600 bg-transparent" aria-label="WhatsApp mesajı gönder">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleWhatsApp}
+                  className="text-green-600 bg-transparent"
+                  aria-label="WhatsApp mesajı gönder"
+                >
                   <MessageCircle className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSMS}
+                  aria-label="SMS gönder"
+                >
+                  <MessageSquare className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -96,11 +119,16 @@ export function CustomerInfo({ customer }: CustomerInfoProps) {
             </div>
           )}
 
-          {customer.address && (
+          {(customer.address || (customer.latitude && customer.longitude)) && (
             <div>
               <label className="text-sm font-medium text-muted-foreground">Adres</label>
               <div className="space-y-2">
-                <p className="text-base">{customer.address}</p>
+                {customer.address && <p className="text-base">{customer.address}</p>}
+                {typeof customer.latitude === "number" && typeof customer.longitude === "number" && (
+                  <p className="text-xs font-mono text-muted-foreground">
+                    GPS: {customer.latitude.toFixed(5)}, {customer.longitude.toFixed(5)}
+                  </p>
+                )}
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={handleViewOnMap}>
                     <MapPin className="h-4 w-4 mr-1" />
@@ -136,17 +164,17 @@ export function CustomerInfo({ customer }: CustomerInfoProps) {
             WhatsApp Gönder
           </Button>
 
+          <Button onClick={handleSMS} className="w-full justify-start bg-transparent" variant="outline">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            SMS Gönder
+          </Button>
+
           {customer.email && (
             <Button onClick={handleEmail} className="w-full justify-start bg-transparent" variant="outline">
               <Mail className="h-4 w-4 mr-2" />
               E-posta Gönder
             </Button>
           )}
-
-          <Button onClick={handleSMS} className="w-full justify-start bg-transparent" variant="outline">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            SMS Gönder
-          </Button>
         </CardContent>
       </Card>
     </div>

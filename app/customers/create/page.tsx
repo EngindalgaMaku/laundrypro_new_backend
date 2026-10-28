@@ -29,19 +29,11 @@ import {
   turkishCities,
   getDistrictsByCity,
   getCityById,
+  normalizeCity,
 } from "@/lib/turkish-locations";
-import {
-  MapPin,
-  Navigation,
-  User,
-  Phone,
-  Mail,
-  Home,
-  FileText,
-  Save,
-  ArrowLeft,
-} from "lucide-react";
+import { LocateFixed, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
+import { openGoogleMapsLocation } from "@/lib/communication";
 
 interface User {
   id: string;
@@ -61,6 +53,7 @@ interface User {
 export default function CreateCustomerPage() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
@@ -72,7 +65,7 @@ export default function CreateCustomerPage() {
     address: "",
     city: "",
     district: "",
-    customDistrict: "", // For "Diğer" option
+    customDistrict: "",
     latitude: null as number | null,
     longitude: null as number | null,
     notes: "",
@@ -88,20 +81,41 @@ export default function CreateCustomerPage() {
     const parsedUser = JSON.parse(userData);
     setUser(parsedUser);
 
-    // Auto-select business city for customer
     if (parsedUser.business?.city) {
       setCustomerData((prev) => ({
         ...prev,
-        city: parsedUser.business.city,
+        city: normalizeCity(parsedUser.business.city),
       }));
-      toast.success(
-        `Müşteri ili otomatik olarak ${
-          getCityById(parsedUser.business.city)?.name ||
-          parsedUser.business.city
-        } seçildi`
-      );
     }
   }, [router]);
+
+  const handleGetCurrentLocation = () => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      toast.error("Cihazınız konum servisini desteklemiyor");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCustomerData((prev) => ({
+          ...prev,
+          latitude: Number(pos.coords.latitude.toFixed(6)),
+          longitude: Number(pos.coords.longitude.toFixed(6)),
+        }));
+        setIsLocating(false);
+        toast.success("GPS konumu başarıyla alındı");
+      },
+      (err) => {
+        setIsLocating(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          toast.error("Konum izni reddedildi. Lütfen cihaz ayarlarından konum izni verin.");
+        } else {
+          toast.error("GPS konumu alınamadı. Konum servisinizin açık olduğundan emin olun.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   if (!user) {
     return <div className="p-6 text-muted-foreground">Yükleniyor…</div>;
@@ -110,7 +124,6 @@ export default function CreateCustomerPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields
     if (!customerData.name.trim()) {
       toast.error("Müşteri adı gereklidir");
       return;
@@ -121,13 +134,11 @@ export default function CreateCustomerPage() {
       return;
     }
 
-    // Validate city/district
     if (!customerData.city) {
       toast.error("Müşteri ili seçilmelidir");
       return;
     }
 
-    // Validate custom district if "other" is selected
     if (
       customerData.district === "other" &&
       !customerData.customDistrict.trim()
@@ -136,8 +147,7 @@ export default function CreateCustomerPage() {
       return;
     }
 
-    // Validate that customer city matches business city (if business city exists)
-    if (user.business?.city && customerData.city !== user.business.city) {
+    if (user.business?.city && customerData.city !== normalizeCity(user.business.city)) {
       toast.error("Müşteri ili işletme ili ile aynı olmalıdır");
       return;
     }
@@ -152,20 +162,20 @@ export default function CreateCustomerPage() {
         return;
       }
 
-      // Prepare customer data for API
       const finalDistrict =
         customerData.district === "other"
           ? customerData.customDistrict
           : customerData.district;
 
-      const [firstName, ...lastNameParts] = customerData.name.trim().split(" ");
-      const lastName = lastNameParts.join(" ") || "";
+      const parts = customerData.name.trim().split(/\s+/);
+      const lastName = parts.length > 1 ? parts.pop()! : "";
+      const firstName = parts.join(" ");
 
       const customerPayload = {
-        firstName: firstName,
-        lastName: lastName,
+        firstName,
+        lastName,
         email: customerData.email || null,
-        phone: customerData.phone.replace(/\s/g, ""), // Remove spaces for storage
+        phone: customerData.phone.replace(/\s/g, ""),
         address: customerData.address || null,
         city: customerData.city,
         district: finalDistrict,
@@ -184,7 +194,6 @@ export default function CreateCustomerPage() {
       });
 
       if (response.ok) {
-        const result = await response.json();
         toast.success("Müşteri başarıyla kaydedildi!");
         router.push("/customers");
       } else {
@@ -214,7 +223,6 @@ export default function CreateCustomerPage() {
           isMobileMenuOpen={isMobileMenuOpen}
         />
         <main className="flex-1 overflow-y-auto bg-muted/20 custom-scrollbar">
-
           <div className="p-4 sm:p-6">
             <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
               {/* Header */}
@@ -271,9 +279,7 @@ export default function CreateCustomerPage() {
                               placeholder="Örn: 0555 123 45 67"
                               value={customerData.phone}
                               onChange={(e) => {
-                                // Format phone number as user types
-                                let value = e.target.value.replace(/\D/g, ""); // Remove non-digits
-
+                                let value = e.target.value.replace(/\D/g, "");
                                 if (value.length > 0) {
                                   if (value.length <= 4) {
                                     value = value.replace(/(\d{4})/, "$1");
@@ -294,7 +300,6 @@ export default function CreateCustomerPage() {
                                     );
                                   }
                                 }
-
                                 setCustomerData((prev) => ({
                                   ...prev,
                                   phone: value,
@@ -320,6 +325,7 @@ export default function CreateCustomerPage() {
                             />
                           </div>
                         </div>
+
                         {/* City & District Selection */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
@@ -331,10 +337,10 @@ export default function CreateCustomerPage() {
                                   setCustomerData((prev) => ({
                                     ...prev,
                                     city: value,
-                                    district: "", // Reset district when city changes
+                                    district: "",
                                   }))
                                 }
-                                disabled={!!user.business?.city} // Disabled if business city exists
+                                disabled={!!user.business?.city}
                               >
                                 <SelectTrigger
                                   className={
@@ -360,11 +366,6 @@ export default function CreateCustomerPage() {
                                 </Badge>
                               )}
                             </div>
-                            {user.business?.city && (
-                              <p className="text-xs text-muted-foreground">
-                                Müşteri ili işletme iliniz ile aynı olmalıdır
-                              </p>
-                            )}
                           </div>
 
                           <div className="space-y-2">
@@ -419,7 +420,6 @@ export default function CreateCustomerPage() {
                               </SelectContent>
                             </Select>
 
-                            {/* Custom District Input */}
                             {showCustomDistrict && (
                               <div className="space-y-2">
                                 <Label htmlFor="customDistrict">
@@ -458,8 +458,24 @@ export default function CreateCustomerPage() {
                               }
                               rows={3}
                             />
-                            {/* GPS Coordinates Input */}
-                            <div className="grid grid-cols-2 gap-2 mt-2">
+
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                              <Label className="text-xs font-medium text-muted-foreground">
+                                GPS Konumu (İsteğe Bağlı - Harita & Navigasyon İçin)
+                              </Label>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleGetCurrentLocation}
+                                disabled={isLocating}
+                              >
+                                <LocateFixed className="h-3.5 w-3.5 mr-1.5" />
+                                {isLocating ? "Konum Alınıyor..." : "Mevcut Konumu Al (GPS)"}
+                              </Button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
                               <div className="space-y-1">
                                 <Label htmlFor="latitude" className="text-xs">
                                   Enlem (Latitude)
@@ -467,10 +483,9 @@ export default function CreateCustomerPage() {
                                 <Input
                                   id="latitude"
                                   placeholder="36.8490"
-                                  value={customerData.latitude || ""}
+                                  value={customerData.latitude ?? ""}
                                   onChange={(e) => {
                                     const value = e.target.value;
-                                    // Allow numbers, dots, and minus sign
                                     if (
                                       value === "" ||
                                       /^-?\d*\.?\d*$/.test(value)
@@ -493,10 +508,9 @@ export default function CreateCustomerPage() {
                                 <Input
                                   id="longitude"
                                   placeholder="30.6296"
-                                  value={customerData.longitude || ""}
+                                  value={customerData.longitude ?? ""}
                                   onChange={(e) => {
                                     const value = e.target.value;
-                                    // Allow numbers, dots, and minus sign
                                     if (
                                       value === "" ||
                                       /^-?\d*\.?\d*$/.test(value)
@@ -516,21 +530,32 @@ export default function CreateCustomerPage() {
 
                             {customerData.latitude &&
                               customerData.longitude && (
-                                <div className="flex items-center gap-2 mt-2 p-2 bg-green-50 rounded border border-green-200">
-                                  <MapPin className="h-4 w-4 text-green-600" />
-                                  <span className="text-sm text-green-800">
-                                    GPS Koordinatları:{" "}
-                                    {customerData.latitude.toFixed(4)},{" "}
-                                    {customerData.longitude.toFixed(4)}
-                                  </span>
+                                <div className="flex items-center justify-between gap-2 mt-2 p-2 bg-green-50 rounded border border-green-200">
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4 text-green-600" />
+                                    <span className="text-sm text-green-800">
+                                      GPS:{" "}
+                                      {customerData.latitude.toFixed(5)},{" "}
+                                      {customerData.longitude.toFixed(5)}
+                                    </span>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 text-xs text-green-800"
+                                    onClick={() =>
+                                      openGoogleMapsLocation({
+                                        latitude: customerData.latitude,
+                                        longitude: customerData.longitude,
+                                        address: customerData.address,
+                                      })
+                                    }
+                                  >
+                                    Haritada Test Et
+                                  </Button>
                                 </div>
                               )}
-
-                            <div className="text-xs text-muted-foreground mt-1">
-                              💡 Google Maps'ten koordinatları
-                              kopyalayabilirsiniz: Haritada sağ tık →
-                              koordinatları kopyala
-                            </div>
                           </div>
                           {customerData.city && customerData.district && (
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -541,13 +566,6 @@ export default function CreateCustomerPage() {
                                 : getDistrictsByCity(customerData.city).find(
                                     (d) => d.id === customerData.district
                                   )?.name}
-                              {customerData.latitude &&
-                                customerData.longitude && (
-                                  <span className="ml-2 font-mono">
-                                    ({customerData.latitude.toFixed(4)},{" "}
-                                    {customerData.longitude.toFixed(4)})
-                                  </span>
-                                )}
                             </p>
                           )}
                         </div>

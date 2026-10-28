@@ -6,15 +6,33 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { OrderTimeline } from "@/components/orders/order-timeline"
 import { OrderStatusUpdater } from "@/components/orders/order-status-updater"
 import { CustomerInfo } from "@/components/orders/customer-info"
 import { CustomerMap } from "@/components/maps/customer-map"
 import { OrderReceiptDialog } from "@/components/orders/order-receipt-dialog"
-import { sendWhatsAppMessage } from "@/lib/communication"
-import { ArrowLeft, Printer, MessageSquare, Share2 } from "lucide-react"
+import { sendWhatsAppMessage, sendSMS } from "@/lib/communication"
+import {
+  ArrowLeft,
+  Printer,
+  MessageSquare,
+  Share2,
+  Wallet,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react"
 import { OrderStatusBadge } from "@/components/orders/order-status-badge"
 import { orderStatusInfo } from "@/lib/order-status"
 import { toast } from "sonner"
@@ -45,19 +63,36 @@ interface OrderStatus {
   updatedBy: string
 }
 
+interface PaymentRecord {
+  id: string
+  amount: number
+  paymentMethod: "CASH" | "CREDIT_CARD" | "BANK_TRANSFER" | "MOBILE_PAYMENT"
+  status: string
+  notes?: string | null
+  paidAt: string
+}
+
 interface Order {
   id: string
   orderNumber: string
   trackingToken: string | null
   customer: {
+    id?: string
     name: string
     phone: string
     email?: string
     address?: string
+    latitude?: number
+    longitude?: number
   }
   service: string
   status: OrderStatusValue
   amount: string
+  totalAmount: number
+  paidAmount: number
+  remainingAmount: number
+  paymentStatus: "PENDING" | "PARTIAL" | "PAID" | "REFUNDED" | "CANCELLED"
+  payments: PaymentRecord[]
   date: string
   deliveryDate?: string
   description: string
@@ -85,19 +120,32 @@ const statusLabels: Record<
   CANCELLED: { label: "İptal", variant: "destructive", color: "text-destructive" },
 }
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  CASH: "Nakit",
+  CREDIT_CARD: "Kredi Kartı / POS",
+  BANK_TRANSFER: "Havale / EFT / IBAN",
+  MOBILE_PAYMENT: "Mobil Ödeme",
+}
+
 const formatDate = (value?: string | null) =>
   value ? new Date(value).toLocaleDateString("tr-TR") : undefined
 
 const formatPrice = (value: number) =>
   `₺${value.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-// Maps the /api/orders/[id] response onto what this page renders
 function toOrder(data: any): Order {
+  const totalAmount = Number(data.totalAmount || 0)
+  const paidAmount = Number(data.paidAmount ?? (data.paymentStatus === "PAID" ? totalAmount : 0))
+  const remainingAmount = Number(
+    data.remainingAmount ?? Math.max(0, totalAmount - paidAmount)
+  )
+
   return {
     id: data.id,
     orderNumber: data.orderNumber,
     trackingToken: data.trackingToken || null,
     customer: {
+      id: data.customer?.id,
       name: data.customer?.name || "İsimsiz",
       phone: data.customer?.phone || "",
       email: data.customer?.email || undefined,
@@ -105,10 +153,19 @@ function toOrder(data: any): Order {
         [data.customer?.address, data.customer?.district, data.customer?.city]
           .filter(Boolean)
           .join(", ") || undefined,
+      latitude:
+        typeof data.customer?.latitude === "number" ? data.customer.latitude : undefined,
+      longitude:
+        typeof data.customer?.longitude === "number" ? data.customer.longitude : undefined,
     },
     service: data.service || data.items?.[0]?.serviceName || "Hizmet belirtilmedi",
     status: data.status,
-    amount: formatPrice(Number(data.totalAmount || 0)),
+    amount: formatPrice(totalAmount),
+    totalAmount,
+    paidAmount,
+    remainingAmount,
+    paymentStatus: data.paymentStatus || (remainingAmount <= 0 ? "PAID" : paidAmount > 0 ? "PARTIAL" : "PENDING"),
+    payments: Array.isArray(data.payments) ? data.payments : [],
     date: formatDate(data.createdAt) || "",
     deliveryDate: formatDate(data.deliveryDate),
     description: data.orderInfo || data.description || "",
@@ -130,6 +187,15 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isReceiptOpen, setIsReceiptOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState("details")
+
+  // Payment form state
+  const [paymentAmount, setPaymentAmount] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState<string>("CASH")
+  const [paymentNote, setPaymentNote] = useState("")
+  const [isSavingPayment, setIsSavingPayment] = useState(false)
+
   const router = useRouter()
   const params = useParams()
   const orderId = params.id as string
@@ -143,7 +209,13 @@ export default function OrderDetailPage() {
       setLoadError(response.status === 404 ? "Sipariş bulunamadı." : "Sipariş yüklenemedi.")
       return
     }
-    setOrder(toOrder(await response.json()))
+    const mapped = toOrder(await response.json())
+    setOrder(mapped)
+    if (mapped.remainingAmount > 0) {
+      setPaymentAmount(String(mapped.remainingAmount))
+    } else {
+      setPaymentAmount("")
+    }
   }
 
   useEffect(() => {
@@ -176,6 +248,70 @@ export default function OrderDetailPage() {
     await loadOrder()
   }
 
+  const handleRecordPayment = async (amountOverride?: number) => {
+    if (!order) return
+    const numAmount =
+      typeof amountOverride === "number"
+        ? amountOverride
+        : Number(paymentAmount.replace(",", "."))
+
+    if (!Number.isFinite(numAmount) || numAmount <= 0) {
+      toast.error("Geçerli bir tahsilat tutarı girin")
+      return
+    }
+
+    setIsSavingPayment(true)
+    try {
+      const token = localStorage.getItem("token")
+      const response = await fetch(`/api/orders/${order.id}/payments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          amount: numAmount,
+          paymentMethod,
+          notes: paymentNote,
+        }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        toast.error(result.error || "Tahsilat kaydedilemedi")
+        return
+      }
+      toast.success(`${formatPrice(numAmount)} tahsilat kaydedildi`)
+      setPaymentNote("")
+      await loadOrder()
+    } catch {
+      toast.error("Tahsilat kaydedilirken hata oluştu")
+    } finally {
+      setIsSavingPayment(false)
+    }
+  }
+
+  const handleDeletePayment = async (paymentId: string) => {
+    if (!order) return
+    try {
+      const token = localStorage.getItem("token")
+      const response = await fetch(
+        `/api/orders/${order.id}/payments?paymentId=${encodeURIComponent(paymentId)}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+      if (!response.ok) {
+        toast.error("Tahsilat kaydı silinemedi")
+        return
+      }
+      toast.success("Tahsilat kaydı silindi")
+      await loadOrder()
+    } catch {
+      toast.error("Tahsilat silinirken hata oluştu")
+    }
+  }
+
   if (loadError) {
     return (
       <div className="flex h-screen items-center justify-center bg-background p-6">
@@ -203,9 +339,13 @@ export default function OrderDetailPage() {
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar />
+      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header user={user} />
+        <Header
+          user={user}
+          onMenuClick={() => setIsMobileMenuOpen(true)}
+          isMobileMenuOpen={isMobileMenuOpen}
+        />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Header */}
@@ -224,24 +364,40 @@ export default function OrderDetailPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-xl font-bold text-foreground sm:text-2xl">{order.customer.name}</h1>
                     <OrderStatusBadge status={order.status} />
+                    {order.remainingAmount <= 0 ? (
+                      <Badge className="bg-emerald-600 text-white">Ödendi</Badge>
+                    ) : order.paidAmount > 0 ? (
+                      <Badge variant="outline" className="border-amber-500 text-amber-700">
+                        Kısmi Ödeme (Kalan: {formatPrice(order.remainingAmount)})
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-red-300 text-red-700">
+                        Ödeme Bekliyor ({formatPrice(order.remainingAmount)})
+                      </Badge>
+                    )}
                   </div>
                   <p className="mt-1 font-mono text-sm text-muted-foreground">
                     {order.orderNumber} • {order.date}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-                  <Button className="col-span-2" onClick={() => setIsReceiptOpen(true)}>
+                  <Button onClick={() => setIsReceiptOpen(true)}>
                     <Printer className="h-4 w-4" />
-                    Fiş / Etiket Yazdır
+                    Fiş / Etiket
+                  </Button>
+                  <Button
+                    variant={order.remainingAmount > 0 ? "default" : "outline"}
+                    onClick={() => setActiveTab("payments")}
+                  >
+                    <Wallet className="h-4 w-4" />
+                    Tahsilat Al
                   </Button>
                   <Button
                     variant="outline"
                     disabled={!trackingUrl}
-                    className={order.customer.phone ? "" : "col-span-2"}
                     onClick={async () => {
                       if (!trackingUrl) return
                       try {
-                        // navigator.clipboard is missing on plain-HTTP origins (LAN dev, some WebViews)
                         if (!navigator.clipboard) throw new Error("clipboard unavailable")
                         await navigator.clipboard.writeText(trackingUrl)
                         toast.success("Müşteri takip linki kopyalandı")
@@ -271,13 +427,25 @@ export default function OrderDetailPage() {
             </div>
 
             {/* Summary */}
-            <div className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-card shadow-card">
+            <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border rounded-xl border border-border bg-card shadow-card">
               <div className="p-4">
-                <p className="text-xs text-muted-foreground">Tutar</p>
+                <p className="text-xs text-muted-foreground">Toplam Tutar</p>
                 <p className="mt-1 font-bold tabular-nums text-foreground sm:text-lg">{order.amount}</p>
               </div>
               <div className="p-4">
-                <p className="text-xs text-muted-foreground">Teslim</p>
+                <p className="text-xs text-muted-foreground">Kalan Borç (Veresiye)</p>
+                <p
+                  className={`mt-1 font-bold tabular-nums sm:text-lg ${
+                    order.remainingAmount > 0 ? "text-red-600" : "text-emerald-600"
+                  }`}
+                >
+                  {order.remainingAmount > 0
+                    ? formatPrice(order.remainingAmount)
+                    : "₺0,00 (Ödendi)"}
+                </p>
+              </div>
+              <div className="p-4">
+                <p className="text-xs text-muted-foreground">Teslim Tarihi</p>
                 <p className="mt-1 font-semibold text-foreground sm:text-lg">{order.deliveryDate || "—"}</p>
               </div>
               <div className="p-4">
@@ -289,9 +457,12 @@ export default function OrderDetailPage() {
             </div>
 
             {/* Main Content Tabs */}
-            <Tabs defaultValue="details" className="space-y-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList className="w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <TabsTrigger value="details">Sipariş Detayları</TabsTrigger>
+                <TabsTrigger value="payments">
+                  Tahsilat & Cari {order.remainingAmount > 0 ? `(${formatPrice(order.remainingAmount)})` : ""}
+                </TabsTrigger>
                 <TabsTrigger value="timeline">Takip Geçmişi</TabsTrigger>
                 <TabsTrigger value="customer">Müşteri Bilgileri</TabsTrigger>
                 <TabsTrigger value="map">Konum & Harita</TabsTrigger>
@@ -352,6 +523,182 @@ export default function OrderDetailPage() {
                           <span>{order.amount}</span>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="payments">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Wallet className="h-5 w-5" />
+                        Tahsilat / Ödeme Kaydet
+                      </CardTitle>
+                      <CardDescription>
+                        Peşinat (kapora), parçalı ödeme veya kalan borç tahsilatı ekleyin
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted p-3 text-center">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Sipariş Tutarı</p>
+                          <p className="font-bold text-sm sm:text-base">{formatPrice(order.totalAmount)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Ödenen</p>
+                          <p className="font-bold text-sm sm:text-base text-emerald-600">
+                            {formatPrice(order.paidAmount)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Kalan Borç</p>
+                          <p
+                            className={`font-bold text-sm sm:text-base ${
+                              order.remainingAmount > 0 ? "text-red-600" : "text-emerald-600"
+                            }`}
+                          >
+                            {formatPrice(order.remainingAmount)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="payment-amount">Tahsilat Tutarı (₺)</Label>
+                          <Input
+                            id="payment-amount"
+                            placeholder="Örn: 250"
+                            value={paymentAmount}
+                            onChange={(e) => setPaymentAmount(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="payment-method">Ödeme Yöntemi</Label>
+                          <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                            <SelectTrigger id="payment-method">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="CASH">Nakit</SelectItem>
+                              <SelectItem value="CREDIT_CARD">Kredi Kartı / POS</SelectItem>
+                              <SelectItem value="BANK_TRANSFER">Havale / EFT / IBAN</SelectItem>
+                              <SelectItem value="MOBILE_PAYMENT">Mobil Ödeme</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="payment-note">Açıklama / Not (İsteğe Bağlı)</Label>
+                        <Input
+                          id="payment-note"
+                          placeholder="Örn: Teslimatta nakit alındı / Kapora"
+                          value={paymentNote}
+                          onChange={(e) => setPaymentNote(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button
+                          className="flex-1"
+                          disabled={isSavingPayment}
+                          onClick={() => handleRecordPayment()}
+                        >
+                          <Wallet className="h-4 w-4 mr-2" />
+                          {isSavingPayment ? "Kaydediliyor..." : "Tahsilatı Kaydet"}
+                        </Button>
+                        {order.remainingAmount > 0 && (
+                          <Button
+                            variant="secondary"
+                            disabled={isSavingPayment}
+                            onClick={() => handleRecordPayment(order.remainingAmount)}
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Tamamını Tahsil Et ({formatPrice(order.remainingAmount)})
+                          </Button>
+                        )}
+                      </div>
+
+                      {order.remainingAmount > 0 && order.customer.phone && (
+                        <div className="pt-3 border-t flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              const msg = `Merhaba ${order.customer.name}, ${order.orderNumber} numaralı siparişinize ait toplam ${formatPrice(order.totalAmount)} tutarın ${formatPrice(order.paidAmount)} kısmı ödenmiş olup ${formatPrice(order.remainingAmount)} kalan bakiyeniz bulunmaktadır. İyi günler dileriz. - ${user.businessName || ""}`
+                              sendWhatsAppMessage(order.customer.phone, msg)
+                            }}
+                          >
+                            💬 WhatsApp Bakiye Hatırlat
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              const msg = `Merhaba ${order.customer.name}, ${order.orderNumber} nolu siparisinizden kalan bakiyeniz: ${formatPrice(order.remainingAmount)}. Iyi gunler dileriz.`
+                              sendSMS(order.customer.phone, msg)
+                            }}
+                          >
+                            ✉️ SMS Bakiye Hatırlat
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Tahsilat Geçmişi</CardTitle>
+                      <CardDescription>
+                        Bu siparişe ait yapılan tüm ödemeler
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {order.payments.length === 0 ? (
+                        <div className="py-8 text-center text-muted-foreground space-y-2">
+                          <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground" />
+                          <p className="text-sm">Henüz kayıtlı tahsilat bulunmuyor.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {order.payments.map((p) => (
+                            <div
+                              key={p.id}
+                              className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                            >
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-emerald-700">
+                                    {formatPrice(p.amount)}
+                                  </span>
+                                  <Badge variant="outline">
+                                    {PAYMENT_METHOD_LABELS[p.paymentMethod] || p.paymentMethod}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {new Date(p.paidAt).toLocaleString("tr-TR")}
+                                  {p.notes ? ` • ${p.notes}` : ""}
+                                </p>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-muted-foreground hover:text-destructive"
+                                aria-label="Tahsilatı sil"
+                                onClick={() => handleDeletePayment(p.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>

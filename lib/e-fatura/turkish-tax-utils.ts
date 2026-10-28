@@ -3,7 +3,7 @@
  * Handles Turkish tax calculations and validations for E-Fatura
  */
 
-import { DEFAULT_VAT_RATE, TR_VAT_RATES } from "@/lib/vat";
+import { DEFAULT_VAT_RATE, TR_VAT_RATES, isStandardVatRate } from "@/lib/vat";
 
 // Turkish VAT rates (KDV oranları) and the default come from lib/vat.ts;
 // each business sets its own rate in Settings.
@@ -433,7 +433,7 @@ export function generateInvoiceNumber(
  * Check if VAT rate is valid for Turkish tax system
  */
 export function isValidTurkishVATRate(rate: number): boolean {
-  return (TR_VAT_RATES as readonly number[]).includes(rate);
+  return isStandardVatRate(rate);
 }
 
 /**

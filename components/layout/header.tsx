@@ -230,15 +230,6 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
                   <span>Ayarlar</span>
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => router.push("/settings/profile")}
-                className="cursor-pointer touch-target rounded-lg p-3 focus:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <UserCog className="w-4 h-4" />
-                  <span>Profil</span>
-                </div>
-              </DropdownMenuItem>
               <DropdownMenuSeparator className="my-2" />
               <DropdownMenuItem
                 onClick={handleLogout}

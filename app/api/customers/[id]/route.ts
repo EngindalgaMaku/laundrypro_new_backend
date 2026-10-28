@@ -85,7 +85,16 @@ export async function PUT(
       city,
       district,
       isActive,
+      latitude,
+      longitude,
     } = body;
+
+    // Coordinates are optional; null clears them, anything else must be a real position
+    const validCoordinate = (v: unknown, limit: number) =>
+      v === null || v === undefined || (typeof v === "number" && Number.isFinite(v) && Math.abs(v) <= limit);
+    if (!validCoordinate(latitude, 90) || !validCoordinate(longitude, 180)) {
+      return NextResponse.json({ error: "Geçersiz koordinat" }, { status: 400 });
+    }
 
     console.log(
       `[CUSTOMER-PUT] Updating customer ${id} for businessId: ${tokenUser.businessId} by user ${tokenUser.email}`
@@ -105,6 +114,8 @@ export async function PUT(
         city,
         district,
         isActive,
+        latitude,
+        longitude,
       }
     );
 

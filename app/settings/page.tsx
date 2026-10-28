@@ -32,11 +32,14 @@ import {
   turkishCities,
   getDistrictsByCity,
   getCityById,
+  normalizeCity,
+  normalizeDistrict,
 } from "@/lib/turkish-locations";
 import { SaveConfirmationModal } from "@/components/ui/confirmation-modal";
+import { DeleteAccountDialog } from "@/components/settings/delete-account-dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { DEFAULT_VAT_RATE, TR_VAT_RATES } from "@/lib/vat";
+import { DEFAULT_VAT_RATE, TR_VAT_RATES, isStandardVatRate, isValidVatRate } from "@/lib/vat";
 
 const VAT_RATE_LABELS: Record<number, string> = {
   20: "%20 (genel oran)",
@@ -48,6 +51,7 @@ const VAT_RATE_LABELS: Record<number, string> = {
 interface User {
   id: string;
   email: string;
+  role?: string;
   phone?: string;
   address?: string;
   city?: string;
@@ -89,6 +93,10 @@ export default function SettingsPage() {
     vatRate: DEFAULT_VAT_RATE,
     pricesIncludeVat: true,
   });
+  // "Diğer" in the VAT list: the typed text, kept apart so "8," can be typed on the way to "8,5"
+  const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
+  const [vatCustom, setVatCustom] = useState(false);
+  const [vatInput, setVatInput] = useState("");
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
     smsNotifications: false,
@@ -286,8 +294,9 @@ export default function SettingsPage() {
               email: businessData.email || prev.email,
               phone: userData.phone || businessData.phone || "",
               address: businessData.address || "",
-              city: businessData.city || "",
-              district: businessData.district || "",
+              // older records hold slugs ("ankara"); the selects use display names
+              city: normalizeCity(businessData.city || ""),
+              district: normalizeDistrict(businessData.city || "", businessData.district || ""),
               description: businessData.description || "",
               vatRate: Number(businessData.vatRate ?? businessData.settings?.taxRate ?? DEFAULT_VAT_RATE),
               pricesIncludeVat: businessData.pricesIncludeVat ?? true,
@@ -324,6 +333,10 @@ export default function SettingsPage() {
     // Validate required fields
     if (!businessData.city) {
       toast.error("İşletme ili seçilmelidir");
+      return;
+    }
+    if (vatCustom && !isValidVatRate(Number(vatInput.replace(",", ".")))) {
+      toast.error("KDV oranını 0 ile 100 arasında girin");
       return;
     }
 
@@ -758,10 +771,16 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                           <Label htmlFor="vat-rate">KDV oranı</Label>
                           <Select
-                            value={String(businessData.vatRate)}
-                            onValueChange={(value) =>
-                              setBusinessData((prev) => ({ ...prev, vatRate: Number(value) }))
-                            }
+                            value={vatCustom || !isStandardVatRate(businessData.vatRate) ? "custom" : String(businessData.vatRate)}
+                            onValueChange={(value) => {
+                              if (value === "custom") {
+                                setVatCustom(true);
+                                setVatInput("");
+                                return;
+                              }
+                              setVatCustom(false);
+                              setBusinessData((prev) => ({ ...prev, vatRate: Number(value) }));
+                            }}
                           >
                             <SelectTrigger id="vat-rate" className="w-full sm:w-64">
                               <SelectValue />
@@ -772,8 +791,40 @@ export default function SettingsPage() {
                                   {VAT_RATE_LABELS[rate] ?? `%${rate}`}
                                 </SelectItem>
                               ))}
+                              <SelectItem value="custom">Diğer (oranı elle girin)</SelectItem>
                             </SelectContent>
                           </Select>
+                          {(vatCustom || !isStandardVatRate(businessData.vatRate)) && (
+                            <div className="space-y-1.5">
+                              <div className="relative w-full sm:w-64">
+                                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+                                <Input
+                                  id="vat-rate-custom"
+                                  inputMode="decimal"
+                                  className="pl-7"
+                                  aria-label="KDV oranı (yüzde)"
+                                  value={vatCustom ? vatInput : String(businessData.vatRate).replace(".", ",")}
+                                  onChange={(e) => {
+                                    const text = e.target.value.replace(",", ".");
+                                    setVatCustom(true);
+                                    setVatInput(e.target.value);
+                                    const rate = Number(text);
+                                    if (text.trim() !== "" && isValidVatRate(rate)) {
+                                      setBusinessData((prev) => ({ ...prev, vatRate: rate }));
+                                    }
+                                  }}
+                                />
+                              </div>
+                              {vatCustom && (vatInput.trim() === "" || !isValidVatRate(Number(vatInput.replace(",", ".")))) ? (
+                                <p className="text-sm text-destructive">0 ile 100 arasında bir oran girin (örn. 18 veya 8,5).</p>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">
+                                  Türkiye'de yürürlükteki oranlar %0, %1, %10 ve %20'dir. Farklı bir oranı yalnızca
+                                  mevzuat değişirse veya mali müşaviriniz önerirse kullanın.
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-start justify-between gap-4">
                           <div>
@@ -1031,7 +1082,9 @@ export default function SettingsPage() {
                             Hesabınızı ve tüm verilerinizi kalıcı olarak silin
                           </p>
                         </div>
-                        <Button variant="destructive">Hesabı Sil</Button>
+                        <Button variant="destructive" onClick={() => setIsDeleteAccountOpen(true)}>
+                          Hesabı Sil
+                        </Button>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
@@ -1053,6 +1106,12 @@ export default function SettingsPage() {
         </main>
       </div>
       
+      <DeleteAccountDialog
+        open={isDeleteAccountOpen}
+        onOpenChange={setIsDeleteAccountOpen}
+        isOwner={user?.role === "OWNER"}
+      />
+
       {/* Confirmation Modal */}
       <SaveConfirmationModal
         isOpen={showConfirmModal}

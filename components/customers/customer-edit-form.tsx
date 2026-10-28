@@ -15,14 +15,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   turkishCities,
   getDistrictsByCity,
   getCityById,
+  normalizeCity,
+  normalizeDistrict,
 } from "@/lib/turkish-locations";
-import { MapPin, Navigation } from "lucide-react";
+import { LocateFixed, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
+import { openGoogleMapsLocation } from "@/lib/communication";
 
 interface Customer {
   id: string;
@@ -58,20 +60,47 @@ export function CustomerEditForm({
     phone: customer.phone,
     email: customer.email,
     address: customer.address,
-    city: customer.city || "",
-    district: customer.district || "",
-    latitude: customer.latitude || null,
-    longitude: customer.longitude || null,
+    city: normalizeCity(customer.city || ""),
+    district: normalizeDistrict(customer.city || "", customer.district || ""),
+    latitude: customer.latitude ?? null,
+    longitude: customer.longitude ?? null,
     status: customer.status,
     notes: customer.notes || "",
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [addressModalOpen, setAddressModalOpen] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+
+  const handleGetCurrentLocation = () => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      toast.error("Cihazınız konum servisini desteklemiyor");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: Number(pos.coords.latitude.toFixed(6)),
+          longitude: Number(pos.coords.longitude.toFixed(6)),
+        }));
+        setIsLocating(false);
+        toast.success("GPS konumu başarıyla alındı");
+      },
+      (err) => {
+        setIsLocating(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          toast.error("Konum izni reddedildi. Lütfen cihaz ayarlarından konum izni verin.");
+        } else {
+          toast.error("GPS konumu alınamadı. Konum servisinizin açık olduğundan emin olun.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate city if provided
     if (!formData.city) {
       toast.error("Müşteri ili seçilmelidir");
       return;
@@ -79,32 +108,53 @@ export function CustomerEditForm({
 
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const updatedCustomer: Customer = {
+    // Split on whitespace (last word = lastName)
+    const parts = formData.name.trim().split(/\s+/);
+    const lastName = parts.length > 1 ? parts.pop()! : "";
+    const firstName = parts.join(" ");
+
+    try {
+      const response = await fetch(`/api/customers/${customer.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+        },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          phone: formData.phone,
+          email: formData.email || null,
+          address: formData.address,
+          city: formData.city,
+          district: formData.district,
+          isActive: formData.status === "active",
+          latitude: formData.latitude ?? null,
+          longitude: formData.longitude ?? null,
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast.error(
+          result.error === "Customer with this phone number already exists"
+            ? "Bu telefon numarasıyla kayıtlı başka bir müşteri var"
+            : "Müşteri bilgileri kaydedilemedi"
+        );
+        return;
+      }
+
+      onSave({
         ...customer,
         ...formData,
-        latitude: formData.latitude || undefined,
-        longitude: formData.longitude || undefined,
-      };
-      onSave(updatedCustomer);
+        latitude: formData.latitude ?? undefined,
+        longitude: formData.longitude ?? undefined,
+      });
+      toast.success("Müşteri bilgileri güncellendi");
+    } catch {
+      toast.error("Bağlantı hatası: müşteri bilgileri kaydedilemedi");
+    } finally {
       setIsLoading(false);
-      toast.success("Müşteri bilgileri güncellendi!");
-    }, 1000);
-  };
-
-  const handleAddressSave = (data: {
-    coordinates: { latitude: number; longitude: number };
-    fullAddress: string;
-  }) => {
-    setFormData((prev) => ({
-      ...prev,
-      address: data.fullAddress,
-      latitude: data.coordinates.latitude,
-      longitude: data.coordinates.longitude,
-    }));
-    setAddressModalOpen(false);
-    toast.success("Konum bilgileri güncellendi!");
+    }
   };
 
   return (
@@ -180,7 +230,7 @@ export function CustomerEditForm({
                   setFormData((prev) => ({
                     ...prev,
                     city: value,
-                    district: "", // Reset district when city changes
+                    district: "",
                   }))
                 }
               >
@@ -241,17 +291,32 @@ export function CustomerEditForm({
                 }
                 rows={3}
               />
-              {/* GPS Coordinates Input */}
-              <div className="grid grid-cols-2 gap-2 mt-2">
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  GPS Konumu (İsteğe Bağlı - Harita & Navigasyon İçin)
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGetCurrentLocation}
+                  disabled={isLocating}
+                >
+                  <LocateFixed className="h-3.5 w-3.5 mr-1.5" />
+                  {isLocating ? "Konum Alınıyor..." : "Mevcut Konumu Al (GPS)"}
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label htmlFor="latitude" className="text-xs">Enlem (Latitude)</Label>
                   <Input
                     id="latitude"
                     placeholder="36.8490"
-                    value={formData.latitude || ""}
+                    value={formData.latitude ?? ""}
                     onChange={(e) => {
                       const value = e.target.value;
-                      // Allow numbers, dots, and minus sign
                       if (value === "" || /^-?\d*\.?\d*$/.test(value)) {
                         setFormData((prev) => ({
                           ...prev,
@@ -267,10 +332,9 @@ export function CustomerEditForm({
                   <Input
                     id="longitude"
                     placeholder="30.6296"
-                    value={formData.longitude || ""}
+                    value={formData.longitude ?? ""}
                     onChange={(e) => {
                       const value = e.target.value;
-                      // Allow numbers, dots, and minus sign
                       if (value === "" || /^-?\d*\.?\d*$/.test(value)) {
                         setFormData((prev) => ({
                           ...prev,
@@ -282,19 +346,32 @@ export function CustomerEditForm({
                   />
                 </div>
               </div>
-              
+
               {formData.latitude && formData.longitude && (
-                <div className="flex items-center gap-2 mt-2 p-2 bg-green-50 rounded border border-green-200">
-                  <MapPin className="h-4 w-4 text-green-600" />
-                  <span className="text-sm text-green-800">
-                    GPS Koordinatları: {formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)}
-                  </span>
+                <div className="flex items-center justify-between gap-2 mt-2 p-2 bg-green-50 rounded border border-green-200">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-green-600" />
+                    <span className="text-sm text-green-800">
+                      GPS: {formData.latitude.toFixed(5)}, {formData.longitude.toFixed(5)}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs text-green-800"
+                    onClick={() =>
+                      openGoogleMapsLocation({
+                        latitude: formData.latitude,
+                        longitude: formData.longitude,
+                        address: formData.address,
+                      })
+                    }
+                  >
+                    Haritada Test Et
+                  </Button>
                 </div>
               )}
-              
-              <div className="text-xs text-muted-foreground mt-1">
-                💡 Google Maps'ten koordinatları kopyalayabilirsiniz: Haritada sağ tık → koordinatları kopyala
-              </div>
             </div>
             {formData.city && formData.district && (
               <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -305,12 +382,6 @@ export function CustomerEditForm({
                     (d) => d.id === formData.district
                   )?.name
                 }
-                {formData.latitude && formData.longitude && (
-                  <span className="ml-2 font-mono">
-                    ({formData.latitude.toFixed(4)},{" "}
-                    {formData.longitude.toFixed(4)})
-                  </span>
-                )}
               </p>
             )}
           </div>
@@ -337,7 +408,6 @@ export function CustomerEditForm({
             </Button>
           </div>
         </form>
-
       </CardContent>
     </Card>
   );

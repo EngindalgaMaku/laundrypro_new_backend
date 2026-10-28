@@ -1,0 +1,44 @@
+[
+  {
+    "id": "problem",
+    "title": "Kâğıt fiş. Kayıp sipariş.\nBitmeyen telefonlar.",
+    "speech": "Kâğıt fişler, karışan siparişler, ve gün boyu çalan telefonlar."
+  },
+  {
+    "id": "logo",
+    "title": "LaundryPro",
+    "subtitle": "Temizlik işinizi dijitalleştirin",
+    "speech": "Londri Pro ile, hepsi tek ekranda."
+  },
+  {
+    "id": "dashboard",
+    "title": "Günün özeti bir bakışta",
+    "screen": "dashboard.png",
+    "speech": "Günün siparişlerini, bekleyen işleri ve müşterilerinizi bir bakışta görün."
+  },
+  {
+    "id": "orders",
+    "title": "Her siparişin durumu cebinizde",
+    "screen": "orders.png",
+    "speech": "Her siparişin hangi aşamada olduğunu anında takip edin."
+  },
+  {
+    "id": "receipt",
+    "title": "QR kodlu fiş ve etiket",
+    "screen": "receipt.png",
+    "speech": "Kü ar kodlu fişi ve halı etiketini, tek dokunuşla yazdırın."
+  },
+  {
+    "id": "tracking",
+    "title": "Müşteriniz üye olmadan izlesin",
+    "screen": "tracking.png",
+    "speech": "Müşteriniz, üye olmadan, siparişini telefonundan canlı izlesin."
+  },
+  {
+    "id": "outro",
+    "title": "LaundryPro",
+    "subtitle": "Kuru temizleme · Çamaşırhane · Halı yıkama",
+    "cta": "Hemen ücretsiz deneyin",
+    "speech": "Londri Pro. Temizlik işinizi dijitalleştirin. Hemen ücretsiz deneyin."
+  }
+]

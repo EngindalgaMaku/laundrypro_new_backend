@@ -1,3 +1,9 @@
+// Turkey's 81 provinces and 973 districts, alphabetical (Turkish collation).
+// Generated from turkey-neighbourhoods@4.0.3 (MIT, Murat Gözel); do not edit by hand.
+//
+// Forms store the display name ("İstanbul", "Çankaya") so invoices and receipts can print it
+// as is. Older records may hold a slug ("istanbul"); the lookups below accept both.
+
 export interface District {
   id: string;
   name: string;
@@ -10,293 +16,141 @@ export interface City {
   districts: District[];
 }
 
-export const turkishCities: City[] = [
-  {
-    id: "istanbul",
-    name: "İstanbul",
-    plateCode: "34",
-    districts: [
-      { id: "adalar", name: "Adalar" },
-      { id: "arnavutkoy", name: "Arnavutköy" },
-      { id: "atasehir", name: "Ataşehir" },
-      { id: "avcilar", name: "Avcılar" },
-      { id: "bagcilar", name: "Bağcılar" },
-      { id: "bahcelievler", name: "Bahçelievler" },
-      { id: "bakirkoy", name: "Bakırköy" },
-      { id: "basaksehir", name: "Başakşehir" },
-      { id: "bayrampasa", name: "Bayrampaşa" },
-      { id: "besiktas", name: "Beşiktaş" },
-      { id: "beykoz", name: "Beykoz" },
-      { id: "beylikduzu", name: "Beylikdüzü" },
-      { id: "beyoglu", name: "Beyoğlu" },
-      { id: "buyukcekmece", name: "Büyükçekmece" },
-      { id: "catalca", name: "Çatalca" },
-      { id: "cekmece", name: "Çekmeköy" },
-      { id: "esenler", name: "Esenler" },
-      { id: "esenyurt", name: "Esenyurt" },
-      { id: "eyupsultan", name: "Eyüpsultan" },
-      { id: "fatih", name: "Fatih" },
-      { id: "gaziosmanpasa", name: "Gaziosmanpaşa" },
-      { id: "gungoren", name: "Güngören" },
-      { id: "kadikoy", name: "Kadıköy" },
-      { id: "kagithane", name: "Kâğıthane" },
-      { id: "kartal", name: "Kartal" },
-      { id: "kucukcekmece", name: "Küçükçekmece" },
-      { id: "maltepe", name: "Maltepe" },
-      { id: "pendik", name: "Pendik" },
-      { id: "sancaktepe", name: "Sancaktepe" },
-      { id: "sariyer", name: "Sarıyer" },
-      { id: "silivri", name: "Silivri" },
-      { id: "sisli", name: "Şişli" },
-      { id: "sultanbeyli", name: "Sultanbeyli" },
-      { id: "sultangazi", name: "Sultangazi" },
-      { id: "tuzla", name: "Tuzla" },
-      { id: "umraniye", name: "Ümraniye" },
-      { id: "uskudar", name: "Üsküdar" },
-      { id: "zeytinburnu", name: "Zeytinburnu" },
-    ],
-  },
-  {
-    id: "ankara",
-    name: "Ankara",
-    plateCode: "06",
-    districts: [
-      { id: "akyurt", name: "Akyurt" },
-      { id: "altindag", name: "Altındağ" },
-      { id: "ayash", name: "Ayaş" },
-      { id: "bala", name: "Bala" },
-      { id: "beypazari", name: "Beypazarı" },
-      { id: "camlidere", name: "Çamlıdere" },
-      { id: "cankaya", name: "Çankaya" },
-      { id: "cubuk", name: "Çubuk" },
-      { id: "elmdag", name: "Elmadağ" },
-      { id: "etimesgut", name: "Etimesgut" },
-      { id: "evren", name: "Evren" },
-      { id: "golbasi", name: "Gölbaşı" },
-      { id: "gudul", name: "Güdül" },
-      { id: "haymana", name: "Haymana" },
-      { id: "kahramankazan", name: "Kahramankazan" },
-      { id: "kalecik", name: "Kalecik" },
-      { id: "kecioren", name: "Keçiören" },
-      { id: "kizilcahamam", name: "Kızılcahamam" },
-      { id: "mamak", name: "Mamak" },
-      { id: "nallihan", name: "Nallıhan" },
-      { id: "polatli", name: "Polatlı" },
-      { id: "pursaklar", name: "Pursaklar" },
-      { id: "sincan", name: "Sincan" },
-      { id: "sereflikochisar", name: "Şereflikoçhisar" },
-      { id: "yenimahalle", name: "Yenimahalle" },
-    ],
-  },
-  {
-    id: "izmir",
-    name: "İzmir",
-    plateCode: "35",
-    districts: [
-      { id: "aliaga", name: "Aliağa" },
-      { id: "balcova", name: "Balçova" },
-      { id: "bayindir", name: "Bayındır" },
-      { id: "bayrakli", name: "Bayraklı" },
-      { id: "bergama", name: "Bergama" },
-      { id: "bornova", name: "Bornova" },
-      { id: "buca", name: "Buca" },
-      { id: "cesme", name: "Çeşme" },
-      { id: "cigli", name: "Çiğli" },
-      { id: "dikili", name: "Dikili" },
-      { id: "foca", name: "Foça" },
-      { id: "gaziemir", name: "Gaziemir" },
-      { id: "guzelbahce", name: "Güzelbahçe" },
-      { id: "karabaglar", name: "Karabağlar" },
-      { id: "karaburun", name: "Karaburun" },
-      { id: "karsiyaka", name: "Karşıyaka" },
-      { id: "kemalpasa", name: "Kemalpaşa" },
-      { id: "kinik", name: "Kınık" },
-      { id: "kiraz", name: "Kiraz" },
-      { id: "konak", name: "Konak" },
-      { id: "menderes", name: "Menderes" },
-      { id: "menemen", name: "Menemen" },
-      { id: "narlidere", name: "Narlıdere" },
-      { id: "odemis", name: "Ödemiş" },
-      { id: "seferihisar", name: "Seferihisar" },
-      { id: "selcuk", name: "Selçuk" },
-      { id: "tire", name: "Tire" },
-      { id: "torbali", name: "Torbalı" },
-      { id: "urla", name: "Urla" },
-    ],
-  },
-  {
-    id: "bursa",
-    name: "Bursa",
-    plateCode: "16",
-    districts: [
-      { id: "buyukorhan", name: "Büyükorhan" },
-      { id: "gemlik", name: "Gemlik" },
-      { id: "gursu", name: "Gürsu" },
-      { id: "harmancik", name: "Harmancık" },
-      { id: "inegol", name: "İnegöl" },
-      { id: "iznik", name: "İznik" },
-      { id: "karacabey", name: "Karacabey" },
-      { id: "keles", name: "Keles" },
-      { id: "kestel", name: "Kestel" },
-      { id: "mudanya", name: "Mudanya" },
-      { id: "mustafakemalpasa", name: "Mustafakemalpaşa" },
-      { id: "nilufer", name: "Nilüfer" },
-      { id: "orhaneli", name: "Orhaneli" },
-      { id: "orhangazi", name: "Orhangazi" },
-      { id: "osmangazi", name: "Osmangazi" },
-      { id: "yenisehir", name: "Yenişehir" },
-      { id: "yildirim", name: "Yıldırım" },
-    ],
-  },
-  {
-    id: "antalya",
-    name: "Antalya",
-    plateCode: "07",
-    districts: [
-      { id: "akseki", name: "Akseki" },
-      { id: "aksu", name: "Aksu" },
-      { id: "alanya", name: "Alanya" },
-      { id: "demre", name: "Demre" },
-      { id: "dosemekalti", name: "Döşemealtı" },
-      { id: "elmali", name: "Elmalı" },
-      { id: "finike", name: "Finike" },
-      { id: "gazipaşa", name: "Gazipaşa" },
-      { id: "gundogmus", name: "Gündoğmuş" },
-      { id: "ibradi", name: "İbradi" },
-      { id: "kas", name: "Kaş" },
-      { id: "kemer", name: "Kemer" },
-      { id: "kepez", name: "Kepez" },
-      { id: "konyaalti", name: "Konyaaltı" },
-      { id: "korkuteli", name: "Korkuteli" },
-      { id: "kumluca", name: "Kumluca" },
-      { id: "manavgat", name: "Manavgat" },
-      { id: "muratpasa", name: "Muratpaşa" },
-      { id: "serik", name: "Serik" },
-    ],
-  },
-  // Adding more major Turkish cities...
-  {
-    id: "adana",
-    name: "Adana",
-    plateCode: "01",
-    districts: [
-      { id: "aladag", name: "Aladağ" },
-      { id: "ceyhan", name: "Ceyhan" },
-      { id: "cukurova", name: "Çukurova" },
-      { id: "feke", name: "Feke" },
-      { id: "imamoglu", name: "İmamoğlu" },
-      { id: "karaisali", name: "Karaisalı" },
-      { id: "karatas", name: "Karataş" },
-      { id: "kozan", name: "Kozan" },
-      { id: "pozanti", name: "Pozantı" },
-      { id: "saimbeyli", name: "Saimbeyli" },
-      { id: "sariçam", name: "Sarıçam" },
-      { id: "seyhan", name: "Seyhan" },
-      { id: "tufanbeyli", name: "Tufanbeyli" },
-      { id: "yumurtalik", name: "Yumurtalık" },
-      { id: "yuregir", name: "Yüreğir" },
-    ],
-  },
-  {
-    id: "konya",
-    name: "Konya",
-    plateCode: "42",
-    districts: [
-      { id: "ahirli", name: "Ahırlı" },
-      { id: "akoren", name: "Akören" },
-      { id: "aksehir", name: "Akşehir" },
-      { id: "altinekin", name: "Altıneken" },
-      { id: "beysehir", name: "Beyşehir" },
-      { id: "bozkir", name: "Bozkır" },
-      { id: "cihanbeyli", name: "Cihanbeyli" },
-      { id: "cumra", name: "Çumra" },
-      { id: "derbent", name: "Derbent" },
-      { id: "derebucak", name: "Derebucak" },
-      { id: "doganhisar", name: "Doğanhisar" },
-      { id: "emirgazi", name: "Emirgazi" },
-      { id: "eregli", name: "Ereğli" },
-      { id: "guneysinir", name: "Güneysınır" },
-      { id: "hadim", name: "Hadim" },
-      { id: "halkapinar", name: "Halkapınar" },
-      { id: "huyuk", name: "Hüyük" },
-      { id: "ilgin", name: "Ilgın" },
-      { id: "kadinhani", name: "Kadınhanı" },
-      { id: "karapinar", name: "Karapınar" },
-      { id: "karatay", name: "Karatay" },
-      { id: "kulu", name: "Kulu" },
-      { id: "meram", name: "Meram" },
-      { id: "sarayonu", name: "Sarayönü" },
-      { id: "selcuklu", name: "Selçuklu" },
-      { id: "seydisehir", name: "Seydişehir" },
-      { id: "taskent", name: "Taşkent" },
-      { id: "tuzlukcu", name: "Tuzlukçu" },
-      { id: "vulkanlar", name: "Vulkanlar" },
-      { id: "yalihuyuk", name: "Yalıhüyük" },
-    ],
-  },
+const DATA: [plateCode: string, name: string, districts: string[]][] = [
+  ["01", "Adana", ["Aladağ", "Ceyhan", "Çukurova", "Feke", "İmamoğlu", "Karaisalı", "Karataş", "Kozan", "Pozantı", "Saimbeyli", "Sarıçam", "Seyhan", "Tufanbeyli", "Yumurtalık", "Yüreğir"]],
+  ["02", "Adıyaman", ["Besni", "Çelikhan", "Gerger", "Gölbaşı", "Kahta", "Merkez", "Samsat", "Sincik", "Tut"]],
+  ["03", "Afyonkarahisar", ["Başmakçı", "Bayat", "Bolvadin", "Çay", "Çobanlar", "Dazkırı", "Dinar", "Emirdağ", "Evciler", "Hocalar", "İhsaniye", "İscehisar", "Kızılören", "Merkez", "Sandıklı", "Sinanpaşa", "Sultandağı", "Şuhut"]],
+  ["04", "Ağrı", ["Diyadin", "Doğubayazıt", "Eleşkirt", "Hamur", "Merkez", "Patnos", "Taşlıçay", "Tutak"]],
+  ["68", "Aksaray", ["Ağaçören", "Eskil", "Gülağaç", "Güzelyurt", "Merkez", "Ortaköy", "Sarıyahşi", "Sultanhanı"]],
+  ["05", "Amasya", ["Göynücek", "Gümüşhacıköy", "Hamamözü", "Merkez", "Merzifon", "Suluova", "Taşova"]],
+  ["06", "Ankara", ["Akyurt", "Altındağ", "Ayaş", "Bala", "Beypazarı", "Çamlıdere", "Çankaya", "Çubuk", "Elmadağ", "Etimesgut", "Evren", "Gölbaşı", "Güdül", "Haymana", "Kahramankazan", "Kalecik", "Keçiören", "Kızılcahamam", "Mamak", "Nallıhan", "Polatlı", "Pursaklar", "Sincan", "Şereflikoçhisar", "Yenimahalle"]],
+  ["07", "Antalya", ["Akseki", "Aksu", "Alanya", "Demre", "Döşemealtı", "Elmalı", "Finike", "Gazipaşa", "Gündoğmuş", "İbradı", "Kaş", "Kemer", "Kepez", "Konyaaltı", "Korkuteli", "Kumluca", "Manavgat", "Muratpaşa", "Serik"]],
+  ["75", "Ardahan", ["Çıldır", "Damal", "Göle", "Hanak", "Merkez", "Posof"]],
+  ["08", "Artvin", ["Ardanuç", "Arhavi", "Borçka", "Hopa", "Kemalpaşa", "Merkez", "Murgul", "Şavşat", "Yusufeli"]],
+  ["09", "Aydın", ["Bozdoğan", "Buharkent", "Çine", "Didim", "Efeler", "Germencik", "İncirliova", "Karacasu", "Karpuzlu", "Koçarlı", "Köşk", "Kuşadası", "Kuyucak", "Nazilli", "Söke", "Sultanhisar", "Yenipazar"]],
+  ["10", "Balıkesir", ["Altıeylül", "Ayvalık", "Balya", "Bandırma", "Bigadiç", "Burhaniye", "Dursunbey", "Edremit", "Erdek", "Gömeç", "Gönen", "Havran", "İvrindi", "Karesi", "Kepsut", "Manyas", "Marmara", "Savaştepe", "Sındırgı", "Susurluk"]],
+  ["74", "Bartın", ["Amasra", "Kurucaşile", "Merkez", "Ulus"]],
+  ["72", "Batman", ["Beşiri", "Gercüş", "Hasankeyf", "Kozluk", "Merkez", "Sason"]],
+  ["69", "Bayburt", ["Aydıntepe", "Demirözü", "Merkez"]],
+  ["11", "Bilecik", ["Bozüyük", "Gölpazarı", "İnhisar", "Merkez", "Osmaneli", "Pazaryeri", "Söğüt", "Yenipazar"]],
+  ["12", "Bingöl", ["Adaklı", "Genç", "Karlıova", "Kiğı", "Merkez", "Solhan", "Yayladere", "Yedisu"]],
+  ["13", "Bitlis", ["Adilcevaz", "Ahlat", "Güroymak", "Hizan", "Merkez", "Mutki", "Tatvan"]],
+  ["14", "Bolu", ["Dörtdivan", "Gerede", "Göynük", "Kıbrıscık", "Mengen", "Merkez", "Mudurnu", "Seben", "Yeniçağa"]],
+  ["15", "Burdur", ["Ağlasun", "Altınyayla", "Bucak", "Çavdır", "Çeltikçi", "Gölhisar", "Karamanlı", "Kemer", "Merkez", "Tefenni", "Yeşilova"]],
+  ["16", "Bursa", ["Büyükorhan", "Gemlik", "Gürsu", "Harmancık", "İnegöl", "İznik", "Karacabey", "Keles", "Kestel", "Mudanya", "Mustafakemalpaşa", "Nilüfer", "Orhaneli", "Orhangazi", "Osmangazi", "Yenişehir", "Yıldırım"]],
+  ["17", "Çanakkale", ["Ayvacık", "Bayramiç", "Biga", "Bozcaada", "Çan", "Eceabat", "Ezine", "Gelibolu", "Gökçeada", "Lapseki", "Merkez", "Yenice"]],
+  ["18", "Çankırı", ["Atkaracalar", "Bayramören", "Çerkeş", "Eldivan", "Ilgaz", "Kızılırmak", "Korgun", "Kurşunlu", "Merkez", "Orta", "Şabanözü", "Yapraklı"]],
+  ["19", "Çorum", ["Alaca", "Bayat", "Boğazkale", "Dodurga", "İskilip", "Kargı", "Laçin", "Mecitözü", "Merkez", "Oğuzlar", "Ortaköy", "Osmancık", "Sungurlu", "Uğurludağ"]],
+  ["20", "Denizli", ["Acıpayam", "Babadağ", "Baklan", "Bekilli", "Beyağaç", "Bozkurt", "Buldan", "Çal", "Çameli", "Çardak", "Çivril", "Güney", "Honaz", "Kale", "Merkezefendi", "Pamukkale", "Sarayköy", "Serinhisar", "Tavas"]],
+  ["21", "Diyarbakır", ["Bağlar", "Bismil", "Çermik", "Çınar", "Çüngüş", "Dicle", "Eğil", "Ergani", "Hani", "Hazro", "Kayapınar", "Kocaköy", "Kulp", "Lice", "Silvan", "Sur", "Yenişehir"]],
+  ["81", "Düzce", ["Akçakoca", "Cumayeri", "Çilimli", "Gölyaka", "Gümüşova", "Kaynaşlı", "Merkez", "Yığılca"]],
+  ["22", "Edirne", ["Enez", "Havsa", "İpsala", "Keşan", "Lalapaşa", "Meriç", "Merkez", "Süloğlu", "Uzunköprü"]],
+  ["23", "Elazığ", ["Ağın", "Alacakaya", "Arıcak", "Baskil", "Karakoçan", "Keban", "Kovancılar", "Maden", "Merkez", "Palu", "Sivrice"]],
+  ["24", "Erzincan", ["Çayırlı", "İliç", "Kemah", "Kemaliye", "Merkez", "Otlukbeli", "Refahiye", "Tercan", "Üzümlü"]],
+  ["25", "Erzurum", ["Aşkale", "Aziziye", "Çat", "Hınıs", "Horasan", "İspir", "Karaçoban", "Karayazı", "Köprüköy", "Narman", "Oltu", "Olur", "Palandöken", "Pasinler", "Pazaryolu", "Şenkaya", "Tekman", "Tortum", "Uzundere", "Yakutiye"]],
+  ["26", "Eskişehir", ["Alpu", "Beylikova", "Çifteler", "Günyüzü", "Han", "İnönü", "Mahmudiye", "Mihalgazi", "Mihalıççık", "Odunpazarı", "Sarıcakaya", "Seyitgazi", "Sivrihisar", "Tepebaşı"]],
+  ["27", "Gaziantep", ["Araban", "İslahiye", "Karkamış", "Nizip", "Nurdağı", "Oğuzeli", "Şahinbey", "Şehitkamil", "Yavuzeli"]],
+  ["28", "Giresun", ["Alucra", "Bulancak", "Çamoluk", "Çanakçı", "Dereli", "Doğankent", "Espiye", "Eynesil", "Görele", "Güce", "Keşap", "Merkez", "Piraziz", "Şebinkarahisar", "Tirebolu", "Yağlıdere"]],
+  ["29", "Gümüşhane", ["Kelkit", "Köse", "Kürtün", "Merkez", "Şiran", "Torul"]],
+  ["30", "Hakkari", ["Çukurca", "Derecik", "Merkez", "Şemdinli", "Yüksekova"]],
+  ["31", "Hatay", ["Altınözü", "Antakya", "Arsuz", "Belen", "Defne", "Dörtyol", "Erzin", "Hassa", "İskenderun", "Kırıkhan", "Kumlu", "Payas", "Reyhanlı", "Samandağ", "Yayladağı"]],
+  ["76", "Iğdır", ["Aralık", "Karakoyunlu", "Merkez", "Tuzluca"]],
+  ["32", "Isparta", ["Aksu", "Atabey", "Eğirdir", "Gelendost", "Gönen", "Keçiborlu", "Merkez", "Senirkent", "Sütçüler", "Şarkikaraağaç", "Uluborlu", "Yalvaç", "Yenişarbademli"]],
+  ["34", "İstanbul", ["Adalar", "Arnavutköy", "Ataşehir", "Avcılar", "Bağcılar", "Bahçelievler", "Bakırköy", "Başakşehir", "Bayrampaşa", "Beşiktaş", "Beykoz", "Beylikdüzü", "Beyoğlu", "Büyükçekmece", "Çatalca", "Çekmeköy", "Esenler", "Esenyurt", "Eyüpsultan", "Fatih", "Gaziosmanpaşa", "Güngören", "Kadıköy", "Kağıthane", "Kartal", "Küçükçekmece", "Maltepe", "Pendik", "Sancaktepe", "Sarıyer", "Silivri", "Sultanbeyli", "Sultangazi", "Şile", "Şişli", "Tuzla", "Ümraniye", "Üsküdar", "Zeytinburnu"]],
+  ["35", "İzmir", ["Aliağa", "Balçova", "Bayındır", "Bayraklı", "Bergama", "Beydağ", "Bornova", "Buca", "Çeşme", "Çiğli", "Dikili", "Foça", "Gaziemir", "Güzelbahçe", "Karabağlar", "Karaburun", "Karşıyaka", "Kemalpaşa", "Kınık", "Kiraz", "Konak", "Menderes", "Menemen", "Narlıdere", "Ödemiş", "Seferihisar", "Selçuk", "Tire", "Torbalı", "Urla"]],
+  ["46", "Kahramanmaraş", ["Afşin", "Andırın", "Çağlayancerit", "Dulkadiroğlu", "Ekinözü", "Elbistan", "Göksun", "Nurhak", "Onikişubat", "Pazarcık", "Türkoğlu"]],
+  ["78", "Karabük", ["Eflani", "Eskipazar", "Merkez", "Ovacık", "Safranbolu", "Yenice"]],
+  ["70", "Karaman", ["Ayrancı", "Başyayla", "Ermenek", "Kazımkarabekir", "Merkez", "Sarıveliler"]],
+  ["36", "Kars", ["Akyaka", "Arpaçay", "Digor", "Kağızman", "Merkez", "Sarıkamış", "Selim", "Susuz"]],
+  ["37", "Kastamonu", ["Abana", "Ağlı", "Araç", "Azdavay", "Bozkurt", "Cide", "Çatalzeytin", "Daday", "Devrekani", "Doğanyurt", "Hanönü", "İhsangazi", "İnebolu", "Küre", "Merkez", "Pınarbaşı", "Seydiler", "Şenpazar", "Taşköprü", "Tosya"]],
+  ["38", "Kayseri", ["Akkışla", "Bünyan", "Develi", "Felahiye", "Hacılar", "İncesu", "Kocasinan", "Melikgazi", "Özvatan", "Pınarbaşı", "Sarıoğlan", "Sarız", "Talas", "Tomarza", "Yahyalı", "Yeşilhisar"]],
+  ["71", "Kırıkkale", ["Bahşılı", "Balışeyh", "Çelebi", "Delice", "Karakeçili", "Keskin", "Merkez", "Sulakyurt", "Yahşihan"]],
+  ["39", "Kırklareli", ["Babaeski", "Demirköy", "Kofçaz", "Lüleburgaz", "Merkez", "Pehlivanköy", "Pınarhisar", "Vize"]],
+  ["40", "Kırşehir", ["Akçakent", "Akpınar", "Boztepe", "Çiçekdağı", "Kaman", "Merkez", "Mucur"]],
+  ["79", "Kilis", ["Elbeyli", "Merkez", "Musabeyli", "Polateli"]],
+  ["41", "Kocaeli", ["Başiskele", "Çayırova", "Darıca", "Derince", "Dilovası", "Gebze", "Gölcük", "İzmit", "Kandıra", "Karamürsel", "Kartepe", "Körfez"]],
+  ["42", "Konya", ["Ahırlı", "Akören", "Akşehir", "Altınekin", "Beyşehir", "Bozkır", "Cihanbeyli", "Çeltik", "Çumra", "Derbent", "Derebucak", "Doğanhisar", "Emirgazi", "Ereğli", "Güneysınır", "Hadim", "Halkapınar", "Hüyük", "Ilgın", "Kadınhanı", "Karapınar", "Karatay", "Kulu", "Meram", "Sarayönü", "Selçuklu", "Seydişehir", "Taşkent", "Tuzlukçu", "Yalıhüyük", "Yunak"]],
+  ["43", "Kütahya", ["Altıntaş", "Aslanapa", "Çavdarhisar", "Domaniç", "Dumlupınar", "Emet", "Gediz", "Hisarcık", "Merkez", "Pazarlar", "Simav", "Şaphane", "Tavşanlı"]],
+  ["44", "Malatya", ["Akçadağ", "Arapgir", "Arguvan", "Battalgazi", "Darende", "Doğanşehir", "Doğanyol", "Hekimhan", "Kale", "Kuluncak", "Pütürge", "Yazıhan", "Yeşilyurt"]],
+  ["45", "Manisa", ["Ahmetli", "Akhisar", "Alaşehir", "Demirci", "Gölmarmara", "Gördes", "Kırkağaç", "Köprübaşı", "Kula", "Salihli", "Sarıgöl", "Saruhanlı", "Selendi", "Soma", "Şehzadeler", "Turgutlu", "Yunusemre"]],
+  ["47", "Mardin", ["Artuklu", "Dargeçit", "Derik", "Kızıltepe", "Mazıdağı", "Midyat", "Nusaybin", "Ömerli", "Savur", "Yeşilli"]],
+  ["33", "Mersin", ["Akdeniz", "Anamur", "Aydıncık", "Bozyazı", "Çamlıyayla", "Erdemli", "Gülnar", "Mezitli", "Mut", "Silifke", "Tarsus", "Toroslar", "Yenişehir"]],
+  ["48", "Muğla", ["Bodrum", "Dalaman", "Datça", "Fethiye", "Kavaklıdere", "Köyceğiz", "Marmaris", "Menteşe", "Milas", "Ortaca", "Seydikemer", "Ula", "Yatağan"]],
+  ["49", "Muş", ["Bulanık", "Hasköy", "Korkut", "Malazgirt", "Merkez", "Varto"]],
+  ["50", "Nevşehir", ["Acıgöl", "Avanos", "Derinkuyu", "Gülşehir", "Hacıbektaş", "Kozaklı", "Merkez", "Ürgüp"]],
+  ["51", "Niğde", ["Altunhisar", "Bor", "Çamardı", "Çiftlik", "Merkez", "Ulukışla"]],
+  ["52", "Ordu", ["Akkuş", "Altınordu", "Aybastı", "Çamaş", "Çatalpınar", "Çaybaşı", "Fatsa", "Gölköy", "Gülyalı", "Gürgentepe", "İkizce", "Kabadüz", "Kabataş", "Korgan", "Kumru", "Mesudiye", "Perşembe", "Ulubey", "Ünye"]],
+  ["80", "Osmaniye", ["Bahçe", "Düziçi", "Hasanbeyli", "Kadirli", "Merkez", "Sumbas", "Toprakkale"]],
+  ["53", "Rize", ["Ardeşen", "Çamlıhemşin", "Çayeli", "Derepazarı", "Fındıklı", "Güneysu", "Hemşin", "İkizdere", "İyidere", "Kalkandere", "Merkez", "Pazar"]],
+  ["54", "Sakarya", ["Adapazarı", "Akyazı", "Arifiye", "Erenler", "Ferizli", "Geyve", "Hendek", "Karapürçek", "Karasu", "Kaynarca", "Kocaali", "Pamukova", "Sapanca", "Serdivan", "Söğütlü", "Taraklı"]],
+  ["55", "Samsun", ["19 Mayıs", "Alaçam", "Asarcık", "Atakum", "Ayvacık", "Bafra", "Canik", "Çarşamba", "Havza", "İlkadım", "Kavak", "Ladik", "Salıpazarı", "Tekkeköy", "Terme", "Vezirköprü", "Yakakent"]],
+  ["56", "Siirt", ["Baykan", "Eruh", "Kurtalan", "Merkez", "Pervari", "Şirvan", "Tillo"]],
+  ["57", "Sinop", ["Ayancık", "Boyabat", "Dikmen", "Durağan", "Erfelek", "Gerze", "Merkez", "Saraydüzü", "Türkeli"]],
+  ["58", "Sivas", ["Akıncılar", "Altınyayla", "Divriği", "Doğanşar", "Gemerek", "Gölova", "Gürün", "Hafik", "İmranlı", "Kangal", "Koyulhisar", "Merkez", "Suşehri", "Şarkışla", "Ulaş", "Yıldızeli", "Zara"]],
+  ["63", "Şanlıurfa", ["Akçakale", "Birecik", "Bozova", "Ceylanpınar", "Eyyübiye", "Halfeti", "Haliliye", "Harran", "Hilvan", "Karaköprü", "Siverek", "Suruç", "Viranşehir"]],
+  ["73", "Şırnak", ["Beytüşşebap", "Cizre", "Güçlükonak", "İdil", "Merkez", "Silopi", "Uludere"]],
+  ["59", "Tekirdağ", ["Çerkezköy", "Çorlu", "Ergene", "Hayrabolu", "Kapaklı", "Malkara", "Marmaraereğlisi", "Muratlı", "Saray", "Süleymanpaşa", "Şarköy"]],
+  ["60", "Tokat", ["Almus", "Artova", "Başçiftlik", "Erbaa", "Merkez", "Niksar", "Pazar", "Reşadiye", "Sulusaray", "Turhal", "Yeşilyurt", "Zile"]],
+  ["61", "Trabzon", ["Akçaabat", "Araklı", "Arsin", "Beşikdüzü", "Çarşıbaşı", "Çaykara", "Dernekpazarı", "Düzköy", "Hayrat", "Köprübaşı", "Maçka", "Of", "Ortahisar", "Sürmene", "Şalpazarı", "Tonya", "Vakfıkebir", "Yomra"]],
+  ["62", "Tunceli", ["Çemişgezek", "Hozat", "Mazgirt", "Merkez", "Nazımiye", "Ovacık", "Pertek", "Pülümür"]],
+  ["64", "Uşak", ["Banaz", "Eşme", "Karahallı", "Merkez", "Sivaslı", "Ulubey"]],
+  ["65", "Van", ["Bahçesaray", "Başkale", "Çaldıran", "Çatak", "Edremit", "Erciş", "Gevaş", "Gürpınar", "İpekyolu", "Muradiye", "Özalp", "Saray", "Tuşba"]],
+  ["77", "Yalova", ["Altınova", "Armutlu", "Çınarcık", "Çiftlikköy", "Merkez", "Termal"]],
+  ["66", "Yozgat", ["Akdağmadeni", "Aydıncık", "Boğazlıyan", "Çandır", "Çayıralan", "Çekerek", "Kadışehri", "Merkez", "Saraykent", "Sarıkaya", "Sorgun", "Şefaatli", "Yenifakılı", "Yerköy"]],
+  ["67", "Zonguldak", ["Alaplı", "Çaycuma", "Devrek", "Ereğli", "Gökçebey", "Kilimli", "Kozlu", "Merkez"]],
 ];
 
+export const turkishCities: City[] = DATA.map(([plateCode, name, districts]) => ({
+  id: name,
+  name,
+  plateCode,
+  districts: districts.map((district) => ({ id: district, name: district })),
+}));
+
+/** "Çankaya" / "cankaya" / "ÇANKAYA" all compare equal */
+const slug = (value: string) =>
+  value
+    .toLocaleLowerCase("tr")
+    .replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ı/g, "i").replace(/i̇/g, "i")
+    .replace(/ö/g, "o").replace(/ş/g, "s").replace(/ü/g, "u").replace(/[âà]/g, "a").replace(/[îì]/g, "i").replace(/[ûù]/g, "u")
+    .replace(/[^a-z0-9]+/g, "");
+
 export const getCityById = (cityId: string): City | undefined => {
-  return turkishCities.find((city) => city.id === cityId);
+  if (!cityId) return undefined;
+  const key = slug(cityId);
+  return turkishCities.find((city) => city.id === cityId) ?? turkishCities.find((city) => slug(city.name) === key);
 };
 
-export const getCityByName = (cityName: string): City | undefined => {
-  return turkishCities.find(
-    (city) => city.name.toLowerCase() === cityName.toLowerCase()
-  );
+export const getCityByName = getCityById;
+
+export const getDistrictsByCity = (cityId: string): District[] => getCityById(cityId)?.districts ?? [];
+
+export const getDistrictById = (cityId: string, districtId: string): District | undefined => {
+  if (!districtId) return undefined;
+  const districts = getDistrictsByCity(cityId);
+  const key = slug(districtId);
+  return districts.find((d) => d.id === districtId) ?? districts.find((d) => slug(d.name) === key);
 };
 
-export const getDistrictsByCity = (cityId: string): District[] => {
-  const city = getCityById(cityId);
-  return city ? city.districts : [];
-};
+/** The stored form of a city / district value: its display name, or the input if unknown */
+export const normalizeCity = (value: string): string => getCityById(value)?.name ?? value;
+export const normalizeDistrict = (cityValue: string, value: string): string =>
+  getDistrictById(cityValue, value)?.name ?? value;
 
-export const getDistrictById = (
-  cityId: string,
-  districtId: string
-): District | undefined => {
-  const city = getCityById(cityId);
-  return city?.districts.find((district) => district.id === districtId);
-};
-
-export const getAllCityNames = (): string[] => {
-  return turkishCities.map((city) => city.name);
-};
+export const getAllCityNames = (): string[] => turkishCities.map((city) => city.name);
 
 export const formatCityDisplay = (cityId: string): string => {
   const city = getCityById(cityId);
   return city ? `${city.name} (${city.plateCode})` : cityId;
 };
 
-export const formatFullAddress = (
-  address: string,
-  district?: string,
-  cityId?: string
-): string => {
+export const formatFullAddress = (address: string, district?: string, cityId?: string): string => {
   const parts = [address];
-
-  if (district) {
-    const city = getCityById(cityId || "");
-    const districtObj = city?.districts.find((d) => d.id === district);
-    if (districtObj) {
-      parts.push(districtObj.name);
-    }
-  }
-
-  if (cityId) {
-    const city = getCityById(cityId);
-    if (city) {
-      parts.push(city.name);
-    }
-  }
-
+  if (district) parts.push(getDistrictById(cityId || "", district)?.name ?? district);
+  if (cityId) parts.push(getCityById(cityId)?.name ?? cityId);
   return parts.filter(Boolean).join(", ");
 };
 
 // Helper function to validate if customer city matches business city
-export const validateCustomerCityMatchesBusiness = (
-  customerCityId: string,
-  businessCityId: string
-): boolean => {
-  return customerCityId === businessCityId;
-};
+export const validateCustomerCityMatchesBusiness = (customerCityId: string, businessCityId: string): boolean =>
+  !!customerCityId && getCityById(customerCityId)?.name === getCityById(businessCityId)?.name;

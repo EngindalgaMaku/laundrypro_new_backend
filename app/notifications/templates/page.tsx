@@ -75,6 +75,7 @@ export default function NotificationTemplatesPage() {
   const [templates, setTemplates] = useState<NotificationTemplate[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<NotificationTemplate | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<Partial<NotificationTemplate>>({})
   const router = useRouter()
 
@@ -249,9 +250,13 @@ export default function NotificationTemplatesPage() {
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar />
+      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header user={user} />
+        <Header
+          user={user}
+          onMenuClick={() => setIsMobileMenuOpen(true)}
+          isMobileMenuOpen={isMobileMenuOpen}
+        />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-6xl mx-auto space-y-6">
             {/* Header */}

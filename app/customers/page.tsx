@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { CustomerDetailModal } from "@/components/customers/customer-detail-modal";
-import { EnhancedCustomerMap } from "@/components/maps/enhanced-customer-map";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { DeleteConfirmationModal } from "@/components/ui/confirmation-modal";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -13,13 +11,25 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/layout/page-header";
-import { Download, Filter, MoreHorizontal, Pencil, Phone, Search, Trash2, UserPlus, Users } from "lucide-react";
+import {
+  Download,
+  Filter,
+  MessageCircle,
+  MoreHorizontal,
+  Pencil,
+  Phone,
+  Search,
+  Trash2,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { makePhoneCall, sendWhatsAppMessage } from "@/lib/communication";
 
 interface User {
   id: string;
@@ -70,15 +80,13 @@ export default function CustomersPage() {
     null
   );
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">(
-    "all"
-  );
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
-  const [customerToDelete, setCustomerToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [customerToDelete, setCustomerToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   const fetchCustomers = async () => {
     try {
@@ -89,7 +97,6 @@ export default function CustomersPage() {
         return;
       }
 
-      // Fetch customers
       const customersResponse = await fetch("/api/customers", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -102,9 +109,14 @@ export default function CustomersPage() {
 
       const dbCustomers: DatabaseCustomer[] = await customersResponse.json();
 
-      // Fetch orders to calculate totals
-      let customerOrderStats: { [customerId: string]: { totalOrders: number; totalSpent: number; lastOrderDate: string } } = {};
-      
+      const customerOrderStats: {
+        [customerId: string]: {
+          totalOrders: number;
+          totalSpent: number;
+          lastOrderDate: string;
+        };
+      } = {};
+
       try {
         const ordersResponse = await fetch("/api/orders", {
           headers: {
@@ -113,26 +125,30 @@ export default function CustomersPage() {
         });
 
         if (ordersResponse.ok) {
-          // /api/orders returns { orders, total, page, ... }
           const ordersData = await ordersResponse.json();
-          const orders = Array.isArray(ordersData) ? ordersData : ordersData.orders ?? [];
-          
-          // Calculate stats for each customer
+          const orders = Array.isArray(ordersData)
+            ? ordersData
+            : ordersData.orders ?? [];
+
           orders.forEach((order: any) => {
             const customerId = order.customerId;
             if (!customerOrderStats[customerId]) {
               customerOrderStats[customerId] = {
                 totalOrders: 0,
                 totalSpent: 0,
-                lastOrderDate: order.createdAt
+                lastOrderDate: order.createdAt,
               };
             }
-            
+
             customerOrderStats[customerId].totalOrders += 1;
-            customerOrderStats[customerId].totalSpent += parseFloat(order.totalAmount || 0);
-            
-            // Update last order date if this order is more recent
-            if (new Date(order.createdAt) > new Date(customerOrderStats[customerId].lastOrderDate)) {
+            customerOrderStats[customerId].totalSpent += parseFloat(
+              order.totalAmount || 0
+            );
+
+            if (
+              new Date(order.createdAt) >
+              new Date(customerOrderStats[customerId].lastOrderDate)
+            ) {
               customerOrderStats[customerId].lastOrderDate = order.createdAt;
             }
           });
@@ -141,29 +157,32 @@ export default function CustomersPage() {
         console.warn("Could not fetch orders for customer stats:", ordersError);
       }
 
-      // Transform database customers to display format
-      const transformedCustomers: Customer[] = dbCustomers.map(
-        (dbCustomer) => {
-          const stats = customerOrderStats[dbCustomer.id] || { totalOrders: 0, totalSpent: 0, lastOrderDate: dbCustomer.createdAt };
-          
-          return {
-            id: dbCustomer.id,
-            name: `${dbCustomer.firstName} ${dbCustomer.lastName}`,
-            phone: dbCustomer.phone,
-            email: dbCustomer.email || "",
-            address: dbCustomer.address || "",
-            // _count is exact; the orders list above is paginated
-            totalOrders: (dbCustomer as any)._count?.orders ?? stats.totalOrders,
-            totalSpent: `₺${stats.totalSpent.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            totalSpentValue: stats.totalSpent,
-            lastOrder: new Date(stats.lastOrderDate).toLocaleDateString("tr-TR"),
-            status: dbCustomer.isActive ? "active" : "inactive",
-            registrationDate: new Date(dbCustomer.createdAt).toLocaleDateString(
-              "tr-TR"
-            ),
-          };
-        }
-      );
+      const transformedCustomers: Customer[] = dbCustomers.map((dbCustomer) => {
+        const stats = customerOrderStats[dbCustomer.id] || {
+          totalOrders: 0,
+          totalSpent: 0,
+          lastOrderDate: dbCustomer.createdAt,
+        };
+
+        return {
+          id: dbCustomer.id,
+          name: `${dbCustomer.firstName} ${dbCustomer.lastName}`,
+          phone: dbCustomer.phone,
+          email: dbCustomer.email || "",
+          address: dbCustomer.address || "",
+          totalOrders: (dbCustomer as any)._count?.orders ?? stats.totalOrders,
+          totalSpent: `₺${stats.totalSpent.toLocaleString("tr-TR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`,
+          totalSpentValue: stats.totalSpent,
+          lastOrder: new Date(stats.lastOrderDate).toLocaleDateString("tr-TR"),
+          status: dbCustomer.isActive ? "active" : "inactive",
+          registrationDate: new Date(dbCustomer.createdAt).toLocaleDateString(
+            "tr-TR"
+          ),
+        };
+      });
 
       setCustomers(transformedCustomers);
     } catch (error) {
@@ -180,7 +199,6 @@ export default function CustomersPage() {
       return;
     }
     const parsedUser = JSON.parse(userData);
-    // Ensure business field exists for Header component compatibility
     if (!parsedUser.business) {
       parsedUser.business = {
         name: parsedUser.businessName || "LaundryPro",
@@ -203,7 +221,11 @@ export default function CustomersPage() {
   );
 
   const handleCallCustomer = (phone: string) => {
-    window.open(`tel:${phone}`, "_self");
+    makePhoneCall(phone);
+  };
+
+  const handleWhatsAppCustomer = (phone: string) => {
+    sendWhatsAppMessage(phone);
   };
 
   const handleCustomerDetail = (customer: Customer) => {
@@ -213,8 +235,9 @@ export default function CustomersPage() {
 
   const handleCustomerUpdate = (updatedCustomer: Customer) => {
     setCustomers((prev) =>
-      // keep fields the edit modal does not carry (e.g. totalSpentValue)
-      prev.map((c) => (c.id === updatedCustomer.id ? { ...c, ...updatedCustomer } : c))
+      prev.map((c) =>
+        c.id === updatedCustomer.id ? { ...c, ...updatedCustomer } : c
+      )
     );
     setSelectedCustomer(updatedCustomer);
   };
@@ -226,7 +249,7 @@ export default function CustomersPage() {
 
   const confirmDeleteCustomer = async () => {
     if (!customerToDelete) return;
-    
+
     setShowDeleteConfirmModal(false);
 
     try {
@@ -278,7 +301,10 @@ export default function CustomersPage() {
               title="Müşteriler"
               description="Müşteri bilgilerini yönetin"
               actions={
-                <Button onClick={() => router.push("/customers/create")} className="w-full sm:w-auto">
+                <Button
+                  onClick={() => router.push("/customers/create")}
+                  className="w-full sm:w-auto"
+                >
                   <UserPlus className="h-4 w-4" />
                   Yeni Müşteri
                 </Button>
@@ -311,25 +337,40 @@ export default function CustomersPage() {
             {/* Summary */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
-                { label: "Toplam Müşteri", value: customers.length.toLocaleString("tr-TR") },
+                {
+                  label: "Toplam Müşteri",
+                  value: customers.length.toLocaleString("tr-TR"),
+                },
                 {
                   label: "Aktif Müşteri",
-                  value: customers.filter((c) => c.status === "active").length.toLocaleString("tr-TR"),
+                  value: customers
+                    .filter((c) => c.status === "active")
+                    .length.toLocaleString("tr-TR"),
                 },
                 {
                   label: "Toplam Sipariş",
-                  value: customers.reduce((sum, c) => sum + c.totalOrders, 0).toLocaleString("tr-TR"),
+                  value: customers
+                    .reduce((sum, c) => sum + c.totalOrders, 0)
+                    .toLocaleString("tr-TR"),
                 },
                 {
                   label: "Toplam Ciro",
                   value: `₺${customers
                     .reduce((sum, c) => sum + (c.totalSpentValue ?? 0), 0)
-                    .toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                    .toLocaleString("tr-TR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`,
                 },
               ].map((stat) => (
-                <div key={stat.label} className="rounded-xl border border-border bg-card p-4 shadow-card">
+                <div
+                  key={stat.label}
+                  className="rounded-xl border border-border bg-card p-4 shadow-card"
+                >
                   <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  <p className="mt-1 text-lg font-bold tabular-nums text-foreground sm:text-2xl">{stat.value}</p>
+                  <p className="mt-1 text-lg font-bold tabular-nums text-foreground sm:text-2xl">
+                    {stat.value}
+                  </p>
                 </div>
               ))}
             </div>
@@ -337,15 +378,21 @@ export default function CustomersPage() {
             {/* Customer List */}
             <section className="space-y-3">
               <div className="flex items-baseline justify-between">
-                <h2 className="text-base font-semibold text-foreground">Müşteri Listesi</h2>
-                <p className="text-sm text-muted-foreground">{filteredCustomers.length} müşteri</p>
+                <h2 className="text-base font-semibold text-foreground">
+                  Müşteri Listesi
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {filteredCustomers.length} müşteri
+                </p>
               </div>
 
               <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
                 {filteredCustomers.length === 0 ? (
                   <div className="py-12 text-center">
                     <Users className="mx-auto h-10 w-10 text-muted-foreground" />
-                    <h3 className="mt-3 font-semibold text-foreground">Müşteri bulunamadı</h3>
+                    <h3 className="mt-3 font-semibold text-foreground">
+                      Müşteri bulunamadı
+                    </h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Arama kriterlerinize uygun müşteri bulunmuyor.
                     </p>
@@ -363,18 +410,27 @@ export default function CustomersPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="truncate font-medium text-foreground">{customer.name}</span>
+                            <span className="truncate font-medium text-foreground">
+                              {customer.name}
+                            </span>
                             {customer.status !== "active" && (
-                              <Badge variant="muted" className="shrink-0">Pasif</Badge>
+                              <Badge variant="muted" className="shrink-0">
+                                Pasif
+                              </Badge>
                             )}
                           </div>
                           <p className="truncate text-xs text-muted-foreground">
-                            {[customer.phone, customer.address].filter(Boolean).join(" • ")}
+                            {[customer.phone, customer.address]
+                              .filter(Boolean)
+                              .join(" • ")}
                           </p>
                           <p className="mt-0.5 text-xs text-muted-foreground">
-                            <span className="font-semibold tabular-nums text-foreground">{customer.totalSpent}</span>
+                            <span className="font-semibold tabular-nums text-foreground">
+                              {customer.totalSpent}
+                            </span>
                             {" • "}
-                            {customer.totalOrders} sipariş • Son: {customer.lastOrder}
+                            {customer.totalOrders} sipariş • Son:{" "}
+                            {customer.lastOrder}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center">
@@ -390,6 +446,18 @@ export default function CustomersPage() {
                           >
                             <Phone className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-emerald-600 hover:text-emerald-700"
+                            aria-label="WhatsApp mesajı gönder"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleWhatsAppCustomer(customer.phone);
+                            }}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -402,14 +470,24 @@ export default function CustomersPage() {
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                              <DropdownMenuItem onClick={() => handleCustomerDetail(customer)}>
+                            <DropdownMenuContent
+                              align="end"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <DropdownMenuItem
+                                onClick={() => handleCustomerDetail(customer)}
+                              >
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Düzenle
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
-                                onClick={() => handleDeleteCustomer(customer.id, customer.name)}
+                                onClick={() =>
+                                  handleDeleteCustomer(
+                                    customer.id,
+                                    customer.name
+                                  )
+                                }
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Sil

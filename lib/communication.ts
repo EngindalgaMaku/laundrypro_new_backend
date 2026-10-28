@@ -2,10 +2,10 @@
 // in Prisma or other server-only code; the WhatsApp Business API helpers are in lib/whatsapp-business.ts
 
 /**
- * Normalizes a phone number for WhatsApp (wa.me) links and WhatsApp Business API.
- * Converts Turkish formats (e.g. "0532 123 45 67", "532 123 45 67", "+90 532...")
- * into international format without "+" or leading zeros: "905321234567".
- */
+  * Normalizes a phone number for WhatsApp (wa.me) links and WhatsApp Business API.
+  * Converts Turkish formats (e.g. "0532 123 45 67", "532 123 45 67", "+90 532...")
+  * into international format without "+" or leading zeros: "905321234567".
+  */
 export function normalizePhoneForWhatsApp(phoneNumber: string): string {
   let digits = (phoneNumber || "").replace(/\D/g, "");
   if (digits.startsWith("00")) {
@@ -21,8 +21,8 @@ export function normalizePhoneForWhatsApp(phoneNumber: string): string {
 }
 
 /**
- * Normalizes a phone number for tel: links (e.g. "+905321234567").
- */
+  * Normalizes a phone number for tel: and sms: links (e.g. "+905321234567").
+  */
 export function normalizePhoneForCall(phoneNumber: string): string {
   const waPhone = normalizePhoneForWhatsApp(phoneNumber);
   if (!waPhone) return "";
@@ -99,6 +99,29 @@ export function sendWhatsAppMessage(phoneNumber: string, message?: string) {
   });
 }
 
+// SMS functionality (opens native SMS app on Android / iOS)
+export function sendSMS(phoneNumber: string, message?: string) {
+  const cleanPhone = normalizePhoneForCall(phoneNumber);
+  if (!cleanPhone) return;
+  let smsUrl = `sms:${cleanPhone}`;
+
+  if (message) {
+    smsUrl += `?body=${encodeURIComponent(message)}`;
+  }
+
+  if (typeof window !== "undefined") {
+    window.location.href = smsUrl;
+  }
+
+  logCommunication({
+    customerId: "",
+    type: "SMS",
+    direction: "OUTGOING",
+    phone: cleanPhone,
+    content: message,
+  });
+}
+
 // Email functionality
 export function sendEmail(email: string, subject?: string, body?: string) {
   let mailtoUrl = `mailto:${email}`;
@@ -129,6 +152,52 @@ export function sendEmail(email: string, subject?: string, body?: string) {
     content: body,
     subject: subject,
   });
+}
+
+// Google Maps location viewer (intercepted by Android to open native Maps app)
+export function openGoogleMapsLocation(options: {
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+}) {
+  if (typeof window === "undefined") return;
+  const { latitude, longitude, address } = options;
+  if (typeof latitude === "number" && typeof longitude === "number") {
+    window.open(
+      `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`,
+      "_blank"
+    );
+  } else if (address && address.trim()) {
+    window.open(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        address.trim()
+      )}`,
+      "_blank"
+    );
+  }
+}
+
+// Google Maps turn-by-turn directions
+export function openGoogleMapsDirections(options: {
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+}) {
+  if (typeof window === "undefined") return;
+  const { latitude, longitude, address } = options;
+  if (typeof latitude === "number" && typeof longitude === "number") {
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
+      "_blank"
+    );
+  } else if (address && address.trim()) {
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+        address.trim()
+      )}`,
+      "_blank"
+    );
+  }
 }
 
 // Communication templates with WhatsApp Business API template support
@@ -288,9 +357,5 @@ interface CommunicationLog {
 }
 
 export function logCommunication(log: CommunicationLog) {
-  // This will be implemented when we have database connection
   console.log("Communication logged:", log);
-
-  // TODO: Save to database
-  // await prisma.communicationLog.create({ data: log })
 }

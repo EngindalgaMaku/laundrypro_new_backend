@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CustomerEditForm } from "./customer-edit-form"
+import { makePhoneCall, sendWhatsAppMessage, sendSMS, sendEmail } from "@/lib/communication"
 
 interface Customer {
   id: string
@@ -38,35 +39,7 @@ interface CustomerDetailModalProps {
   onUpdate: (updatedCustomer: Customer) => void
 }
 
-// Mock order history for customer
-const mockCustomerOrders: Record<string, Order[]> = {
-  "CUST-001": [
-    {
-      id: "ORD-001",
-      service: "Kuru Temizleme",
-      status: "IN_PROGRESS",
-      amount: "₺150",
-      date: "2024-01-15",
-      description: "2 takım elbise, 1 palto",
-    },
-    {
-      id: "ORD-015",
-      service: "Çamaşır Yıkama",
-      status: "DELIVERED",
-      amount: "₺75",
-      date: "2024-01-10",
-      description: "Günlük çamaşırlar",
-    },
-    {
-      id: "ORD-008",
-      service: "Kuru Temizleme",
-      status: "DELIVERED",
-      amount: "₺200",
-      date: "2024-01-05",
-      description: "Gelinlik temizliği",
-    },
-  ],
-}
+const mockCustomerOrders: Record<string, Order[]> = {}
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   PENDING: { label: "Beklemede", variant: "outline" },
@@ -77,25 +50,33 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 }
 
 export function CustomerDetailModal({ customer, isOpen, onClose, onUpdate }: CustomerDetailModalProps) {
-  const [isEditing, setIsEditing] = useState(false)
+  const [, setIsEditing] = useState(false)
 
   if (!customer) return null
 
   const customerOrders = mockCustomerOrders[customer.id] || []
 
   const handleCall = () => {
-    window.open(`tel:${customer.phone}`)
+    makePhoneCall(customer.phone)
   }
 
   const handleWhatsApp = () => {
-    const cleanPhone = customer.phone.replace(/\D/g, "")
-    const message = encodeURIComponent(`Merhaba ${customer.name}, LaundryPro'dan size özel bir mesajımız var.`)
-    window.open(`https://wa.me/90${cleanPhone}?text=${message}`)
+    sendWhatsAppMessage(
+      customer.phone,
+      `Merhaba ${customer.name}, siparişiniz hakkında bilgi vermek istiyoruz.`
+    )
+  }
+
+  const handleSMS = () => {
+    sendSMS(
+      customer.phone,
+      `Merhaba ${customer.name}, siparişiniz hakkında bilgi: `
+    )
   }
 
   const handleEmail = () => {
     if (customer.email) {
-      window.open(`mailto:${customer.email}`)
+      sendEmail(customer.email, "Bilgilendirme")
     }
   }
 
@@ -108,7 +89,7 @@ export function CustomerDetailModal({ customer, isOpen, onClose, onUpdate }: Cus
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg">
                 {customer.name.charAt(0).toUpperCase()}
@@ -119,16 +100,18 @@ export function CustomerDetailModal({ customer, isOpen, onClose, onUpdate }: Cus
                   <Badge variant={customer.status === "active" ? "default" : "secondary"}>
                     {customer.status === "active" ? "Aktif Müşteri" : "Pasif Müşteri"}
                   </Badge>
-                  <span className="text-sm text-muted-foreground">#{customer.id}</span>
                 </div>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={handleCall}>
                 📞 Ara
               </Button>
               <Button variant="outline" size="sm" onClick={handleWhatsApp}>
                 💬 WhatsApp
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSMS}>
+                ✉️ SMS
               </Button>
               {customer.email && (
                 <Button variant="outline" size="sm" onClick={handleEmail}>
@@ -139,12 +122,11 @@ export function CustomerDetailModal({ customer, isOpen, onClose, onUpdate }: Cus
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="overview" className="mt-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Genel Bakış</TabsTrigger>
-            <TabsTrigger value="orders">Sipariş Geçmişi ({customerOrders.length})</TabsTrigger>
-            <TabsTrigger value="profile">Profil Bilgileri</TabsTrigger>
+        <Tabs defaultValue="edit" className="mt-6">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="edit">Düzenle</TabsTrigger>
+            <TabsTrigger value="overview">Genel Bakış</TabsTrigger>
+            <TabsTrigger value="profile">Profil Bilgileri</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -169,75 +151,34 @@ export function CustomerDetailModal({ customer, isOpen, onClose, onUpdate }: Cus
               </Card>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Son Siparişler</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {customerOrders.slice(0, 3).map((order) => (
-                    <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium">{order.id}</span>
-                          <Badge variant={statusLabels[order.status].variant}>{statusLabels[order.status].label}</Badge>
+            {customerOrders.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Son Siparişler</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {customerOrders.slice(0, 3).map((order) => (
+                      <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium">{order.id}</span>
+                            <Badge variant={statusLabels[order.status].variant}>{statusLabels[order.status].label}</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {order.service} • {order.description}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{order.date}</p>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {order.service} • {order.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{order.date}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">{order.amount}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {customerOrders.length === 0 && (
-                    <p className="text-center text-muted-foreground py-4">Henüz sipariş bulunmuyor</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="orders" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tüm Siparişler</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {customerOrders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-medium">{order.id}</span>
-                          <Badge variant={statusLabels[order.status].variant}>{statusLabels[order.status].label}</Badge>
+                        <div className="text-right">
+                          <p className="font-medium">{order.amount}</p>
                         </div>
-                        <p className="text-sm text-muted-foreground">{order.service}</p>
-                        <p className="text-sm">{order.description}</p>
-                        <p className="text-xs text-muted-foreground">{order.date}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-lg">{order.amount}</p>
-                        <Button variant="ghost" size="sm">
-                          Detay
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {customerOrders.length === 0 && (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">Bu müşterinin henüz siparişi bulunmuyor</p>
-                      <Button className="mt-4">İlk Siparişi Oluştur</Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="profile" className="space-y-4">
@@ -269,7 +210,7 @@ export function CustomerDetailModal({ customer, isOpen, onClose, onUpdate }: Cus
                 <CardContent className="space-y-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Kayıt Tarihi</label>
-                    <p className="text-base">{customer.registrationDate || "2024-01-01"}</p>
+                    <p className="text-base">{customer.registrationDate || "—"}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Durum</label>

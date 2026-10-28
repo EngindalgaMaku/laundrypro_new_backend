@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeCity, normalizeDistrict } from "@/lib/turkish-locations";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/db";
@@ -127,8 +128,9 @@ export async function POST(request: NextRequest) {
           email: data.user.email,
           phone: data.business.phone,
           address: data.business.address,
-          city: data.business.city,
-          district: data.business.district,
+          // stored as display names ("İstanbul", "Çankaya"); invoices print them as is
+          city: normalizeCity(data.business.city),
+          district: normalizeDistrict(data.business.city, data.business.district || ""),
         },
       });
 

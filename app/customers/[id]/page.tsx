@@ -9,12 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Phone, MessageCircle, MapPin, Edit, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, MessageCircle, MessageSquare, Edit, Trash2, Plus, Wallet } from "lucide-react";
 import { toast } from "sonner";
+import { CustomerEditForm } from "@/components/customers/customer-edit-form";
+import { CustomerMap } from "@/components/maps/customer-map";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { makePhoneCall, sendWhatsAppMessage, sendSMS } from "@/lib/communication";
 
 interface User {
   id: string;
   email: string;
+  businessName?: string;
   business: {
     name: string;
     businessType: string;
@@ -43,7 +48,10 @@ interface Order {
   id: string;
   orderNumber: string;
   status: string;
+  paymentStatus?: string;
   totalAmount: number;
+  paidAmount?: number;
+  remainingAmount?: number;
   createdAt: string;
   pickupDate?: string;
   deliveryDate?: string;
@@ -53,10 +61,13 @@ export default function CustomerDetailPage() {
   const [user, setUser] = useState<User | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [totalRemainingDebt, setTotalRemainingDebt] = useState(0);
+  const [totalSpent, setTotalSpent] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
   const router = useRouter();
   const params = useParams();
   const customerId = params.id as string;
@@ -79,7 +90,6 @@ export default function CustomerDetailPage() {
         return;
       }
 
-      // Fetch customer details
       const customerResponse = await fetch(`/api/customers/${customerId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -93,15 +103,27 @@ export default function CustomerDetailPage() {
         return;
       }
 
-      // Fetch customer orders
       const ordersResponse = await fetch(`/api/customers/${customerId}/orders`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (ordersResponse.ok) {
         const ordersData = await ordersResponse.json();
-        // The API returns { customer, orders, stats }
-        setOrders(Array.isArray(ordersData) ? ordersData : ordersData.orders ?? []);
+        const orderList: Order[] = Array.isArray(ordersData)
+          ? ordersData
+          : ordersData.orders ?? [];
+        setOrders(orderList);
+        if (ordersData.stats) {
+          setTotalRemainingDebt(Number(ordersData.stats.totalRemainingDebt || 0));
+          setTotalSpent(Number(ordersData.stats.totalSpent || 0));
+        } else {
+          setTotalRemainingDebt(
+            orderList.reduce((s, o) => s + Number(o.remainingAmount || 0), 0)
+          );
+          setTotalSpent(
+            orderList.reduce((s, o) => s + Number(o.totalAmount || 0), 0)
+          );
+        }
       }
     } catch (error) {
       console.error("Failed to fetch customer details:", error);
@@ -111,22 +133,41 @@ export default function CustomerDetailPage() {
     }
   };
 
+  const formatMoney = (value: number) =>
+    `₺${value.toLocaleString("tr-TR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+
   const handleCall = () => {
     if (customer?.phone) {
-      window.open(`tel:${customer.phone}`);
+      makePhoneCall(customer.phone);
     }
   };
 
   const handleWhatsApp = () => {
     if (customer?.whatsapp || customer?.phone) {
-      const phone = customer.whatsapp || customer.phone;
-      window.open(`https://wa.me/${phone.replace(/\D/g, '')}`);
+      sendWhatsAppMessage(customer.whatsapp || customer.phone);
     }
   };
 
-  const handleEdit = () => {
-    router.push(`/customers/${customerId}/edit`);
+  const handleSMS = () => {
+    if (customer?.phone) {
+      sendSMS(customer.phone);
+    }
   };
+
+  const handleRemindDebt = () => {
+    if (!customer) return;
+    const fullName = `${customer.firstName} ${customer.lastName}`.trim();
+    const businessName = user?.business?.name || user?.businessName || "";
+    const msg = `Merhaba ${fullName}, cari hesabınızda toplam ${formatMoney(
+      totalRemainingDebt
+    )} kalan bakiyeniz bulunmaktadır. İyi günler dileriz. ${businessName}`;
+    sendWhatsAppMessage(customer.whatsapp || customer.phone, msg);
+  };
+
+  const handleEdit = () => setIsEditOpen(true);
 
   const handleDelete = async () => {
     if (!confirm("Bu müşteriyi silmek istediğinize emin misiniz?")) return;
@@ -144,7 +185,7 @@ export default function CustomerDetailPage() {
       } else {
         toast.error("Müşteri silinemedi");
       }
-    } catch (error) {
+    } catch {
       toast.error("Bir hata oluştu");
     }
   };
@@ -170,6 +211,10 @@ export default function CustomerDetailPage() {
     );
   }
 
+  const fullAddress = [customer.address, customer.district, customer.city]
+    .filter(Boolean)
+    .join(", ");
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar
@@ -184,10 +229,10 @@ export default function CustomerDetailPage() {
           onMenuClick={() => setIsMobileMenuOpen(true)}
           isMobileMenuOpen={isMobileMenuOpen}
         />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="max-w-6xl mx-auto space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center space-x-4">
                 <Button
                   variant="outline"
@@ -198,21 +243,23 @@ export default function CustomerDetailPage() {
                   Geri
                 </Button>
                 <div>
-                  <h1 className="text-3xl font-bold text-foreground">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
                     {customer.firstName} {customer.lastName}
                   </h1>
-                  <p className="text-muted-foreground">
-                    Müşteri Detayları
-                  </p>
+                  <p className="text-muted-foreground">Müşteri & Cari Detayları</p>
                 </div>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={handleCall}>
                   📞 Ara
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleWhatsApp}>
                   <MessageCircle className="h-4 w-4 mr-2" />
                   WhatsApp
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleSMS}>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  SMS
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleEdit}>
                   <Edit className="h-4 w-4 mr-2" />
@@ -229,7 +276,7 @@ export default function CustomerDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>İletişim Bilgileri</CardTitle>
+                  <CardTitle>İletişim & Adres</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
@@ -242,10 +289,10 @@ export default function CustomerDetailPage() {
                       <p className="font-medium">{customer.email}</p>
                     </div>
                   )}
-                  {customer.whatsapp && (
+                  {(customer.address || customer.city) && (
                     <div>
-                      <p className="text-sm text-muted-foreground">WhatsApp</p>
-                      <p className="font-medium">{customer.whatsapp}</p>
+                      <p className="text-sm text-muted-foreground">Adres</p>
+                      <p className="font-medium">{fullAddress}</p>
                     </div>
                   )}
                 </CardContent>
@@ -253,22 +300,37 @@ export default function CustomerDetailPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Adres Bilgileri</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wallet className="h-5 w-5" />
+                    Cari Hesap / Bakiye Özeti
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {customer.address && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Adres</p>
-                      <p className="font-medium">{customer.address}</p>
-                    </div>
-                  )}
-                  {customer.city && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Şehir/İlçe</p>
-                      <p className="font-medium">
-                        {customer.city} / {customer.district}
-                      </p>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Toplam İşlem Hacmi</span>
+                    <span className="font-semibold">{formatMoney(totalSpent)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Kalan Borç (Veresiye)</span>
+                    <span
+                      className={`text-lg font-bold ${
+                        totalRemainingDebt > 0 ? "text-red-600" : "text-emerald-600"
+                      }`}
+                    >
+                      {totalRemainingDebt > 0
+                        ? formatMoney(totalRemainingDebt)
+                        : "₺0,00 (Borcu Yok)"}
+                    </span>
+                  </div>
+                  {totalRemainingDebt > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2"
+                      onClick={handleRemindDebt}
+                    >
+                      💬 WhatsApp ile Bakiye Hatırlat
+                    </Button>
                   )}
                 </CardContent>
               </Card>
@@ -298,11 +360,11 @@ export default function CustomerDetailPage() {
               </Card>
             </div>
 
-            {/* Orders Section */}
+            {/* Orders & Map Section */}
             <Tabs defaultValue="orders" className="space-y-4">
               <TabsList>
                 <TabsTrigger value="orders">Siparişler ({orders.length})</TabsTrigger>
-                <TabsTrigger value="history">Geçmiş</TabsTrigger>
+                <TabsTrigger value="map">Konum & Harita</TabsTrigger>
               </TabsList>
 
               <TabsContent value="orders">
@@ -312,7 +374,7 @@ export default function CustomerDetailPage() {
                       <div>
                         <CardTitle>Müşteri Siparişleri</CardTitle>
                         <CardDescription>
-                          Bu müşteriye ait tüm siparişler
+                          Siparişe tıklayarak detay ve tahsilat ekranını açabilirsiniz
                         </CardDescription>
                       </div>
                       <Button onClick={() => router.push(`/orders/create?customerId=${customerId}`)}>
@@ -333,54 +395,91 @@ export default function CustomerDetailPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        {orders.map((order) => (
-                          <div
-                            key={order.id}
-                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer"
-                            onClick={() => router.push(`/orders/${order.id}`)}
-                          >
-                            <div>
-                              <p className="font-medium">#{order.orderNumber}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(order.createdAt).toLocaleDateString("tr-TR")}
-                              </p>
+                      <div className="space-y-3">
+                        {orders.map((order) => {
+                          const rem = Number(order.remainingAmount ?? 0);
+                          return (
+                            <div
+                              key={order.id}
+                              className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                              onClick={() => router.push(`/orders/${order.id}`)}
+                            >
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium">#{order.orderNumber}</p>
+                                  <Badge variant="outline">{orderStatusLabel(order.status)}</Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {new Date(order.createdAt).toLocaleDateString("tr-TR")}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-bold">
+                                  {formatMoney(Number(order.totalAmount))}
+                                </p>
+                                {rem > 0 ? (
+                                  <p className="text-xs font-medium text-red-600">
+                                    Kalan: {formatMoney(rem)}
+                                  </p>
+                                ) : (
+                                  <p className="text-xs font-medium text-emerald-600">
+                                    Ödendi
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <Badge variant="outline">{orderStatusLabel(order.status)}</Badge>
-                              <p className="text-sm font-medium mt-1">
-                                ₺{Number(order.totalAmount).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              <TabsContent value="history">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Müşteri Geçmişi</CardTitle>
-                    <CardDescription>
-                      Müşteri ile ilgili tüm aktiviteler
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">
-                        Geçmiş kayıtları yakında eklenecek
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+              <TabsContent value="map">
+                <CustomerMap
+                  customer={{
+                    name: `${customer.firstName} ${customer.lastName}`.trim(),
+                    address: fullAddress || undefined,
+                    latitude: customer.latitude,
+                    longitude: customer.longitude,
+                  }}
+                />
               </TabsContent>
             </Tabs>
           </div>
         </main>
       </div>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Müşteriyi Düzenle</DialogTitle>
+          </DialogHeader>
+          <CustomerEditForm
+            customer={{
+              id: customer.id,
+              name: `${customer.firstName} ${customer.lastName}`.trim(),
+              phone: customer.phone,
+              email: customer.email || "",
+              address: customer.address || "",
+              city: customer.city,
+              district: customer.district,
+              latitude: customer.latitude,
+              longitude: customer.longitude,
+              totalOrders: orders.length,
+              totalSpent: formatMoney(totalSpent),
+              lastOrder: "",
+              status: customer.isActive ? "active" : "inactive",
+            }}
+            onSave={() => {
+              setIsEditOpen(false);
+              fetchCustomerDetails();
+            }}
+            onCancel={() => setIsEditOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
