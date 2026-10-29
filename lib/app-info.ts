@@ -5,7 +5,7 @@ export const APP_VERSION = "1.0.1";
 // Support channels on /destek. An empty value hides that row; e-mail falls back to the
 // contact address on the legal pages (lib/legal.ts).
 export const SUPPORT = {
-  phone: "", // e.g. "0532 123 45 67"
-  whatsapp: "", // e.g. "0532 123 45 67"
+  phone: "0546 586 79 27",
+  whatsapp: "0546 586 79 27",
   hours: "", // e.g. "Hafta içi 09.00–18.00"
 } as const;
