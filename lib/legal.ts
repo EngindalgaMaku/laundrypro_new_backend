@@ -2,7 +2,7 @@
 export const LEGAL = {
   /** Change whenever the legal texts change */
   lastUpdated: "29 Ekim 2026",
-  controllerName: "Dizaynschool Ltd.",
-  controllerAddress: "Antalya",
+  /** A natural person for now; switch to the business name once one is registered */
+  controllerName: "Engin Dalga",
   contactEmail: "mackaengin@gmail.com",
 } as const;

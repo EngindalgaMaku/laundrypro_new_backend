@@ -31,17 +31,18 @@ export default function Page() {
 
         <H2>Veri sorumlusu ve roller</H2>
         <p>
-          LaundryPro&apos;yu {LEGAL.controllerName} ({LEGAL.controllerAddress}) işletir.
+          LaundryPro&apos;yu gerçek kişi olarak {LEGAL.controllerName} geliştirir ve işletir.
+          Başvurular için iletişim adresi: {LEGAL.contactEmail}
         </p>
         <ul className="list-disc pl-6 space-y-2">
           <li>
             <strong>Hesap ve işletme verileri</strong> (uygulamaya kaydolan işletme sahibi ve
-            çalışanlarının bilgileri) için veri sorumlusu {LEGAL.controllerName}&apos;dir.
+            çalışanlarının bilgileri) için veri sorumlusu, LaundryPro&apos;yu işleten kişidir.
           </li>
           <li>
             <strong>İşletmelerin kendi müşterilerine ait veriler</strong> (işletmenin uygulamaya
             girdiği müşteri adı, telefonu, adresi ve siparişleri) için veri sorumlusu ilgili
-            işletmedir. {LEGAL.controllerName} bu verileri yalnızca işletme adına ve işletmenin
+            işletmedir. LaundryPro bu verileri yalnızca işletme adına ve işletmenin
             talimatıyla, hizmeti sunmak amacıyla işler (veri işleyen). Bu verilerle ilgili
             taleplerinizi öncelikle hizmet aldığınız işletmeye iletin.
           </li>
@@ -177,7 +178,7 @@ export default function Page() {
         <p>
           Sorularınız ve başvurularınız için: {LEGAL.contactEmail}
           <br />
-          {LEGAL.controllerName}, {LEGAL.controllerAddress}
+          {LEGAL.controllerName}
         </p>
 
         <div className="mt-8">

@@ -26,7 +26,7 @@ export default function Page() {
 
         <h2 className="text-xl font-semibold mt-6">Veri Sorumlusu</h2>
         <p>
-          LaundryPro hizmetini sunan {LEGAL.controllerName} ({LEGAL.controllerAddress}),
+          LaundryPro hizmetini sunan {LEGAL.controllerName} (gerçek kişi; iletişim: {LEGAL.contactEmail}),
           KVKK kapsamında veri sorumlusudur ve kişisel verilerinizin güvenliği için
           gerekli tedbirleri alır.
         </p>

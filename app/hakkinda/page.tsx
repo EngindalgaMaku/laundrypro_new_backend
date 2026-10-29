@@ -80,12 +80,6 @@ function AboutContent() {
               <dd className="text-right font-medium text-foreground">{LEGAL.controllerName}</dd>
             </div>
           )}
-          {filled(LEGAL.controllerAddress) && (
-            <div className="flex justify-between gap-4 px-4 py-3">
-              <dt className="text-muted-foreground">Adres</dt>
-              <dd className="text-right text-foreground">{LEGAL.controllerAddress}</dd>
-            </div>
-          )}
         </dl>
       </section>
 
