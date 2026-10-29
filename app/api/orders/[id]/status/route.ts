@@ -3,6 +3,7 @@ import { getUserFromRequest } from "@/lib/auth";
 import { OrderDatabaseService } from "@/lib/database/orders";
 import { UserDatabaseService } from "@/lib/database/users";
 import { OrderStatus } from "@prisma/client";
+import { prisma } from "@/lib/db";
 
 export async function POST(
   request: NextRequest,
@@ -98,6 +99,11 @@ export async function POST(
         notes: notes || undefined,
       }
     );
+
+    // The order timeline (/takip page, order detail, activity feed) reads these rows
+    await prisma.orderStatusHistory.create({
+      data: { orderId: updatedOrder.id, status: nextStatus, changedBy: currentUser.id, notes: notes || null },
+    });
 
     // Transform order for frontend
     const transformedOrder = {

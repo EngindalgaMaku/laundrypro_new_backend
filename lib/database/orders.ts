@@ -330,6 +330,10 @@ export class OrderDatabaseService {
         },
       });
 
+      await tx.orderStatusHistory.create({
+        data: { orderId: newOrder.id, status: "PENDING", notes: "Sipariş oluşturuldu" },
+      });
+
       if (initialPaid > 0) {
         await tx.payment.create({
           data: {
