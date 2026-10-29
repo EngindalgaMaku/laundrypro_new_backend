@@ -394,6 +394,10 @@ model Business {
   seasonalPricing     SeasonalPricing[]
   promotions          ServicePromotion[]
 
+  // Cash book and deleted-order archive
+  expenses      Expense[]
+  deletedOrders DeletedOrder[]
+
   @@map("businesses")
 }
 
@@ -1592,4 +1596,43 @@ model ServicePromotion {
   
   @@unique([businessId, code])
   @@map("service_promotions")
+}
+
+// Business expenses for the cash report (fuel, detergent, wages, rent…)
+model Expense {
+  id            String         @id @default(cuid())
+  businessId    String         @map("business_id")
+  amount        Decimal        @db.Decimal(10, 2)
+  category      String         @db.VarChar(40) // lib/expenses.ts EXPENSE_CATEGORIES
+  description   String?        @db.Text
+  paymentMethod PaymentMethod? @map("payment_method")
+  spentAt       DateTime       @map("spent_at")
+  createdById   String?        @map("created_by_id")
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, spentAt])
+  @@map("expenses")
+}
+
+// A deleted order kept for "Silinen Siparişler": the order with its items, payments and
+// history as JSON, so it can be put back with the same id, number and tracking link
+model DeletedOrder {
+  id           String   @id @default(cuid())
+  businessId   String   @map("business_id")
+  orderId      String   @map("order_id")
+  orderNumber  String   @map("order_number")
+  customerId   String   @map("customer_id")
+  customerName String   @map("customer_name")
+  totalAmount  Decimal  @map("total_amount") @db.Decimal(10, 2)
+  status       String   @db.VarChar(32)
+  snapshot     Json
+  deletedById  String?  @map("deleted_by_id")
+  deletedAt    DateTime @default(now()) @map("deleted_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, deletedAt])
+  @@map("deleted_orders")
 }

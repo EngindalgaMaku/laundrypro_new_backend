@@ -19,6 +19,8 @@ export async function deleteBusinessCompletely(businessId: string) {
   const users = await prisma.user.findMany({ where: inBusiness, select: { id: true } });
   const userIds = users.map((u) => u.id);
   const orders = await prisma.order.findMany({ where: inBusiness, select: { id: true } });
+  // Deleted orders kept for restoring still have their photos on disk
+  const archived = await prisma.deletedOrder.findMany({ where: inBusiness, select: { orderId: true } });
 
   await prisma.$transaction([
     prisma.vehicleTrackingLog.deleteMany({ where: { vehicle: inBusiness } }),
@@ -37,8 +39,10 @@ export async function deleteBusinessCompletely(businessId: string) {
     prisma.business.delete({ where: { id: businessId } }),
   ]);
 
+  // Expenses and deleted orders go with the business row (onDelete: Cascade).
   // Photo files live on disk, outside the database (lib/storage/order-photos.ts)
-  await Promise.all(orders.map((o) => deleteAllOrderPhotos(o.id).catch(() => {})));
+  const photoOrderIds = [...orders.map((o) => o.id), ...archived.map((a) => a.orderId)];
+  await Promise.all(photoOrderIds.map((id) => deleteAllOrderPhotos(id).catch(() => {})));
 }
 
 export async function anonymizeUser(userId: string) {

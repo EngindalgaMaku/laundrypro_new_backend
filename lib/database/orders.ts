@@ -878,7 +878,7 @@ export class OrderDatabaseService {
   /**
    * Delete order (soft delete)
    */
-  static async deleteOrder(orderId: string, businessId: string) {
+  static async deleteOrder(orderId: string, businessId: string, deletedById?: string) {
     const order = await prisma.order.findFirst({
       where: { id: orderId, businessId },
       include: {
@@ -929,15 +929,39 @@ export class OrderDatabaseService {
       throw err;
     }
 
-    // If already CANCELLED or PENDING and not on active route, perform hard delete
-    // Clean up related records first to avoid FK constraint issues
-    await prisma.routeStopOrder
-      .deleteMany({ where: { orderId } })
-      .catch(() => {});
-    await prisma.orderItem.deleteMany({ where: { orderId } }).catch(() => {});
-    await prisma.order.delete({ where: { id: orderId } });
+    // The order leaves the orders table but is kept in deleted_orders (Silinen Siparişler) with
+    // its items, payments and history, so it can be restored as it was
+    const full = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        orderItems: true,
+        payments: true,
+        statusHistory: true,
+        customer: { select: { firstName: true, lastName: true } },
+      },
+    });
+    const { customer, orderItems, payments, statusHistory, ...orderFields } = full!;
 
-    return { success: true, hardDeleted: true };
+    await prisma.$transaction([
+      prisma.deletedOrder.create({
+        data: {
+          businessId,
+          orderId,
+          orderNumber: order.orderNumber,
+          customerId: order.customerId,
+          customerName: `${customer.firstName} ${customer.lastName}`.trim(),
+          totalAmount: order.totalAmount,
+          status: order.status,
+          snapshot: JSON.parse(JSON.stringify({ order: orderFields, orderItems, payments, statusHistory })),
+          deletedById: deletedById ?? null,
+        },
+      }),
+      prisma.routeStopOrder.deleteMany({ where: { orderId } }),
+      prisma.orderItem.deleteMany({ where: { orderId } }),
+      prisma.order.delete({ where: { id: orderId } }),
+    ]);
+
+    return { success: true, hardDeleted: true, archived: true };
   }
 
   /**

@@ -356,7 +356,7 @@ export async function DELETE(
       );
     }
 
-    await OrderDatabaseService.deleteOrder(params.id, currentUser.businessId);
+    await OrderDatabaseService.deleteOrder(params.id, currentUser.businessId, currentUser.id);
 
     return NextResponse.json({
       message: "Order deleted successfully",

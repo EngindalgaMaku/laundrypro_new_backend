@@ -2,13 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ACTIVE_STATUSES, ORDER_GROUPS, type OrderGroupKey } from "@/lib/order-status";
-
-// Turkey has stayed on UTC+3 all year since 2016; the server clock may be UTC
-const TR_OFFSET_MS = 3 * 60 * 60 * 1000;
-function startOfTodayInTurkey() {
-  const local = new Date(Date.now() + TR_OFFSET_MS);
-  return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate()) - TR_OFFSET_MS);
-}
+import { startOfDayTR } from "@/lib/turkey-time";
 
 /** Home board: open work per field-work group, urgent and unpaid counts, and today's figures */
 export async function GET(request: NextRequest) {
@@ -17,7 +11,7 @@ export async function GET(request: NextRequest) {
   if (!user.businessId) return NextResponse.json({ error: "Business not found" }, { status: 400 });
 
   const businessId = user.businessId;
-  const today = startOfTodayInTurkey();
+  const today = startOfDayTR();
 
   try {
     const [byStatus, urgent, unpaidOrders, createdToday, deliveredToday, paidToday] = await Promise.all([
