@@ -1,15 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ClipboardList, FileText, Route, Settings, UserPlus, Users } from "lucide-react";
+import { CalendarDays, ClipboardList, LayoutGrid, TrendingDown, UserPlus, Wallet } from "lucide-react";
 
 const SHORTCUTS = [
   { title: "Müşteri Ekle", icon: UserPlus, href: "/customers/create" },
-  { title: "Siparişler", icon: ClipboardList, href: "/orders" },
-  { title: "Rota Çiz", icon: Route, href: "/rota" },
-  { title: "Müşteriler", icon: Users, href: "/customers" },
-  { title: "Faturalar", icon: FileText, href: "/invoices" },
-  { title: "Ayarlar", icon: Settings, href: "/settings" },
+  { title: "Gider Ekle", icon: TrendingDown, href: "/giderler?yeni=1" },
+  { title: "Gün Özeti", icon: CalendarDays, href: "/kasa" },
+  { title: "Tüm Siparişler", icon: ClipboardList, href: "/orders" },
+  { title: "Kasa Raporu", icon: Wallet, href: "/kasa?donem=ay" },
+  { title: "Yönetim", icon: LayoutGrid, href: "/yonetim" },
 ];
 
 // One tile style for every shortcut; "Yeni Sipariş" is the primary action in the welcome card

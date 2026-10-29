@@ -8,14 +8,11 @@ import {
   Home,
   ClipboardList,
   Users,
-  UserCog,
   Settings,
-  Bell,
   Route,
-  Truck,
-  DollarSign,
-  FileText,
-  MessageCircle,
+  Wallet,
+  LayoutGrid,
+  LifeBuoy,
   X,
   Menu,
   ChevronLeft,
@@ -26,22 +23,16 @@ import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/brand/logo";
 import { APP_VERSION } from "@/lib/app-info";
 
+// Daily screens; everything else is grouped on the Yönetim screen (app/yonetim/page.tsx)
 const navigation = [
   { name: "Ana Sayfa", href: "/dashboard", icon: Home },
   { name: "Siparişler", href: "/orders", icon: ClipboardList },
   { name: "Müşteriler", href: "/customers", icon: Users },
   { name: "Rota Çiz", href: "/rota", icon: Route },
-  { name: "Araçlar ve Bölgeler", href: "/routes", icon: Truck },
-  { name: "Hizmetler", href: "/services", icon: DollarSign },
-  { name: "Bildirim Şablonları", href: "/notifications/templates", icon: Bell },
-  { name: "Kullanıcı Yönetimi", href: "/users", icon: UserCog },
+  { name: "Kasa ve Giderler", href: "/kasa", icon: Wallet },
+  { name: "Yönetim", href: "/yonetim", icon: LayoutGrid },
   { name: "Ayarlar", href: "/settings", icon: Settings },
-  {
-    name: "WhatsApp Business",
-    href: "/settings/whatsapp",
-    icon: MessageCircle,
-  },
-  { name: "Faturalar", href: "/invoices", icon: FileText },
+  { name: "Destek", href: "/destek", icon: LifeBuoy },
 ];
 
 interface SidebarProps {
@@ -180,7 +171,7 @@ export function Sidebar({
         <nav className="space-y-2">
           {navigation.map((item) => {
             const IconComponent = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
             return (
               <Button

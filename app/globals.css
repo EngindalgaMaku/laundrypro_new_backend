@@ -717,3 +717,17 @@
     margin-top: var(--space-2xl);
   }
 }
+
+/* Bottom tab bar on phones (components/layout/bottom-nav.tsx): full-height page frames end
+   above it, and pages that grow with their content get room to scroll past it */
+@media (max-width: 1023px) {
+  body.has-bottom-nav {
+    --bottom-nav-h: calc(4rem + env(safe-area-inset-bottom));
+  }
+  body.has-bottom-nav .h-screen {
+    height: calc(100dvh - var(--bottom-nav-h));
+  }
+  body.has-bottom-nav .min-h-screen {
+    padding-bottom: var(--bottom-nav-h);
+  }
+}

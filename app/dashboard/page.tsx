@@ -249,7 +249,8 @@ export default function DashboardPage() {
               <div className="xl:col-span-2">
                 <RecentOrders />
               </div>
-              <div>
+              {/* Shortcuts come before the recent orders on phones */}
+              <div className="order-first xl:order-none">
                 <QuickActions />
               </div>
             </div>

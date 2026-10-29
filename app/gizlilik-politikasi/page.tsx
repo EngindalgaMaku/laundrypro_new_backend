@@ -64,8 +64,9 @@ export default function Page() {
             numarası, e-posta, adres, il/ilçe ve işletme girerse adres koordinatları ve notlar.
           </li>
           <li>
-            <strong>Sipariş ve tahsilat kayıtları:</strong> sipariş içeriği, tutarlar, ödemeler,
-            kalan borç (veresiye), durum geçmişi, teslim tarihleri ve faturalar.
+            <strong>Sipariş, tahsilat ve kasa kayıtları:</strong> sipariş içeriği, tutarlar, ödemeler,
+            kalan borç (veresiye), durum geçmişi, teslim tarihleri, faturalar, işletmenin girdiği
+            giderler ve silinen siparişlerin geri alınabilmesi için saklanan kopyaları.
           </li>
           <li>
             <strong>Sipariş fotoğrafları:</strong> işletmenin isteğe bağlı olarak çektiği veya
@@ -136,7 +137,8 @@ export default function Page() {
           <li>
             Hesabınızı uygulama içinden silebilirsiniz: <strong>Ayarlar &gt; Güvenlik &gt;
             Hesabı Sil</strong>. İşletme sahibi hesabını silerse işletme ve ona ait tüm veriler
-            (müşteriler, siparişler, faturalar, fotoğraflar, kullanıcılar) kalıcı olarak silinir.
+            (müşteriler, siparişler, silinen siparişler, giderler, faturalar, fotoğraflar, kullanıcılar)
+            kalıcı olarak silinir.
             Çalışan hesabı silindiğinde kişinin ad, e-posta ve telefon bilgileri silinir; işletmenin
             kayıtları korunur.
           </li>

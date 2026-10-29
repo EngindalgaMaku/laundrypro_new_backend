@@ -10,6 +10,7 @@ import {
   NavigationBlocker,
 } from "@/components/providers/network-provider";
 import { CapacitorProvider } from "@/components/providers/capacitor-provider";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import "./globals.css";
 
 // Import auth interceptor to automatically handle stale tokens
@@ -62,6 +63,7 @@ export default function RootLayout({
         <NetworkProvider>
           <NavigationBlocker>
             <Suspense fallback={null}>{children}</Suspense>
+            <BottomNav />
           </NavigationBlocker>
           <Toaster
             position="top-right"
