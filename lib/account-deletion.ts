@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { deleteAllOrderPhotos } from "@/lib/storage/order-photos";
 
 /**
  * In-app account deletion (Google Play requires it for apps with sign-up).
@@ -17,6 +18,7 @@ export async function deleteBusinessCompletely(businessId: string) {
   const ofBusinessRoute = { route: { businessId } };
   const users = await prisma.user.findMany({ where: inBusiness, select: { id: true } });
   const userIds = users.map((u) => u.id);
+  const orders = await prisma.order.findMany({ where: inBusiness, select: { id: true } });
 
   await prisma.$transaction([
     prisma.vehicleTrackingLog.deleteMany({ where: { vehicle: inBusiness } }),
@@ -34,6 +36,9 @@ export async function deleteBusinessCompletely(businessId: string) {
     prisma.user.deleteMany({ where: inBusiness }),
     prisma.business.delete({ where: { id: businessId } }),
   ]);
+
+  // Photo files live on disk, outside the database (lib/storage/order-photos.ts)
+  await Promise.all(orders.map((o) => deleteAllOrderPhotos(o.id).catch(() => {})));
 }
 
 export async function anonymizeUser(userId: string) {

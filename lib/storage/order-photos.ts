@@ -1,4 +1,4 @@
-import { mkdir, readFile, unlink, writeFile } from "fs/promises";
+import { mkdir, readFile, rm, unlink, writeFile } from "fs/promises";
 import { basename, join } from "path";
 
 export interface OrderPhotoMetadata {
@@ -97,6 +97,11 @@ export function deleteOrderPhoto(orderId: string, photoId: string): Promise<bool
     await unlink(join(photosDir(orderId), basename(target.filename))).catch(() => {});
     return true;
   });
+}
+
+/** Removes every photo of an order (used when the business deletes its account) */
+export async function deleteAllOrderPhotos(orderId: string): Promise<void> {
+  await rm(photosDir(orderId), { recursive: true, force: true });
 }
 
 export async function readOrderPhoto(
