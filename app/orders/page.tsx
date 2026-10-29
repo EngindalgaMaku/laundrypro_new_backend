@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/layout/page-header";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
-import { ORDER_STATUS_FLOW, orderStatusInfo, orderStatusLabel } from "@/lib/order-status";
+import { ORDER_GROUPS, ORDER_STATUS_FLOW, groupForStatusList, orderStatusInfo, orderStatusLabel } from "@/lib/order-status";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search,
@@ -111,7 +111,7 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("ALL");
   const [paymentFilter, setPaymentFilter] = useState<"ALL" | "UNPAID" | "PAID">("ALL");
-  const [priorityFilter, setPriorityFilter] = useState<"ALL" | "URGENT" | "HIGH">("ALL");
+  const [priorityFilter, setPriorityFilter] = useState<"ALL" | "URGENT" | "HIGH" | "URGENT,HIGH">("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -138,6 +138,13 @@ export default function OrdersPage() {
       const urlStatus = urlParams.get("status");
       if (urlSearch) {
         setSearchQuery(urlSearch);
+      }
+      // Links from the home board (e.g. Veresiye, Acil)
+      const urlPayment = urlParams.get("paymentStatus");
+      if (urlPayment === "UNPAID" || urlPayment === "PAID") setPaymentFilter(urlPayment);
+      const urlPriority = urlParams.get("priority");
+      if (urlPriority === "URGENT" || urlPriority === "HIGH" || urlPriority === "URGENT,HIGH") {
+        setPriorityFilter(urlPriority);
       }
       if (urlStatus) {
         setActiveTab(urlStatus);
@@ -482,6 +489,22 @@ export default function OrdersPage() {
                 </Button>
               </div>
             </div>
+
+            {/* A home-board group (several statuses) has no chip of its own */}
+            {activeTab.includes(",") && (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+                <p className="text-sm font-medium text-foreground">
+                  {(() => {
+                    const group = groupForStatusList(activeTab);
+                    return group ? ORDER_GROUPS[group].label : activeTab.split(",").map(orderStatusLabel).join(", ");
+                  })()}
+                  <span className="ml-2 font-normal text-muted-foreground">{total} sipariş</span>
+                </p>
+                <Button variant="ghost" size="sm" onClick={() => handleTabChange("ALL")}>
+                  Tümünü göster
+                </Button>
+              </div>
+            )}
 
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               {/* Status filter: one chip style; the coloured dot is the only status colour */}

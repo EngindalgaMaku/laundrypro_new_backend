@@ -77,7 +77,9 @@ export default function Page() {
           </li>
         </ul>
         <p>
-          Uygulama konum izni istemez ve konumunuzu toplamaz. Kamera yalnızca siz QR/barkod
+          Konum yalnızca siz müşteri kaydında &quot;Mevcut Konumu Al&quot; düğmesine bastığınızda, o anda
+          bulunduğunuz yer müşterinin adres koordinatı olarak kaydedilmek üzere bir kez alınır;
+          arka planda konum takibi yapılmaz. Kamera yalnızca siz QR/barkod
           okuttuğunuzda veya sipariş fotoğrafı çektiğinizde kullanılır; fotoğraf yalnızca siz
           yüklediğinizde kaydedilir.
         </p>
@@ -109,6 +111,12 @@ export default function Page() {
           <li>
             <strong>E-posta gönderim hizmeti:</strong> şifre sıfırlama gibi işlemsel e-postaları
             iletmek için e-posta adresi ve ileti içeriği kullanılır.
+          </li>
+          <li>
+            <strong>Adres konum servisi:</strong> rota ekranı, konumu kayıtlı olmayan bir adresi
+            haritaya yerleştirmek için yalnızca adres metnini (sokak, mahalle, ilçe, il; müşteri
+            adı ve telefonu olmadan) OpenStreetMap Nominatim konum servisine gönderir. Bulunan
+            koordinat, aynı adres tekrar sorgulanmasın diye müşteri kaydına eklenir.
           </li>
           <li>
             <strong>WhatsApp, telefon ve harita uygulamaları:</strong> işletme bir müşteriye

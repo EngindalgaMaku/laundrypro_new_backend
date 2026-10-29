@@ -51,3 +51,63 @@ export const ORDER_STATUS_LABELS: Record<string, string> = Object.fromEntries(
 );
 
 export const orderStatusLabel = (status: string) => ORDER_STATUS_LABELS[status] ?? status;
+
+/**
+ * Field-work groups for the home board and the route screen: what the van has to fetch,
+ * what is in the workshop, what goes back out. Each group maps to one or more statuses.
+ */
+export const ORDER_GROUPS = {
+  pickup: {
+    label: "Alınacaklar",
+    hint: "Müşteriden teslim alınacak",
+    statuses: ["PENDING", "CONFIRMED", "READY_FOR_PICKUP"],
+  },
+  washing: { label: "Yıkamada", hint: "Atölyede işlemde", statuses: ["IN_PROGRESS"] },
+  delivery: { label: "Dağıtılacaklar", hint: "Hazır, müşteriye götürülecek", statuses: ["READY_FOR_DELIVERY"] },
+  outForDelivery: { label: "Dağıtımda", hint: "Araçta, yolda", statuses: ["OUT_FOR_DELIVERY"] },
+} as const;
+
+export type OrderGroupKey = keyof typeof ORDER_GROUPS;
+
+export const ACTIVE_STATUSES = [
+  "PENDING",
+  "CONFIRMED",
+  "READY_FOR_PICKUP",
+  "IN_PROGRESS",
+  "READY_FOR_DELIVERY",
+  "OUT_FOR_DELIVERY",
+] as const;
+
+/** The group whose status list is exactly this comma list (the orders page filter), if any */
+export function groupForStatusList(statusList: string) {
+  const wanted = statusList.split(",").sort().join(",");
+  return (Object.keys(ORDER_GROUPS) as OrderGroupKey[]).find(
+    (key) => [...ORDER_GROUPS[key].statuses].sort().join(",") === wanted
+  );
+}
+
+/**
+ * Steps from the current status to the target along the allowed transitions
+ * (app/api/orders/[id]/status/route.ts), e.g. PENDING → IN_PROGRESS for "picked up".
+ */
+const NEXT_STATUS: Record<string, string | undefined> = {
+  PENDING: "CONFIRMED",
+  CONFIRMED: "READY_FOR_PICKUP",
+  READY_FOR_PICKUP: "IN_PROGRESS",
+  IN_PROGRESS: "READY_FOR_DELIVERY",
+  READY_FOR_DELIVERY: "OUT_FOR_DELIVERY",
+  OUT_FOR_DELIVERY: "DELIVERED",
+  DELIVERED: "COMPLETED",
+};
+
+export function statusPath(from: string, to: string): string[] {
+  const path: string[] = [];
+  let current = from;
+  while (current !== to) {
+    const next = NEXT_STATUS[current];
+    if (!next) return [];
+    path.push(next);
+    current = next;
+  }
+  return path;
+}

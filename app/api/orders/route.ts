@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { OrderStatus, Priority } from "@prisma/client";
 import { getUserFromRequest } from "@/lib/auth";
 import { OrderDatabaseService } from "@/lib/database/orders";
 import { getPlanForBusiness } from "@/lib/entitlements";
@@ -74,8 +75,13 @@ export async function GET(request: NextRequest) {
       businessId: currentUser.businessId,
     };
 
+    // One status or a comma list (the home board's groups, e.g. everything still to be picked up)
     if (status && status !== "ALL") {
-      filters.status = [status as any];
+      const statuses = status.split(",");
+      if (!statuses.every((s) => (Object.values(OrderStatus) as string[]).includes(s))) {
+        return NextResponse.json({ error: "Geçersiz sipariş durumu filtresi" }, { status: 400 });
+      }
+      filters.status = statuses;
     }
 
     // Use search parameter or customerName parameter from mobile
@@ -85,7 +91,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (priority && priority !== "ALL") {
-      filters.priority = priority as any;
+      const priorities = priority.split(",");
+      if (!priorities.every((p) => (Object.values(Priority) as string[]).includes(p))) {
+        return NextResponse.json({ error: "Geçersiz öncelik filtresi" }, { status: 400 });
+      }
+      filters.priority = priorities.length > 1 ? { in: priorities } : priorities[0];
     }
 
     if (paymentStatus && paymentStatus !== "ALL") {
