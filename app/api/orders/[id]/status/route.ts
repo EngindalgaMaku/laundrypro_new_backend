@@ -94,10 +94,9 @@ export async function POST(
     const updatedOrder = await OrderDatabaseService.updateOrder(
       params.id,
       currentUser.businessId,
-      {
-        status: status as OrderStatus,
-        notes: notes || undefined,
-      }
+      // The note belongs to this status change (history row below), not to the order: writing it
+      // into order.notes replaced whatever the shop had noted on the order
+      { status: status as OrderStatus }
     );
 
     // The order timeline (/takip page, order detail, activity feed) reads these rows
