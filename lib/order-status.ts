@@ -111,3 +111,47 @@ export function statusPath(from: string, to: string): string[] {
   }
   return path;
 }
+
+/**
+ * The one action that moves an order on, for the big button on the order screen and the
+ * quick button on order cards. Pickup statuses go straight to the workshop (statusPath walks
+ * the confirmation steps in between).
+ */
+export function nextStep(status: string): { label: string; target: string } | null {
+  switch (status) {
+    case "PENDING":
+    case "CONFIRMED":
+    case "READY_FOR_PICKUP":
+      return { label: "Teslim Alındı", target: "IN_PROGRESS" };
+    case "IN_PROGRESS":
+      return { label: "Yıkama Bitti", target: "READY_FOR_DELIVERY" };
+    case "READY_FOR_DELIVERY":
+      return { label: "Dağıtıma Çıkar", target: "OUT_FOR_DELIVERY" };
+    case "OUT_FOR_DELIVERY":
+      return { label: "Teslim Edildi", target: "DELIVERED" };
+    case "DELIVERED":
+      return { label: "Siparişi Kapat", target: "COMPLETED" };
+    default:
+      return null;
+  }
+}
+
+/** Every status the order can be moved to by hand, in workflow order (status route rules) */
+export function reachableStatuses(status: string): string[] {
+  const out: string[] = [];
+  let current = status;
+  for (let next = NEXT_STATUS[current]; next; next = NEXT_STATUS[current]) {
+    out.push(next);
+    current = next;
+  }
+  return status === "COMPLETED" || status === "CANCELLED" || status === "DELIVERED" ? out : [...out, "CANCELLED"];
+}
+
+/** The field-work stage of a status, for the progress strip on the order screen */
+export const ORDER_STAGES = [
+  { label: "Alınacak", statuses: ["PENDING", "CONFIRMED", "READY_FOR_PICKUP"] },
+  { label: "Yıkamada", statuses: ["IN_PROGRESS"] },
+  { label: "Hazır", statuses: ["READY_FOR_DELIVERY"] },
+  { label: "Dağıtımda", statuses: ["OUT_FOR_DELIVERY"] },
+  { label: "Teslim", statuses: ["DELIVERED", "COMPLETED"] },
+] as const;

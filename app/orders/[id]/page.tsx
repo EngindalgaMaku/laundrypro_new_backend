@@ -1,48 +1,50 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import Link from "next/link"
 import { useRouter, useParams } from "next/navigation"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { OrderTimeline } from "@/components/orders/order-timeline"
-import { OrderStatusUpdater } from "@/components/orders/order-status-updater"
-import { CustomerInfo } from "@/components/orders/customer-info"
-import { CustomerMap } from "@/components/maps/customer-map"
 import { OrderReceiptDialog } from "@/components/orders/order-receipt-dialog"
 import { OrderPhotosCard } from "@/components/orders/order-photos-card"
-import { sendWhatsAppMessage, sendSMS } from "@/lib/communication"
+import { OrderStatusBadge } from "@/components/orders/order-status-badge"
+import { makePhoneCall, openGoogleMapsDirections, sendWhatsAppMessage, sendSMS } from "@/lib/communication"
+import {
+  ORDER_STAGES,
+  TONE_CLASSES,
+  nextStep,
+  orderStatusInfo,
+  orderStatusLabel,
+  reachableStatuses,
+  statusPath,
+} from "@/lib/order-status"
 import {
   ArrowLeft,
+  Ban,
+  Check,
+  ChevronRight,
+  Copy,
+  ListChecks,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  Navigation,
+  Phone,
   Printer,
-  MessageSquare,
-  Share2,
-  Wallet,
+  Send,
   Trash2,
-  CheckCircle2,
-  AlertCircle,
+  Wallet,
 } from "lucide-react"
-import { OrderStatusBadge } from "@/components/orders/order-status-badge"
-import { orderStatusInfo } from "@/lib/order-status"
 import { toast } from "sonner"
 
 interface User {
   id: string
   email: string
-  businessTypes?: string[]
-  businessType?: string
   businessName: string
 }
 
@@ -88,11 +90,11 @@ interface Order {
   }
   service: string
   status: OrderStatusValue
+  priority: string
   amount: string
   totalAmount: number
   paidAmount: number
   remainingAmount: number
-  paymentStatus: "PENDING" | "PARTIAL" | "PAID" | "REFUNDED" | "CANCELLED"
   payments: PaymentRecord[]
   date: string
   deliveryDate?: string
@@ -104,21 +106,6 @@ interface Order {
     quantity: number
     price: string
   }>
-}
-
-const statusLabels: Record<
-  OrderStatusValue,
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline"; color: string }
-> = {
-  PENDING: { label: "Beklemede", variant: "outline", color: "text-amber-700" },
-  CONFIRMED: { label: "Onaylandı", variant: "default", color: "text-primary" },
-  READY_FOR_PICKUP: { label: "Alınmaya Hazır", variant: "default", color: "text-primary" },
-  IN_PROGRESS: { label: "İşlemde", variant: "default", color: "text-primary" },
-  READY_FOR_DELIVERY: { label: "Teslimata Hazır", variant: "secondary", color: "text-secondary" },
-  OUT_FOR_DELIVERY: { label: "Dağıtımda", variant: "secondary", color: "text-secondary" },
-  DELIVERED: { label: "Teslim Edildi", variant: "secondary", color: "text-secondary" },
-  COMPLETED: { label: "Tamamlandı", variant: "secondary", color: "text-secondary" },
-  CANCELLED: { label: "İptal", variant: "destructive", color: "text-destructive" },
 }
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
@@ -161,11 +148,11 @@ function toOrder(data: any): Order {
     },
     service: data.service || data.items?.[0]?.serviceName || "Hizmet belirtilmedi",
     status: data.status,
+    priority: data.priority || "NORMAL",
     amount: formatPrice(totalAmount),
     totalAmount,
     paidAmount,
     remainingAmount,
-    paymentStatus: data.paymentStatus || (remainingAmount <= 0 ? "PAID" : paidAmount > 0 ? "PARTIAL" : "PENDING"),
     payments: Array.isArray(data.payments) ? data.payments : [],
     date: formatDate(data.createdAt) || "",
     deliveryDate: formatDate(data.deliveryDate),
@@ -183,19 +170,49 @@ function toOrder(data: any): Order {
   }
 }
 
+/** A titled block of the order page; everything is on one scrolling page, no tabs */
+function Section({
+  title,
+  action,
+  children,
+  id,
+}: {
+  title: string
+  action?: React.ReactNode
+  children: React.ReactNode
+  id?: string
+}) {
+  return (
+    <section id={id} className="rounded-xl border border-border bg-card shadow-card">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <h2 className="font-semibold text-foreground">{title}</h2>
+        {action}
+      </div>
+      <div className="p-4">{children}</div>
+    </section>
+  )
+}
+
+// Native <select>: the custom select needs precise taps that the Android WebView often misses
+const selectClass =
+  "h-11 w-full rounded-md border border-input bg-background px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+
 export default function OrderDetailPage() {
   const [user, setUser] = useState<User | null>(null)
   const [order, setOrder] = useState<Order | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isReceiptOpen, setIsReceiptOpen] = useState(false)
+  const [isStatusOpen, setIsStatusOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState("details")
+  const [isAdvancing, setIsAdvancing] = useState(false)
 
-  // Payment form state
+  // Payment form, opened from "Tahsilat Al"
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState("")
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH")
   const [paymentNote, setPaymentNote] = useState("")
   const [isSavingPayment, setIsSavingPayment] = useState(false)
+  const paymentRef = useRef<HTMLDivElement>(null)
 
   const router = useRouter()
   const params = useParams()
@@ -208,15 +225,12 @@ export default function OrderDetailPage() {
     })
     if (!response.ok) {
       setLoadError(response.status === 404 ? "Sipariş bulunamadı." : "Sipariş yüklenemedi.")
-      return
+      return null
     }
     const mapped = toOrder(await response.json())
     setOrder(mapped)
-    if (mapped.remainingAmount > 0) {
-      setPaymentAmount(String(mapped.remainingAmount))
-    } else {
-      setPaymentAmount("")
-    }
+    setPaymentAmount(mapped.remainingAmount > 0 ? String(mapped.remainingAmount) : "")
+    return mapped
   }
 
   useEffect(() => {
@@ -229,47 +243,65 @@ export default function OrderDetailPage() {
     loadOrder().catch(() => setLoadError("Sipariş yüklenemedi."))
   }, [router, orderId])
 
-  const handleStatusUpdate = async (newStatus: OrderStatusValue, note?: string) => {
+  const openPayment = () => {
+    setIsPaymentOpen(true)
+    setTimeout(() => paymentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50)
+  }
+
+  /** Moves the order to `target`, through any steps in between, then offers to tell the customer */
+  const moveTo = async (target: OrderStatusValue, note?: string) => {
     if (!order) return
-
-    const token = localStorage.getItem("token")
-    const response = await fetch(`/api/orders/${order.id}/status`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ status: newStatus, notes: note }),
-    })
-
-    if (!response.ok) {
-      const result = await response.json().catch(() => ({}))
-      toast.error(result.error === "Invalid status transition" ? "Bu duruma geçilemez." : "Durum güncellenemedi.")
+    const steps = target === "CANCELLED" ? ["CANCELLED"] : statusPath(order.status, target)
+    if (!steps.length) {
+      toast.error("Bu duruma geçilemez.")
       return
     }
+    setIsAdvancing(true)
+    try {
+      const token = localStorage.getItem("token")
+      for (const status of steps) {
+        const response = await fetch(`/api/orders/${order.id}/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ status, notes: note }),
+        })
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}))
+          toast.error(result.error === "Invalid status transition" ? "Bu duruma geçilemez." : "Durum güncellenemedi.")
+          await loadOrder()
+          return
+        }
+      }
 
-    const statusLabelText = statusLabels[newStatus].label
-    const trackLink = order.trackingToken
-      ? `\n\nCanlı Sipariş Takip Linkiniz:\n${window.location.origin}/takip/${encodeURIComponent(order.trackingToken)}`
-      : ""
-    const remainingNote =
-      order.remainingAmount > 0
-        ? `\nKalan Tutar: ${formatPrice(order.remainingAmount)}`
+      const label = orderStatusLabel(target)
+      const updated = await loadOrder()
+      const trackLink = order.trackingToken
+        ? `\n\nSiparişinizi buradan takip edebilirsiniz:\n${window.location.origin}/takip/${encodeURIComponent(order.trackingToken)}`
         : ""
+      const remaining = updated?.remainingAmount ?? order.remainingAmount
+      const remainingNote = remaining > 0 ? `\nKalan tutar: ${formatPrice(remaining)}` : ""
 
-    if (order.customer.phone) {
-      toast.success(`Durum güncellendi: ${statusLabelText}`, {
-        description: "Müşteriye WhatsApp üzerinden bilgi vermek ister misiniz?",
-        duration: 8000,
-        action: {
-          label: "WhatsApp Bildir",
-          onClick: () => {
-            const msg = `Merhaba ${order.customer.name},\n\n${order.orderNumber} numaralı siparişinizin durumu "${statusLabelText}" olarak güncellenmiştir.${remainingNote}${trackLink}\n\n${user?.businessName || ""}`
-            sendWhatsAppMessage(order.customer.phone, msg)
+      if (order.customer.phone && target !== "COMPLETED") {
+        toast.success(`Durum: ${label}`, {
+          description: "Müşteriye WhatsApp ile haber verin",
+          duration: 8000,
+          action: {
+            label: "WhatsApp",
+            onClick: () => {
+              const msg = `Merhaba ${order.customer.name},\n\n${order.orderNumber} numaralı siparişinizin durumu "${label}" olarak güncellendi.${remainingNote}${trackLink}\n\n${user?.businessName || ""}`
+              sendWhatsAppMessage(order.customer.phone, msg)
+            },
           },
-        },
-      })
-    } else {
-      toast.success(`Durum güncellendi: ${statusLabelText}`)
+        })
+      } else {
+        toast.success(`Durum: ${label}`)
+      }
+      // Handing the order over is when the rest is usually collected
+      if (target === "DELIVERED" && remaining > 0) openPayment()
+      setIsStatusOpen(false)
+    } finally {
+      setIsAdvancing(false)
     }
-    await loadOrder()
   }
 
   const handleRecordPayment = async (amountOverride?: number) => {
@@ -306,7 +338,8 @@ export default function OrderDetailPage() {
       }
       toast.success(`${formatPrice(numAmount)} tahsilat kaydedildi`)
       setPaymentNote("")
-      await loadOrder()
+      const updated = await loadOrder()
+      if (updated && updated.remainingAmount <= 0) setIsPaymentOpen(false)
     } catch {
       toast.error("Tahsilat kaydedilirken hata oluştu")
     } finally {
@@ -316,6 +349,7 @@ export default function OrderDetailPage() {
 
   const handleDeletePayment = async (paymentId: string) => {
     if (!order) return
+    if (!window.confirm("Bu tahsilat kaydı silinsin mi?")) return
     try {
       const token = localStorage.getItem("token")
       const response = await fetch(
@@ -352,7 +386,7 @@ export default function OrderDetailPage() {
   if (!user || !order) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <p className="text-muted-foreground">Sipariş yükleniyor…</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -360,6 +394,37 @@ export default function OrderDetailPage() {
   const trackingUrl = order.trackingToken
     ? `${window.location.origin}/takip/${encodeURIComponent(order.trackingToken)}`
     : null
+  const step = nextStep(order.status)
+  const stageIndex = ORDER_STAGES.findIndex((s) => (s.statuses as readonly string[]).includes(order.status))
+  const isClosed = order.status === "CANCELLED" || order.status === "COMPLETED"
+  // A delivered order that still owes money: collecting it is the next thing to do
+  const collectFirst = order.status === "DELIVERED" && order.remainingAmount > 0
+
+  const sendTrackingLink = () => {
+    if (!trackingUrl) return
+    const msg = `Merhaba ${order.customer.name},\n\n${order.orderNumber} numaralı siparişinizin durumunu bu bağlantıdan takip edebilirsiniz:\n${trackingUrl}\n\n${user.businessName || ""}`
+    sendWhatsAppMessage(order.customer.phone, msg)
+  }
+
+  const copyTrackingLink = async () => {
+    if (!trackingUrl) return
+    try {
+      if (!navigator.clipboard) throw new Error("clipboard unavailable")
+      await navigator.clipboard.writeText(trackingUrl)
+      toast.success("Takip bağlantısı kopyalandı")
+    } catch {
+      window.prompt("Takip bağlantısını kopyalayın:", trackingUrl)
+    }
+  }
+
+  const secondaryActions = [
+    { icon: Printer, label: "Fiş / Etiket yazdır", onClick: () => setIsReceiptOpen(true) },
+    ...(trackingUrl && order.customer.phone
+      ? [{ icon: Send, label: "Takip bağlantısını WhatsApp'tan gönder", onClick: sendTrackingLink }]
+      : []),
+    ...(trackingUrl ? [{ icon: Copy, label: "Takip bağlantısını kopyala", onClick: copyTrackingLink }] : []),
+    ...(!isClosed ? [{ icon: ListChecks, label: "Durumu elle değiştir", onClick: () => setIsStatusOpen(true) }] : []),
+  ]
 
   return (
     <div className="flex h-screen bg-background">
@@ -370,10 +435,10 @@ export default function OrderDetailPage() {
           onMenuClick={() => setIsMobileMenuOpen(true)}
           isMobileMenuOpen={isMobileMenuOpen}
         />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
-            {/* Header */}
-            <div className="space-y-4">
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
+            {/* Who, which order, where it stands */}
+            <div>
               <Button
                 variant="ghost"
                 size="sm"
@@ -383,391 +448,415 @@ export default function OrderDetailPage() {
                 <ArrowLeft className="h-4 w-4" />
                 Siparişler
               </Button>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="mt-1 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-xl font-bold text-foreground sm:text-2xl">{order.customer.name}</h1>
-                    <OrderStatusBadge status={order.status} />
-                    {order.remainingAmount <= 0 ? (
-                      <Badge className="bg-emerald-600 text-white">Ödendi</Badge>
-                    ) : order.paidAmount > 0 ? (
-                      <Badge variant="outline" className="border-amber-500 text-amber-700">
-                        Kısmi Ödeme (Kalan: {formatPrice(order.remainingAmount)})
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-red-300 text-red-700">
-                        Ödeme Bekliyor ({formatPrice(order.remainingAmount)})
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="mt-1 font-mono text-sm text-muted-foreground">
-                    {order.orderNumber} • {order.date}
+                  <h1 className="truncate text-xl font-bold text-foreground sm:text-2xl">{order.customer.name}</h1>
+                  <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                    {order.orderNumber} · {order.date}
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-                  <Button onClick={() => setIsReceiptOpen(true)}>
-                    <Printer className="h-4 w-4" />
-                    Fiş / Etiket
-                  </Button>
-                  <Button
-                    variant={order.remainingAmount > 0 ? "default" : "outline"}
-                    onClick={() => setActiveTab("payments")}
-                  >
-                    <Wallet className="h-4 w-4" />
-                    Tahsilat Al
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={!trackingUrl}
-                    onClick={async () => {
-                      if (!trackingUrl) return
-                      try {
-                        if (!navigator.clipboard) throw new Error("clipboard unavailable")
-                        await navigator.clipboard.writeText(trackingUrl)
-                        toast.success("Müşteri takip linki kopyalandı")
-                      } catch {
-                        window.prompt("Takip linkini kopyalayın:", trackingUrl)
-                      }
-                    }}
-                  >
-                    <Share2 className="h-4 w-4" />
-                    Takip Linki
-                  </Button>
-                  {order.customer.phone && trackingUrl && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        const url = trackingUrl
-                        const msg = `Merhaba ${order.customer.name},\n\n${order.orderNumber} numaralı siparişinizin güncel durumunu aşağıdaki bağlantıdan üyeliksiz takip edebilirsiniz:\n${url}\n\n${user.businessName || ""}`
-                        sendWhatsAppMessage(order.customer.phone, msg)
-                      }}
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      WhatsApp
-                    </Button>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <OrderStatusBadge status={order.status} />
+                  {(order.priority === "URGENT" || order.priority === "HIGH") && !isClosed && (
+                    <span className={`text-xs font-semibold ${TONE_CLASSES.danger.text}`}>
+                      {order.priority === "URGENT" ? "Acil" : "Yüksek öncelik"}
+                    </span>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border rounded-xl border border-border bg-card shadow-card">
-              <div className="p-4">
-                <p className="text-xs text-muted-foreground">Toplam Tutar</p>
-                <p className="mt-1 font-bold tabular-nums text-foreground sm:text-lg">{order.amount}</p>
+            {/* Progress through the field work */}
+            {order.status !== "CANCELLED" && (
+              <ol className="grid grid-cols-5 gap-1" aria-label="Sipariş aşaması">
+                {ORDER_STAGES.map((stage, i) => {
+                  const done = i < stageIndex
+                  const current = i === stageIndex
+                  return (
+                    <li key={stage.label} className="min-w-0 text-center">
+                      <div
+                        className={`h-1.5 rounded-full ${done || current ? "bg-primary" : "bg-muted"}`}
+                        aria-hidden="true"
+                      />
+                      <p
+                        className={`mt-1.5 truncate text-[11px] ${
+                          current ? "font-semibold text-foreground" : done ? "text-muted-foreground" : "text-muted-foreground/60"
+                        }`}
+                        aria-current={current ? "step" : undefined}
+                      >
+                        {stage.label}
+                      </p>
+                    </li>
+                  )
+                })}
+              </ol>
+            )}
+
+            {/* Money at a glance */}
+            <div className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-card shadow-card">
+              <div className="p-3 text-center">
+                <p className="text-xs text-muted-foreground">Tutar</p>
+                <p className="mt-0.5 font-bold tabular-nums text-foreground">{order.amount}</p>
               </div>
-              <div className="p-4">
-                <p className="text-xs text-muted-foreground">Kalan Borç (Veresiye)</p>
+              <div className="p-3 text-center">
+                <p className="text-xs text-muted-foreground">Ödenen</p>
+                <p className={`mt-0.5 font-bold tabular-nums ${TONE_CLASSES.success.text}`}>{formatPrice(order.paidAmount)}</p>
+              </div>
+              <div className="p-3 text-center">
+                <p className="text-xs text-muted-foreground">Kalan</p>
                 <p
-                  className={`mt-1 font-bold tabular-nums sm:text-lg ${
-                    order.remainingAmount > 0 ? "text-red-600" : "text-emerald-600"
+                  className={`mt-0.5 font-bold tabular-nums ${
+                    order.remainingAmount > 0 ? TONE_CLASSES.danger.text : "text-muted-foreground"
                   }`}
                 >
-                  {order.remainingAmount > 0
-                    ? formatPrice(order.remainingAmount)
-                    : "₺0,00 (Ödendi)"}
-                </p>
-              </div>
-              <div className="p-4">
-                <p className="text-xs text-muted-foreground">Teslim Tarihi</p>
-                <p className="mt-1 font-semibold text-foreground sm:text-lg">{order.deliveryDate || "—"}</p>
-              </div>
-              <div className="p-4">
-                <p className="text-xs text-muted-foreground">Durum</p>
-                <p className={`mt-1 font-semibold sm:text-lg ${orderStatusInfo(order.status).classes.text}`}>
-                  {orderStatusInfo(order.status).label}
+                  {formatPrice(order.remainingAmount)}
                 </p>
               </div>
             </div>
 
-            {/* Main Content Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <TabsTrigger value="details">Sipariş Detayları</TabsTrigger>
-                <TabsTrigger value="payments">
-                  Tahsilat & Cari {order.remainingAmount > 0 ? `(${formatPrice(order.remainingAmount)})` : ""}
-                </TabsTrigger>
-                <TabsTrigger value="photos">Ürün Fotoğrafları</TabsTrigger>
-                <TabsTrigger value="timeline">Takip Geçmişi</TabsTrigger>
-                <TabsTrigger value="customer">Müşteri Bilgileri</TabsTrigger>
-                <TabsTrigger value="map">Konum & Harita</TabsTrigger>
-                <TabsTrigger value="status">Durum Güncelle</TabsTrigger>
-              </TabsList>
+            <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+              <div className="min-w-0 space-y-4">
+                <Section title="Sipariş">
+                  {/* A single item typed as the order text would repeat it */}
+                  {order.description &&
+                    !(order.items.length === 1 && order.items[0].name.trim() === order.description.trim()) && (
+                      <p className="mb-3 text-foreground">{order.description}</p>
+                    )}
+                  {order.items.length > 0 && (
+                    <ul className="divide-y divide-border rounded-lg border border-border">
+                      {order.items.map((item, index) => (
+                        <li key={index} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                          <span className="min-w-0">
+                            <span className="block truncate font-medium text-foreground">{item.name}</span>
+                            <span className="text-xs text-muted-foreground">{item.quantity} adet</span>
+                          </span>
+                          <span className="shrink-0 tabular-nums text-foreground">{item.price}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <dt className="text-muted-foreground">Sipariş tarihi</dt>
+                      <dd className="text-foreground">{order.date}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Teslim tarihi</dt>
+                      <dd className="text-foreground">{order.deliveryDate || "—"}</dd>
+                    </div>
+                  </dl>
+                  {order.notes && (
+                    <p className="mt-3 rounded-lg bg-muted px-3 py-2 text-sm text-foreground">{order.notes}</p>
+                  )}
+                </Section>
 
-              <TabsContent value="details" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Sipariş Bilgileri</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Hizmet Türü</label>
-                        <p className="text-base">{order.service}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Açıklama</label>
-                        <p className="text-base">{order.description}</p>
-                      </div>
-                      {order.notes && (
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground">Notlar</label>
-                          <p className="text-base">{order.notes}</p>
-                        </div>
-                      )}
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Sipariş Tarihi</label>
-                        <p className="text-base">{order.date}</p>
-                      </div>
-                      {order.deliveryDate && (
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground">Teslim Tarihi</label>
-                          <p className="text-base">{order.deliveryDate}</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                <Section
+                  title="Müşteri"
+                  action={
+                    order.customer.id && (
+                      <Link href={`/customers/${order.customer.id}`} className="inline-flex items-center text-sm font-medium text-primary">
+                        Kartı aç <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    )
+                  }
+                >
+                  <p className="font-medium text-foreground">{order.customer.phone || "Telefon yok"}</p>
+                  <p className="mt-1 flex gap-1.5 text-sm text-muted-foreground">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    {order.customer.address || "Adres girilmemiş"}
+                  </p>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <Button variant="outline" disabled={!order.customer.phone} onClick={() => makePhoneCall(order.customer.phone)}>
+                      <Phone className="h-4 w-4" />
+                      Ara
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={!order.customer.phone}
+                      onClick={() => sendWhatsAppMessage(order.customer.phone, `Merhaba ${order.customer.name}, `)}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Yaz
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={!order.customer.address && order.customer.latitude === undefined}
+                      onClick={() =>
+                        openGoogleMapsDirections({
+                          latitude: order.customer.latitude,
+                          longitude: order.customer.longitude,
+                          address: order.customer.address,
+                        })
+                      }
+                    >
+                      <Navigation className="h-4 w-4" />
+                      Git
+                    </Button>
+                  </div>
+                </Section>
+              </div>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Ürün Detayları</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {order.items.map((item, index) => (
-                          <div key={index} className="flex justify-between items-center py-2 border-b last:border-b-0">
-                            <div>
-                              <p className="font-medium">{item.name}</p>
-                              <p className="text-sm text-muted-foreground">Adet: {item.quantity}</p>
-                            </div>
-                            <p className="font-medium">{item.price}</p>
+              <div className="min-w-0 space-y-4">
+                <div ref={paymentRef} className="scroll-mt-4">
+                  <Section
+                    title="Tahsilat"
+                    action={
+                      order.remainingAmount > 0 &&
+                      !isPaymentOpen && (
+                        <Button size="sm" variant="outline" onClick={openPayment}>
+                          <Wallet className="h-4 w-4" />
+                          Tahsilat Al
+                        </Button>
+                      )
+                    }
+                  >
+                    {isPaymentOpen && order.remainingAmount > 0 && (
+                      <div className="mb-4 space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                        <Button
+                          className="w-full"
+                          disabled={isSavingPayment}
+                          onClick={() => handleRecordPayment(order.remainingAmount)}
+                        >
+                          <Check className="h-4 w-4" />
+                          Kalanın tamamı: {formatPrice(order.remainingAmount)}
+                        </Button>
+                        <p className="text-center text-xs text-muted-foreground">ya da başka bir tutar girin</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label htmlFor="payment-amount">Tutar (₺)</Label>
+                            <Input
+                              id="payment-amount"
+                              inputMode="decimal"
+                              value={paymentAmount}
+                              onChange={(e) => setPaymentAmount(e.target.value.replace(/[^\d.,]/g, ""))}
+                              className="h-11 text-base"
+                            />
                           </div>
-                        ))}
-                        <div className="flex justify-between items-center pt-3 border-t font-bold">
-                          <span>Toplam</span>
-                          <span>{order.amount}</span>
+                          <div className="space-y-1">
+                            <Label htmlFor="payment-method">Ödeme</Label>
+                            <select
+                              id="payment-method"
+                              className={selectClass}
+                              value={paymentMethod}
+                              onChange={(e) => setPaymentMethod(e.target.value)}
+                            >
+                              {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
+                                <option key={value} value={value}>
+                                  {label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="photos">
-                <OrderPhotosCard orderId={order.id} />
-              </TabsContent>
-
-              <TabsContent value="payments">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Wallet className="h-5 w-5" />
-                        Tahsilat / Ödeme Kaydet
-                      </CardTitle>
-                      <CardDescription>
-                        Peşinat (kapora), parçalı ödeme veya kalan borç tahsilatı ekleyin
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted p-3 text-center">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Sipariş Tutarı</p>
-                          <p className="font-bold text-sm sm:text-base">{formatPrice(order.totalAmount)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Ödenen</p>
-                          <p className="font-bold text-sm sm:text-base text-emerald-600">
-                            {formatPrice(order.paidAmount)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Kalan Borç</p>
-                          <p
-                            className={`font-bold text-sm sm:text-base ${
-                              order.remainingAmount > 0 ? "text-red-600" : "text-emerald-600"
-                            }`}
-                          >
-                            {formatPrice(order.remainingAmount)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="payment-amount">Tahsilat Tutarı (₺)</Label>
-                          <Input
-                            id="payment-amount"
-                            placeholder="Örn: 250"
-                            value={paymentAmount}
-                            onChange={(e) => setPaymentAmount(e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="payment-method">Ödeme Yöntemi</Label>
-                          <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                            <SelectTrigger id="payment-method">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="CASH">Nakit</SelectItem>
-                              <SelectItem value="CREDIT_CARD">Kredi Kartı / POS</SelectItem>
-                              <SelectItem value="BANK_TRANSFER">Havale / EFT / IBAN</SelectItem>
-                              <SelectItem value="MOBILE_PAYMENT">Mobil Ödeme</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="payment-note">Açıklama / Not (İsteğe Bağlı)</Label>
                         <Input
-                          id="payment-note"
-                          placeholder="Örn: Teslimatta nakit alındı / Kapora"
+                          placeholder="Not (isteğe bağlı)"
                           value={paymentNote}
                           onChange={(e) => setPaymentNote(e.target.value)}
+                          className="h-11 text-base"
                         />
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <Button
-                          className="flex-1"
-                          disabled={isSavingPayment}
-                          onClick={() => handleRecordPayment()}
-                        >
-                          <Wallet className="h-4 w-4 mr-2" />
-                          {isSavingPayment ? "Kaydediliyor..." : "Tahsilatı Kaydet"}
-                        </Button>
-                        {order.remainingAmount > 0 && (
-                          <Button
-                            variant="secondary"
-                            disabled={isSavingPayment}
-                            onClick={() => handleRecordPayment(order.remainingAmount)}
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
-                            Tamamını Tahsil Et ({formatPrice(order.remainingAmount)})
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button variant="ghost" onClick={() => setIsPaymentOpen(false)}>
+                            Vazgeç
                           </Button>
-                        )}
-                      </div>
-
-                      {order.remainingAmount > 0 && order.customer.phone && (
-                        <div className="pt-3 border-t flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => {
-                              const msg = `Merhaba ${order.customer.name}, ${order.orderNumber} numaralı siparişinize ait toplam ${formatPrice(order.totalAmount)} tutarın ${formatPrice(order.paidAmount)} kısmı ödenmiş olup ${formatPrice(order.remainingAmount)} kalan bakiyeniz bulunmaktadır. İyi günler dileriz. - ${user.businessName || ""}`
-                              sendWhatsAppMessage(order.customer.phone, msg)
-                            }}
-                          >
-                            💬 WhatsApp Bakiye Hatırlat
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => {
-                              const msg = `Merhaba ${order.customer.name}, ${order.orderNumber} nolu siparisinizden kalan bakiyeniz: ${formatPrice(order.remainingAmount)}. Iyi gunler dileriz.`
-                              sendSMS(order.customer.phone, msg)
-                            }}
-                          >
-                            ✉️ SMS Bakiye Hatırlat
+                          <Button variant="outline" disabled={isSavingPayment} onClick={() => handleRecordPayment()}>
+                            {isSavingPayment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+                            Kaydet
                           </Button>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                      </div>
+                    )}
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Tahsilat Geçmişi</CardTitle>
-                      <CardDescription>
-                        Bu siparişe ait yapılan tüm ödemeler
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {order.payments.length === 0 ? (
-                        <div className="py-8 text-center text-muted-foreground space-y-2">
-                          <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground" />
-                          <p className="text-sm">Henüz kayıtlı tahsilat bulunmuyor.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {order.payments.map((p) => (
-                            <div
-                              key={p.id}
-                              className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                    {order.payments.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Henüz tahsilat yok.</p>
+                    ) : (
+                      <ul className="divide-y divide-border">
+                        {order.payments.map((p) => (
+                          <li key={p.id} className="flex items-center justify-between gap-3 py-2.5">
+                            <span className="min-w-0 flex-1">
+                              <span className={`font-semibold tabular-nums ${TONE_CLASSES.success.text}`}>
+                                {formatPrice(p.amount)}
+                              </span>
+                              <span className="ml-2 text-sm text-muted-foreground">
+                                {PAYMENT_METHOD_LABELS[p.paymentMethod] || p.paymentMethod}
+                              </span>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {new Date(p.paidAt).toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                {p.notes ? ` · ${p.notes}` : ""}
+                              </span>
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="shrink-0 text-muted-foreground"
+                              aria-label="Tahsilatı sil"
+                              onClick={() => handleDeletePayment(p.id)}
                             >
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-bold text-emerald-700">
-                                    {formatPrice(p.amount)}
-                                  </span>
-                                  <Badge variant="outline">
-                                    {PAYMENT_METHOD_LABELS[p.paymentMethod] || p.paymentMethod}
-                                  </Badge>
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {new Date(p.paidAt).toLocaleString("tr-TR")}
-                                  {p.notes ? ` • ${p.notes}` : ""}
-                                </p>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-muted-foreground hover:text-destructive"
-                                aria-label="Tahsilatı sil"
-                                onClick={() => handleDeletePayment(p.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {order.remainingAmount > 0 && order.customer.phone && (
+                      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            sendWhatsAppMessage(
+                              order.customer.phone,
+                              `Merhaba ${order.customer.name}, ${order.orderNumber} numaralı siparişinizden ${formatPrice(order.remainingAmount)} kalan bakiyeniz bulunmaktadır. İyi günler dileriz. - ${user.businessName || ""}`
+                            )
+                          }
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          WhatsApp hatırlat
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            sendSMS(
+                              order.customer.phone,
+                              `Merhaba ${order.customer.name}, ${order.orderNumber} nolu siparisinizden kalan bakiyeniz: ${formatPrice(order.remainingAmount)}. Iyi gunler dileriz.`
+                            )
+                          }
+                        >
+                          <Send className="h-4 w-4" />
+                          SMS hatırlat
+                        </Button>
+                      </div>
+                    )}
+                  </Section>
                 </div>
-              </TabsContent>
 
-              <TabsContent value="timeline">
-                <OrderTimeline statusHistory={order.statusHistory} />
-              </TabsContent>
+                <OrderPhotosCard orderId={order.id} />
+              </div>
+            </div>
 
-              <TabsContent value="customer">
-                <CustomerInfo customer={order.customer} />
-              </TabsContent>
+            <OrderTimeline statusHistory={order.statusHistory} />
 
-              <TabsContent value="map">
-                <CustomerMap customer={order.customer} />
-              </TabsContent>
-
-              <TabsContent value="status">
-                <OrderStatusUpdater currentStatus={order.status} onStatusUpdate={handleStatusUpdate} />
-              </TabsContent>
-            </Tabs>
-
-            <OrderReceiptDialog
-              open={isReceiptOpen}
-              onOpenChange={setIsReceiptOpen}
-              order={{
-                id: order.id,
-                orderNumber: order.orderNumber,
-                trackingToken: order.trackingToken,
-                businessName: user.businessName,
-                customer: order.customer,
-                date: order.date,
-                deliveryDate: order.deliveryDate,
-                amount: order.amount,
-                notes: order.notes,
-                description: order.description,
-                items: order.items,
-              }}
-            />
+            {/* Less frequent actions, as a plain list (no menus to hunt for) */}
+            <section className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+              <ul className="divide-y divide-border">
+                {secondaryActions.map(({ icon: Icon, label, onClick }) => (
+                  <li key={label}>
+                    <button
+                      type="button"
+                      onClick={onClick}
+                      className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-medium text-foreground hover:bg-muted"
+                    >
+                      <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                      <span className="flex-1">{label}</span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+                {!isClosed && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`${order.orderNumber} iptal edilsin mi?`)) moveTo("CANCELLED", "Sipariş ekranından iptal")
+                      }}
+                      className={`flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-medium hover:bg-muted ${TONE_CLASSES.danger.text}`}
+                    >
+                      <Ban className="h-4 w-4" aria-hidden="true" />
+                      Siparişi iptal et
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </section>
           </div>
+
+          {/* The next thing to do with this order, always within thumb reach */}
+          {(!isClosed || order.customer.phone) && (
+            <div className="sticky bottom-0 z-10 border-t border-border bg-card/95 px-4 py-3 backdrop-blur">
+              <div className="mx-auto flex max-w-5xl items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 shrink-0"
+                  aria-label="Müşteriyi ara"
+                  disabled={!order.customer.phone}
+                  onClick={() => makePhoneCall(order.customer.phone)}
+                >
+                  <Phone className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 shrink-0"
+                  aria-label="WhatsApp'tan yaz"
+                  disabled={!order.customer.phone}
+                  onClick={() => sendWhatsAppMessage(order.customer.phone, `Merhaba ${order.customer.name}, `)}
+                >
+                  <MessageCircle className="h-5 w-5" />
+                </Button>
+                {collectFirst ? (
+                  <Button className="h-12 flex-1 text-base" onClick={openPayment}>
+                    <Wallet className="h-5 w-5" />
+                    Tahsilat Al · {formatPrice(order.remainingAmount)}
+                  </Button>
+                ) : step ? (
+                  <Button className="h-12 flex-1 text-base" disabled={isAdvancing} onClick={() => moveTo(step.target as OrderStatusValue)}>
+                    {isAdvancing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
+                    {step.label}
+                  </Button>
+                ) : (
+                  <p className="flex-1 text-center text-sm text-muted-foreground">
+                    {order.status === "CANCELLED" ? "Sipariş iptal edildi" : "Sipariş kapandı"}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <Dialog open={isStatusOpen} onOpenChange={setIsStatusOpen}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Durumu değiştir</DialogTitle>
+                <DialogDescription>
+                  Şu an: {orderStatusInfo(order.status).label}. Aradaki adımlar da kaydedilir.
+                </DialogDescription>
+              </DialogHeader>
+              <ul className="space-y-2">
+                {reachableStatuses(order.status).map((status) => (
+                  <li key={status}>
+                    <Button
+                      variant={status === "CANCELLED" ? "outline" : "secondary"}
+                      className={`h-11 w-full justify-start ${status === "CANCELLED" ? TONE_CLASSES.danger.text : ""}`}
+                      disabled={isAdvancing}
+                      onClick={() => moveTo(status as OrderStatusValue)}
+                    >
+                      <span className={`h-2 w-2 rounded-full ${orderStatusInfo(status).classes.dot}`} aria-hidden="true" />
+                      {orderStatusLabel(status)}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </DialogContent>
+          </Dialog>
+
+          <OrderReceiptDialog
+            open={isReceiptOpen}
+            onOpenChange={setIsReceiptOpen}
+            order={{
+              id: order.id,
+              orderNumber: order.orderNumber,
+              trackingToken: order.trackingToken,
+              businessName: user.businessName,
+              customer: order.customer,
+              date: order.date,
+              deliveryDate: order.deliveryDate,
+              amount: order.amount,
+              notes: order.notes,
+              description: order.description,
+              items: order.items,
+            }}
+          />
         </main>
       </div>
     </div>

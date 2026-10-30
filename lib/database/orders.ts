@@ -560,6 +560,8 @@ export class OrderDatabaseService {
                 },
               },
             },
+            // Remaining balance on the order cards
+            payments: { where: { status: "PAID" }, select: { amount: true } },
             _count: {
               select: {
                 orderItems: true,

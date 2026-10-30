@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/layout/page-header";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
-import { ORDER_GROUPS, ORDER_STATUS_FLOW, groupForStatusList, orderStatusInfo, orderStatusLabel } from "@/lib/order-status";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ORDER_GROUPS, groupForStatusList, nextStep, orderStatusLabel, statusPath, TONE_CLASSES } from "@/lib/order-status";
 import {
   Search,
   Filter,
@@ -21,7 +20,8 @@ import {
   Mail,
   MapPin,
   MoreHorizontal,
-  Info,
+  Check,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,13 +32,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   makePhoneCall,
   sendWhatsAppMessage,
@@ -84,11 +77,30 @@ interface Order {
   serviceType: string;
   priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
   address?: string;
+  district?: string;
+  orderInfo?: string | null;
+  remainingAmount?: number;
+  items?: Array<{ serviceName?: string; quantity: number }>;
   customerId: string;
 }
 
-// Status filter chips in workflow order (the list never had a COMPLETED filter)
-const STATUS_FILTERS = ORDER_STATUS_FLOW.filter((status) => status !== "COMPLETED");
+// Filter chips: the stages of the field work, not the nine raw statuses
+const STATUS_FILTERS: Array<{ value: string; label: string; statuses: string[] }> = [
+  { value: "ALL", label: "Tümü", statuses: [] },
+  { value: ORDER_GROUPS.pickup.statuses.join(","), label: "Alınacak", statuses: [...ORDER_GROUPS.pickup.statuses] },
+  { value: "IN_PROGRESS", label: "Yıkamada", statuses: ["IN_PROGRESS"] },
+  { value: "READY_FOR_DELIVERY,OUT_FOR_DELIVERY", label: "Dağıtılacak", statuses: ["READY_FOR_DELIVERY", "OUT_FOR_DELIVERY"] },
+  { value: "DELIVERED,COMPLETED", label: "Biten", statuses: ["DELIVERED", "COMPLETED"] },
+  { value: "CANCELLED", label: "İptal", statuses: ["CANCELLED"] },
+];
+
+/** What the order is, in the shop's words: "2 halı" rather than "1 hizmet" */
+function orderSummary(order: Order) {
+  if (order.orderInfo) return order.orderInfo;
+  const items = (order.items || []).filter((i) => i.serviceName);
+  if (items.length) return items.map((i) => (i.quantity > 1 ? `${i.quantity} × ${i.serviceName}` : i.serviceName)).join(", ");
+  return order.service || "";
+}
 
 // Only non-normal priorities are shown on the order card
 const getPriorityConfig = (priority: string) => {
@@ -119,16 +131,10 @@ export default function OrdersPage() {
   const [statusTotals, setStatusTotals] = useState<{ total: number; byStatus: Record<string, number> } | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isLegendOpen, setIsLegendOpen] = useState(false);
+  const [advancing, setAdvancing] = useState<string | null>(null);
   const router = useRouter();
 
-  // DEBUG: Log sidebar state changes
-  console.log("OrdersPage - Sidebar States:", {
-    isMobileMenuOpen,
-    isSidebarCollapsed,
-  });
-
-  const limit = 12;
+  const limit = 20;
 
   useEffect(() => {
     // Load last used status filter or URL search params
@@ -214,7 +220,7 @@ export default function OrdersPage() {
       }
 
       const data = await response.json();
-      setOrders(data.orders || []);
+      setOrders((prev) => (currentPage > 1 ? [...prev, ...(data.orders || [])] : data.orders || []));
       setTotal(data.total || 0);
       setTotalPages(data.totalPages || 1);
 
@@ -315,6 +321,60 @@ export default function OrdersPage() {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     setCurrentPage(1);
+  };
+
+  /** The card's quick button: moves the order one stage on (through any steps in between) */
+  const advanceOrder = async (order: Order) => {
+    const step = nextStep(order.status);
+    if (!step) return;
+    setAdvancing(order.id);
+    try {
+      const token = localStorage.getItem("token");
+      for (const status of statusPath(order.status, step.target)) {
+        const response = await fetch(`/api/orders/${order.id}/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ status, notes: "Sipariş listesinden" }),
+        });
+        if (!response.ok) throw new Error();
+      }
+      const target = step.target as Order["status"];
+      const stillShown =
+        activeTab === "ALL" || activeTab.split(",").includes(target);
+      setOrders((prev) =>
+        stillShown ? prev.map((o) => (o.id === order.id ? { ...o, status: target } : o)) : prev.filter((o) => o.id !== order.id)
+      );
+      if (!stillShown) setTotal((t) => Math.max(0, t - 1));
+      setStatusTotals((prev) =>
+        prev
+          ? {
+              ...prev,
+              byStatus: {
+                ...prev.byStatus,
+                [order.status]: Math.max(0, (prev.byStatus[order.status] || 0) - 1),
+                [target]: (prev.byStatus[target] || 0) + 1,
+              },
+            }
+          : prev
+      );
+      toast.success(`${order.customer}: ${orderStatusLabel(target)}`, {
+        action: order.whatsapp
+          ? {
+              label: "WhatsApp",
+              onClick: () =>
+                sendWhatsAppMessage(
+                  order.whatsapp,
+                  `Merhaba ${order.customer}, ${order.orderNumber || ""} numaralı siparişinizin durumu "${orderStatusLabel(target)}" olarak güncellendi.`
+                ),
+            }
+          : undefined,
+      });
+    } catch {
+      toast.error("Sipariş güncellenemedi");
+      fetchOrders();
+    } finally {
+      setAdvancing(null);
+    }
   };
 
   // Communication functions
@@ -491,7 +551,7 @@ export default function OrdersPage() {
             </div>
 
             {/* A home-board group (several statuses) has no chip of its own */}
-            {activeTab.includes(",") && (
+            {activeTab !== "ALL" && !STATUS_FILTERS.some((f) => f.value === activeTab) && (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
                 <p className="text-sm font-medium text-foreground">
                   {(() => {
@@ -506,53 +566,41 @@ export default function OrdersPage() {
               </div>
             )}
 
-            <Tabs value={activeTab} onValueChange={handleTabChange}>
-              {/* Status filter: one chip style; the coloured dot is the only status colour */}
-              <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
-                <TabsList className="h-auto gap-2 bg-transparent p-0">
-                  {(["ALL", ...STATUS_FILTERS] as const).map((value) => {
-                    const isActive = activeTab === value;
-                    const count = value === "ALL" ? allOrdersTotal : statusCounts[value] || 0;
-                    const info = value === "ALL" ? null : orderStatusInfo(value);
-                    return (
-                      <TabsTrigger
-                        key={value}
-                        value={value}
-                        className={`h-9 gap-2 rounded-full border px-3.5 text-sm font-medium shadow-none data-[state=active]:shadow-none ${
-                          isActive
-                            ? "border-primary bg-primary text-primary-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                            : "border-border bg-card text-foreground hover:bg-muted"
-                        }`}
-                      >
-                        {info && !isActive && (
-                          <span className={`h-2 w-2 rounded-full ${info.classes.dot}`} aria-hidden="true" />
-                        )}
-                        {info ? info.label : "Tümü"}
-                        <span
-                          className={`min-w-5 rounded-full px-1.5 text-xs font-semibold tabular-nums ${
-                            isActive ? "bg-white/20" : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {count}
-                        </span>
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 text-muted-foreground"
-                  onClick={() => setIsLegendOpen(true)}
-                  aria-label="Durum kartelası"
-                >
-                  <Info className="h-4 w-4" />
-                  <span className="hidden sm:inline">Kartela</span>
-                </Button>
-              </div>
+            {/* Stage filter: wraps onto two rows on phones, nothing to scroll sideways */}
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap" role="tablist" aria-label="Sipariş aşaması">
+              {STATUS_FILTERS.map(({ value, label, statuses }) => {
+                const isActive = activeTab === value;
+                const count =
+                  value === "ALL" ? allOrdersTotal : statuses.reduce((sum, st) => sum + (statusCounts[st] || 0), 0);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => handleTabChange(value)}
+                    className={`flex h-10 items-center justify-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors ${
+                      isActive
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {label}
+                    <span
+                      className={`min-w-5 rounded-full px-1.5 text-xs font-semibold tabular-nums ${
+                        isActive ? "bg-white/20" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-              <TabsContent value={activeTab} className="mt-4">
-                {loading ? (
+            <div>
+
+                {loading && currentPage === 1 ? (
                   <div className="flex justify-center py-20">
                     <div className="text-center space-y-3">
                       <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary/20 border-t-primary mx-auto"></div>
@@ -573,9 +621,9 @@ export default function OrdersPage() {
                       {orders.map((order) => {
                         const priorityConfig = getPriorityConfig(order.priority);
                         const showPriority = order.priority && order.priority !== "NORMAL";
-                        const detail = [order.service, order.description]
-                          .filter((text) => text && text !== "Hizmet belirtilmedi")
-                          .join(" • ");
+                        const summary = orderSummary(order);
+                        const step = nextStep(order.status);
+                        const remaining = order.remainingAmount ?? 0;
 
                         return (
                           <div
@@ -586,12 +634,13 @@ export default function OrdersPage() {
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="truncate font-semibold text-foreground">{order.customer}</p>
-                                <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                                  {order.orderNumber || order.id} •{" "}
-                                  {new Date(order.date).toLocaleDateString("tr-TR")}
+                                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                  {[order.district, new Date(order.date).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })]
+                                    .filter(Boolean)
+                                    .join(" · ")}
                                 </p>
                               </div>
-                              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                              <div className="flex shrink-0 flex-col items-end gap-1">
                                 <OrderStatusBadge status={order.status} />
                                 {showPriority && (
                                   <span className={`text-xs font-semibold ${priorityConfig.color}`}>
@@ -601,15 +650,35 @@ export default function OrdersPage() {
                               </div>
                             </div>
 
-                            {detail && (
-                              <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{detail}</p>
-                            )}
+                            {summary && <p className="mt-2 line-clamp-2 text-sm text-foreground">{summary}</p>}
 
-                            <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-                              <span className="text-lg font-bold tabular-nums text-foreground">
-                                {order.amount}
-                              </span>
-                              <div className="flex items-center gap-1">
+                            <div className="mt-2 flex items-baseline gap-2">
+                              <span className="font-bold tabular-nums text-foreground">{order.amount}</span>
+                              {remaining > 0 && (
+                                <span className={`text-xs font-medium ${TONE_CLASSES.danger.text}`}>
+                                  {`₺${remaining.toLocaleString("tr-TR")}`} kalan
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+                              {step ? (
+                                <Button
+                                  size="sm"
+                                  className="h-9"
+                                  disabled={advancing === order.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    advanceOrder(order);
+                                  }}
+                                >
+                                  {advancing === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                  {step.label}
+                                </Button>
+                              ) : (
+                                <span className="font-mono text-xs text-muted-foreground">{order.orderNumber}</span>
+                              )}
+                              <div className="flex items-center gap-0.5">
                                 <Button
                                   size="icon"
                                   variant="ghost"
@@ -709,51 +778,15 @@ export default function OrdersPage() {
                       })}
                     </div>
 
-                    {totalPages > 1 && (
-                      <div className="mt-6 flex items-center justify-between gap-3">
-                        <Button
-                          variant="outline"
-                          disabled={currentPage === 1}
-                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                        >
-                          Önceki
-                        </Button>
-                        <p className="text-sm text-muted-foreground tabular-nums">
-                          Sayfa {currentPage} / {totalPages} • {total} sipariş
-                        </p>
-                        <Button
-                          variant="outline"
-                          disabled={currentPage === totalPages}
-                          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                        >
-                          Sonraki
-                        </Button>
-                      </div>
+                    {currentPage < totalPages && (
+                      <Button variant="outline" className="mt-4 w-full" onClick={() => setCurrentPage(currentPage + 1)}>
+                        Daha fazla göster ({total - orders.length} sipariş daha)
+                      </Button>
                     )}
                   </>
                 )}
-              </TabsContent>
-            </Tabs>
+            </div>
 
-            {/* Legend Modal */}
-            <Dialog open={isLegendOpen} onOpenChange={setIsLegendOpen}>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Durum Kartelası</DialogTitle>
-                  <DialogDescription>
-                    Sipariş durumlarının anlamları. Rota modülü, dağıtım durumları ile entegredir.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {ORDER_STATUS_FLOW.map((s) => (
-                    <div key={s} className="flex items-start gap-3 rounded-lg border border-border p-3">
-                      <OrderStatusBadge status={s} className="shrink-0" />
-                      <p className="text-xs text-muted-foreground">{orderStatusInfo(s).description}</p>
-                    </div>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
           </div>
         </main>
       </div>

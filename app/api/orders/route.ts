@@ -153,6 +153,15 @@ export async function GET(request: NextRequest) {
         paymentStatus: order.paymentStatus || "PENDING",
         amount: `₺${Number(order.totalAmount || 0).toLocaleString("tr-TR")}`,
         totalAmount: Number(order.totalAmount || 0),
+        // Orders marked paid before payment rows existed have none (same rule as the payments API)
+        remainingAmount:
+          order.paymentStatus === "PAID" && !((order as any).payments || []).length
+            ? 0
+            : Math.max(
+                0,
+                Number(order.totalAmount || 0) -
+                  ((order as any).payments || []).reduce((sum: number, p: any) => sum + Number(p.amount), 0)
+              ),
         date: order.createdAt.toISOString().split("T")[0],
         phone: order.customer.phone || "",
         whatsapp: order.customer.whatsapp || order.customer.phone || "",
