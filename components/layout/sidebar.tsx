@@ -20,7 +20,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { LogoMark } from "@/components/brand/logo";
+import { LogoMark, Logo } from "@/components/brand/logo";
 import { APP_VERSION } from "@/lib/app-info";
 
 // Daily screens; everything else is grouped on the Yönetim screen (app/yonetim/page.tsx)
@@ -125,17 +125,7 @@ export function Sidebar({
       {/* Enhanced Mobile Header */}
       {isMobile && (
         <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border bg-gradient-card">
-          <div className="flex items-center gap-3">
-            <LogoMark className="w-10 h-10" />
-            <div className="flex flex-col">
-              <span className="font-bold text-sidebar-foreground text-base">
-                LaundryPro
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Temizlik Yönetimi
-              </span>
-            </div>
-          </div>
+          <Logo size="md" subtitle="Akıllı Çamaşırhane" />
           <Button
             variant="ghost"
             size="sm"
@@ -153,17 +143,7 @@ export function Sidebar({
 
       {/* Enhanced Desktop/Tablet Header */}
       <div className="hidden md:flex h-16 items-center px-4 border-b border-sidebar-border bg-gradient-card">
-        <div className="flex items-center gap-3">
-          <LogoMark className="w-10 h-10" />
-          <div className="flex flex-col">
-            <span className="font-bold text-sidebar-foreground text-base">
-              LaundryPro
-            </span>
-            <span className="text-xs text-muted-foreground">
-              Profesyonel Çözümler
-            </span>
-          </div>
-        </div>
+        <Logo size="md" subtitle="Akıllı Çamaşırhane & Halı Yıkama" />
       </div>
 
       {/* Enhanced Navigation */}
@@ -289,16 +269,10 @@ export function Sidebar({
               isCollapsed ? "justify-center flex-1" : "flex-1 gap-3"
             )}
           >
-            <LogoMark className="w-10 h-10" />
-            {!isCollapsed && (
-              <div className="flex flex-col min-w-0">
-                <span className="font-bold text-sidebar-foreground text-base truncate">
-                  LaundryPro
-                </span>
-                <span className="text-xs text-muted-foreground truncate">
-                  Profesyonel Çözümler
-                </span>
-              </div>
+            {isCollapsed ? (
+              <LogoMark className="w-10 h-10" />
+            ) : (
+              <Logo size="md" subtitle="Akıllı Çamaşırhane & Halı Yıkama" />
             )}
           </div>
 

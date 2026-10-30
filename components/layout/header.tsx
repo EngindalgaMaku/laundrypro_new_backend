@@ -29,7 +29,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { LogoMark } from "@/components/brand/logo";
+import { LogoMark, Logo } from "@/components/brand/logo";
 import { QRBarcodeScannerDialog } from "@/components/orders/qr-barcode-scanner-dialog";
 
 interface User {
@@ -154,10 +154,7 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
               isMobileMenuOpen ? "opacity-0 scale-95" : "opacity-100 scale-100"
             }`}
           >
-            <LogoMark className="w-8 h-8" />
-            <span className="font-semibold text-foreground text-mobile-base truncate">
-              LaundryPro
-            </span>
+            <Logo size="sm" />
           </div>
         </div>
 
