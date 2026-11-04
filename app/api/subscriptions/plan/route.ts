@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireBusinessAuth, requireSystemAdmin } from "@/lib/auth-utils";
-import { getEntitlements, getPlanForBusiness } from "@/lib/entitlements";
+import { getEntitlements, getPlanStatus } from "@/lib/entitlements";
 
 /**
  * GET /api/subscriptions/plan           → plan of the signed-in user's business
@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
       businessId = auth.businessId;
     }
 
-    const plan = await getPlanForBusiness(businessId);
+    const { plan, level, daysLeft } = await getPlanStatus(businessId);
     const entitlements = await getEntitlements(businessId);
 
-    return NextResponse.json({ success: true, plan, entitlements });
+    return NextResponse.json({ success: true, plan, level, daysLeft, entitlements });
   } catch (error: any) {
     console.error("Subscriptions plan API error:", error);
     return NextResponse.json(

@@ -40,6 +40,7 @@ export default function AdminBusinessDetailPage() {
   const [recentOrders, setRecentOrders] = useState<OrderTop[]>([]);
 
   const [effectivePlan, setEffectivePlan] = useState<"FREE" | "PRO">("FREE");
+  const [planStatus, setPlanStatus] = useState<{ level: string; daysLeft: number } | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(true);
 
   useEffect(() => {
@@ -75,6 +76,7 @@ export default function AdminBusinessDetailPage() {
         setRecentOrders(detail.recentOrders || []);
 
         if (planData?.plan) setEffectivePlan(planData.plan);
+        if (planData?.level) setPlanStatus({ level: planData.level, daysLeft: planData.daysLeft ?? 0 });
       } catch (e) {
         console.error("business detail load error", e);
         alert("İşletme detayı yüklenemedi");
@@ -87,10 +89,21 @@ export default function AdminBusinessDetailPage() {
     load();
   }, [businessId]);
 
+  const changePlan = async (action: string) => {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`/api/admin/businesses/${businessId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ action }),
+    });
+    if (!res.ok) return alert("Plan değiştirilemedi");
+    window.location.reload();
+  };
+
   const betaGranted = useMemo(() => {
     // Beta olarak PRO ise ve gerçek subscription yoksa
-    return effectivePlan === "PRO" && !subscription;
-  }, [effectivePlan, subscription]);
+    return planStatus?.level === "PAID" && !subscription;
+  }, [planStatus, subscription]);
 
   if (!user) return <div className="p-6 text-muted-foreground">Yükleniyor…</div>;
 
@@ -162,6 +175,18 @@ export default function AdminBusinessDetailPage() {
                     <>
                       <div><span className="text-muted-foreground">Geçerli Plan: </span>
                         <span className="font-medium">{effectivePlan}</span></div>
+                      {planStatus && (
+                        <div><span className="text-muted-foreground">Seviye: </span>
+                          <span className="font-medium" data-testid="plan-level">{({ DEMO: "Demo", ENTRY: "Giriş seviyesi", PAID: "Ücretli", RESTRICTED: "Kısıtlı mod" } as Record<string, string>)[planStatus.level]}{planStatus.daysLeft > 0 && ` · ${planStatus.daysLeft} gün`}</span></div>
+                      )}
+                      {planStatus && planStatus.level !== "DEMO" && (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          <Button size="sm" variant="outline" onClick={() => changePlan("entry30")}>Giriş seviyesi +30 gün</Button>
+                          <Button size="sm" variant="outline" onClick={() => changePlan("paid30")}>Ücretli +30 gün</Button>
+                          <Button size="sm" variant="outline" onClick={() => changePlan("paid365")}>Ücretli +1 yıl</Button>
+                          <Button size="sm" variant="outline" onClick={() => changePlan("restrict")}>Kısıtlı moda al</Button>
+                        </div>
+                      )}
                       {subscription ? (
                         <>
                           <div><span className="text-muted-foreground">Durum: </span>{subscription.status || '-'}</div>

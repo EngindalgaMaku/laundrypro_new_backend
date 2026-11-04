@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     const plan = await getPlanForBusiness(currentUser.businessId);
-    const FREE_DAILY_LIMIT = parseInt(process.env.FREE_DAILY_ORDER_LIMIT || "50", 10);
+    const FREE_DAILY_LIMIT = parseInt(process.env.FREE_DAILY_ORDER_LIMIT || "3", 10);
 
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());

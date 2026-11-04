@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
 
     // Plan/limit checks
     const FREE_DAILY_LIMIT = parseInt(
-      process.env.FREE_DAILY_ORDER_LIMIT || "50",
+      process.env.FREE_DAILY_ORDER_LIMIT || "3",
       10
     );
 
@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error: "Günlük sipariş limitine ulaştınız",
-            message: `FREE planda günlük ${FREE_DAILY_LIMIT} sipariş limiti bulunmaktadır. Daha fazla sipariş oluşturmak için PRO plana yükseltebilirsiniz.`,
+            message: `Kısıtlı modda günlük ${FREE_DAILY_LIMIT} sipariş açılabilir. Tam kullanım için bize yazın.`,
             limit: FREE_DAILY_LIMIT,
           },
           { status: 402 }

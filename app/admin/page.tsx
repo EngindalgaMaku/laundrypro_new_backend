@@ -35,6 +35,7 @@ type BusinessItem = {
   city: string | null;
   district: string | null;
   isActive: boolean;
+  planStatus?: { level: "DEMO" | "ENTRY" | "PAID" | "RESTRICTED"; daysLeft: number };
   createdAt: string;
   users: { id: string }[];
 };
@@ -324,6 +325,12 @@ export default function AdminPage() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <Badge variant={b.isActive ? 'default' : 'secondary'}>{b.isActive ? 'Aktif' : 'Pasif'}</Badge>
+                                {b.planStatus && (
+                                  <Badge variant="outline" data-testid="plan-level">
+                                    {({ DEMO: "Demo", ENTRY: "Giriş seviyesi", PAID: "Ücretli", RESTRICTED: "Kısıtlı mod" })[b.planStatus.level]}
+                                    {b.planStatus.daysLeft > 0 && ` · ${b.planStatus.daysLeft} gün`}
+                                  </Badge>
+                                )}
                                 <span className="text-xs text-muted-foreground">Kullanıcı: {b.users?.length || 0}</span>
                                 <span className="text-xs text-muted-foreground">{new Date(b.createdAt).toLocaleDateString()}</span>
                                 <a href={`/admin/businesses/${b.id}`}>

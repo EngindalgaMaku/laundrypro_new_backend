@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getUserFromRequest } from "@/lib/auth";
+import { getPlanStatus } from "@/lib/entitlements";
 
 
 
@@ -56,7 +57,8 @@ export async function GET(request: NextRequest) {
       prisma.business.count({ where }),
     ]);
 
-    return NextResponse.json({ success: true, items, total, page, limit });
+    const withPlan = await Promise.all(items.map(async (b) => ({ ...b, planStatus: await getPlanStatus(b.id) })));
+    return NextResponse.json({ success: true, items: withPlan, total, page, limit });
   } catch (e: any) {
     if (e.message === "UNAUTHORIZED") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (e.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
