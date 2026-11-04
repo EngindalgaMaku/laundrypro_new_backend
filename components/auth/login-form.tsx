@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,10 @@ import {
 
 export function LoginForm() {
   const [isLogin, setIsLogin] = useState(true);
+  // Links from kodleon.com open the sign-up side: /?kayit=1
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("kayit")) setIsLogin(false);
+  }, []);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);

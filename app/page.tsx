@@ -84,7 +84,7 @@ export default function HomePage() {
       // Masaüstü/bilgisayar ekranlarında doğrudan çift sütunlu geniş masaüstü ekranını göster.
       const isMobileViewport =
         typeof window !== "undefined" && window.innerWidth < 768;
-      if (!hasSeenOnboarding && isMobileViewport) {
+      if (!hasSeenOnboarding && isMobileViewport && !new URLSearchParams(window.location.search).has("kayit")) {
         setShowOnboarding(true);
       }
     }
