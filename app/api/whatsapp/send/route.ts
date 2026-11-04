@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireBusinessAuth } from "@/lib/auth-utils";
+import { demoLockResponse } from "@/lib/demo";
 
 import { createWhatsAppService } from "@/lib/whatsapp-service";
 
@@ -9,6 +10,8 @@ import { prisma } from "@/lib/db";
 export async function POST(request: NextRequest) {
   const auth = await requireBusinessAuth(request);
   if (auth instanceof NextResponse) return auth;
+  const locked = await demoLockResponse(request);
+  if (locked) return locked;
   const { businessId } = auth;
   try {
     const body = await request.json();

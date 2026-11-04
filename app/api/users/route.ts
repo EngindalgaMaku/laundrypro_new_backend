@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
+import { demoLockResponse } from "@/lib/demo";
 import { getUsers, createUser, updateUser } from "@/lib/database/users";
 import { prisma } from "@/lib/db";
 import { RBACMiddleware, AuthenticatedRequest } from "@/lib/rbac/middleware";
@@ -73,6 +74,8 @@ export const GET = RBACMiddleware.requireUserRead(
 export const POST = RBACMiddleware.requireUserWrite(
   async (request: AuthenticatedRequest) => {
     try {
+      const locked = await demoLockResponse(request);
+      if (locked) return locked;
       const user = request.user!; // User is guaranteed by RBAC middleware
 
       // Validate business context
@@ -183,6 +186,8 @@ export const POST = RBACMiddleware.requireUserWrite(
 export const PUT = RBACMiddleware.requireUserWrite(
   async (request: AuthenticatedRequest) => {
     try {
+      const locked = await demoLockResponse(request);
+      if (locked) return locked;
       const user = request.user!; // User is guaranteed by RBAC middleware
 
       // Validate business context

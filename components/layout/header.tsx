@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { LogoMark, Logo } from "@/components/brand/logo";
+import { DemoNotice } from "@/components/layout/demo-notice";
 import { QRBarcodeScannerDialog } from "@/components/orders/qr-barcode-scanner-dialog";
 
 interface User {
@@ -128,6 +129,7 @@ export function Header({ user, onMenuClick, isMobileMenuOpen }: HeaderProps) {
 
   return (
     <>
+    <DemoNotice />
     <header className="sticky top-0 z-50 h-14 sm:h-16 border-b border-border bg-card">
       <div className="flex items-center justify-between h-full px-3 sm:px-4 lg:px-6">
         {/* Mobile menu button + Logo */}

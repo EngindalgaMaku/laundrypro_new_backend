@@ -361,6 +361,7 @@ model Business {
   // VAT for invoices (lib/vat.ts): default rate and whether entered prices include it
   vatRate          Decimal  @default(20) @map("vat_rate") @db.Decimal(5, 2)
   pricesIncludeVat Boolean  @default(true) @map("prices_include_vat")
+  isDemo      Boolean     @default(false) @map("is_demo") // lib/demo.ts: the public demo, reset nightly
   isActive    Boolean     @default(true) @map("is_active")
   onboardingCompleted Boolean @default(false) @map("onboarding_completed") // Phase 1: Track onboarding status
   createdAt   DateTime    @default(now()) @map("created_at")

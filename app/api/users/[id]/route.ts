@@ -1,3 +1,4 @@
+import { demoLockResponse } from "@/lib/demo";
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { UserDatabaseService } from "@/lib/database/users";
@@ -87,6 +88,8 @@ export const PUT = RBACMiddleware.requireUserWrite(
     { params }: { params: Promise<{ id: string }> }
   ) => {
     try {
+      const locked = await demoLockResponse(request);
+      if (locked) return locked;
       const user = request.user!; // User is guaranteed by RBAC middleware
       const { id } = await params;
       const body = await request.json();
@@ -187,6 +190,8 @@ export const DELETE = RBACMiddleware.requireUserManagement(
     { params }: { params: Promise<{ id: string }> }
   ) => {
     try {
+      const locked = await demoLockResponse(request);
+      if (locked) return locked;
       const user = request.user!; // User is guaranteed by RBAC middleware
       const { id } = await params;
 
@@ -264,6 +269,8 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const locked = await demoLockResponse(request);
+    if (locked) return locked;
     // Only OWNER can manage custom permissions
     if (user.role !== "OWNER") {
       return NextResponse.json(

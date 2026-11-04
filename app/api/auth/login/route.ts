@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { UserDatabaseService } from "@/lib/database/users";
 import { PermissionService } from "@/lib/rbac/PermissionService";
 import { prisma } from "@/lib/db";
+import { isDemoBusiness } from "@/lib/demo";
 
 export async function POST(request: NextRequest) {
   try {
@@ -182,6 +183,7 @@ export async function POST(request: NextRequest) {
           email: (user.business as any).email || null,
           phone: (user.business as any).phone || null,
           address: (user.business as any).address || null,
+          isDemo: await isDemoBusiness(user.business.id),
         },
         permissions: userPermissions,
         sessionId: sessionId,

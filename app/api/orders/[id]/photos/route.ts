@@ -1,3 +1,5 @@
+import { getUserFromRequest } from "@/lib/auth";
+import { DEMO_MAX_PHOTO_BYTES, DEMO_PHOTOS_PER_ORDER, isDemoBusiness } from "@/lib/demo";
 import { NextRequest, NextResponse } from "next/server";
 import {
   ALLOWED_PHOTO_TYPES,
@@ -52,6 +54,14 @@ export async function POST(
         { error: "Yalnızca geçerli görsel dosyaları (JPG, PNG, WEBP, HEIC) yüklenebilir" },
         { status: 400 }
       );
+    }
+
+    // Visitors share the demo business: enough to try the feature, not enough to fill the disk
+    if (await isDemoBusiness(getUserFromRequest(request)?.businessId)) {
+      const tooMany = (await listOrderPhotos(order.id)).length >= DEMO_PHOTOS_PER_ORDER;
+      if (tooMany || file.size > DEMO_MAX_PHOTO_BYTES) {
+        return NextResponse.json({ error: "Demoda sipariş başına 5 fotoğraf, fotoğraf başına 3 MB yüklenebilir" }, { status: 400 });
+      }
     }
 
     const photo = await addOrderPhoto(

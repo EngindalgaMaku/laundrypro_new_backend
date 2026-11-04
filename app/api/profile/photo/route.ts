@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import { getUserFromRequest } from "@/lib/auth";
+import { demoLockResponse } from "@/lib/demo";
 import { UserDatabaseService } from "@/lib/database/users";
 
 export async function POST(request: NextRequest) {
@@ -13,6 +14,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const locked = await demoLockResponse(request);
+    if (locked) return locked;
     const formData = await request.formData();
     const file = formData.get("photo") as File;
 

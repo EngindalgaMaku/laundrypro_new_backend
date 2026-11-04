@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import { DemoAccounts } from "@/components/auth/demo-accounts";
 import {
   Eye,
   EyeOff,
@@ -74,13 +75,17 @@ export function LoginForm() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    await signInWith(loginData);
+  };
+
+  const signInWith = async (credentials: { email: string; password: string }) => {
     setIsLoading(true);
 
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loginData),
+        body: JSON.stringify(credentials),
       });
 
       const data = await response.json();
@@ -364,6 +369,8 @@ export function LoginForm() {
                       {isLoading ? "Giriş yapılıyor..." : "Giriş Yap"}
                     </div>
                   </Button>
+
+                  <DemoAccounts busy={isLoading} onSignIn={(email, password) => signInWith({ email, password })} />
                 </form>
               ) : (
                 /* Premium Register Form */

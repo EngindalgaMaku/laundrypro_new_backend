@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { isDemoBusiness } from "@/lib/demo";
 import { sendMail } from "@/lib/mailer";
 import {
   RESET_TOKEN_TTL_MS,
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await prisma.user.findUnique({ where: { email } });
 
-    if (user && user.isActive) {
+    if (user && user.isActive && !(await isDemoBusiness(user.businessId))) {
       const baseUrl = appBaseUrl(request);
       if (!baseUrl) {
         console.error("[FORGOT-PASSWORD] NEXT_PUBLIC_APP_URL is not set; reset link not sent");

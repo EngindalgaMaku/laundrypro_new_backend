@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateAuthRequest } from "@/lib/auth-utils";
+import { demoLockResponse } from "@/lib/demo";
 import { UserDatabaseService } from "@/lib/database/users";
 
 export async function GET(request: NextRequest) {
@@ -43,6 +44,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const locked = await demoLockResponse(request);
+    if (locked) return locked;
     const body = await request.json();
     const { firstName, lastName, phone } = body;
 

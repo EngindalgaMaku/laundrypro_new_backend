@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { demoLockResponse } from "@/lib/demo";
 import { anonymizeUser, deleteBusinessCompletely } from "@/lib/account-deletion";
 import { createRateLimiter } from "@/lib/password-reset";
 
@@ -17,6 +18,8 @@ export async function POST(request: NextRequest) {
   if (!tokenUser) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const locked = await demoLockResponse(request);
+  if (locked) return locked;
   if (!allowAttempt(tokenUser.userId)) {
     return NextResponse.json(
       { error: "Çok fazla deneme. Lütfen bir saat sonra tekrar deneyin." },

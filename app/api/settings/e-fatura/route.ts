@@ -1,3 +1,4 @@
+import { demoLockResponse } from "@/lib/demo";
 import { NextRequest, NextResponse } from "next/server";
 import { requireBusinessAuth } from "@/lib/auth-utils";
 
@@ -70,6 +71,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await requireBusinessAuth(request);
   if (auth instanceof NextResponse) return auth;
+  const locked = await demoLockResponse(request);
+  if (locked) return locked;
   const { businessId } = auth;
   try {
     const body = await request.json();
@@ -263,6 +266,8 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const auth = await requireBusinessAuth(request);
   if (auth instanceof NextResponse) return auth;
+  const locked = await demoLockResponse(request);
+  if (locked) return locked;
   const { businessId } = auth;
   try {
     const body = await request.json();
@@ -303,6 +308,8 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const auth = await requireBusinessAuth(request);
   if (auth instanceof NextResponse) return auth;
+  const locked = await demoLockResponse(request);
+  if (locked) return locked;
   const { businessId } = auth;
   const { searchParams } = new URL(request.url);
 

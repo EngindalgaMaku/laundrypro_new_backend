@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeCity, normalizeDistrict } from "@/lib/turkish-locations";
 import { requireBusinessAuth } from "@/lib/auth-utils";
+import { demoLockResponse } from "@/lib/demo";
 import { isValidVatRate, vatSettingsOf } from "@/lib/vat";
 import {
   getBusinessById,
@@ -101,6 +102,8 @@ export async function PUT(
   try {
     const auth = await requireBusinessAuth(request);
     if (auth instanceof NextResponse) return auth;
+    const locked = await demoLockResponse(request);
+    if (locked) return locked;
 
     const body = await request.json();
     const {
